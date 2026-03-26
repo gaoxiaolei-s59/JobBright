@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8080";
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:10010";
 const TOKEN_KEY = "jobbright_access_token";
+const TOKEN_HEADER = "X-Access-Token";
 
 const initialLoginForm = {
   account: "demo",
@@ -37,16 +38,18 @@ function App() {
   }, []);
 
   async function request(path, options = {}) {
+    const token = localStorage.getItem(TOKEN_KEY);
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { [TOKEN_HEADER]: token } : {}),
         ...(options.headers || {})
       }
     });
 
     const result = await response.json();
-    if (!response.ok || !result.success) {
+    if (!response.ok || result.code !== "0") {
       throw new Error(result.message || "请求失败");
     }
     return result.data;
@@ -59,10 +62,7 @@ function App() {
 
     try {
       const user = await request("/api/auth/me", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        method: "GET"
       });
       setAuth((current) => ({ ...current, user }));
     } catch (error) {
@@ -82,7 +82,8 @@ function App() {
         body: JSON.stringify(loginForm)
       });
       localStorage.setItem(TOKEN_KEY, data.accessToken);
-      setAuth({ token: data.accessToken, user: data.user });
+      setAuth({ token: data.accessToken, user: null });
+      await loadCurrentUser(data.accessToken);
       setMessage({ type: "success", text: "登录成功，欢迎回来。" });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
@@ -101,10 +102,8 @@ function App() {
         method: "POST",
         body: JSON.stringify(registerForm)
       });
-      localStorage.setItem(TOKEN_KEY, data.accessToken);
-      setAuth({ token: data.accessToken, user: data.user });
       setRegisterForm(initialRegisterForm);
-      setMessage({ type: "success", text: "注册成功，已自动进入平台。" });
+      setMessage({ type: "success", text: "注册成功，请使用新账号登录。" });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
     } finally {
@@ -172,19 +171,19 @@ function App() {
               <div className="profile-grid">
                 <div className="profile-card">
                   <span>用户名</span>
-                  <strong>{auth.user.username}</strong>
+                  <strong>{auth.user.userName}</strong>
                 </div>
                 <div className="profile-card">
                   <span>邮箱</span>
                   <strong>{auth.user.email}</strong>
                 </div>
                 <div className="profile-card">
-                  <span>角色</span>
-                  <strong>{auth.user.role}</strong>
-                </div>
-                <div className="profile-card">
                   <span>接口地址</span>
                   <strong>/api/auth/me</strong>
+                </div>
+                <div className="profile-card">
+                  <span>用户ID</span>
+                  <strong>{auth.user.userId}</strong>
                 </div>
               </div>
 

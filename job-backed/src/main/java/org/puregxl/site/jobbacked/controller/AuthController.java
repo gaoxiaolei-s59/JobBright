@@ -1,8 +1,10 @@
 package org.puregxl.site.jobbacked.controller;
 
 import jakarta.validation.Valid;
-import org.puregxl.site.framework.common.ApiResponse;
-import org.puregxl.site.framework.context.AuthContext;
+import lombok.RequiredArgsConstructor;
+import org.puregxl.site.framework.result.Result;
+import org.puregxl.site.framework.web.Results;
+import org.puregxl.site.jobbacked.common.context.UserContext;
 import org.puregxl.site.jobbacked.dto.req.LoginRequest;
 import org.puregxl.site.jobbacked.dto.req.RegisterRequest;
 import org.puregxl.site.jobbacked.dto.resp.AuthResponse;
@@ -18,26 +20,42 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
 
+    /**
+     * 用户注册
+     * @param request
+     * @return
+     */
     @PostMapping("/register")
-    public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ApiResponse.success("注册成功", authService.register(request));
+    public Result<Void> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return Results.success();
     }
 
+
+    /**
+     * 用户登录
+     * @param request
+     * @return
+     */
     @PostMapping("/login")
-    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.success("登录成功", authService.login(request));
+    public Result<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return Results.success(authService.login(request));
     }
 
+    /**
+     * 检查当前用户状态
+     * @return
+     */
     @GetMapping("/me")
-    public ApiResponse<UserProfileResponse> currentUser() {
-        return ApiResponse.success(authService.currentUser(AuthContext.getCurrentUserId()));
+    public Result<UserProfileResponse> currentUser() {
+        String currentUserId = UserContext.getUserId();
+        Long userId = currentUserId == null ? null : Long.parseLong(currentUserId);
+        return Results.success(authService.currentUser(userId));
     }
 }

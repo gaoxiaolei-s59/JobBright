@@ -31,15 +31,16 @@ class AuthFlowTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value("0"))
                 .andReturn();
 
         String token = JsonTestUtils.readJson(loginResult.getResponse().getContentAsString(), "data.accessToken");
 
         mockMvc.perform(get("/api/auth/me")
-                        .header("Authorization", "Bearer " + token))
+                        .header("X-Access-Token", token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.username").value("demo"))
+                .andExpect(jsonPath("$.code").value("0"))
+                .andExpect(jsonPath("$.data.userName").value("demo"))
                 .andExpect(jsonPath("$.data.email").value("demo@jobbacked.com"));
     }
 }

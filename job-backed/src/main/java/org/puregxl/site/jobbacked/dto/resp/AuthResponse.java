@@ -7,8 +7,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthResponse {
+
     private String accessToken;
-    private String tokenType;
-    private long expiresInSeconds;
-    private UserProfileResponse user;
+
 }

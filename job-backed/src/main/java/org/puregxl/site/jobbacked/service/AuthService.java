@@ -9,9 +9,11 @@ import org.puregxl.site.jobbacked.dto.resp.UserProfileResponse;
 
 public interface AuthService {
 
-    AuthResponse register(@Valid RegisterRequest request);
+
 
     AuthResponse login(@Valid LoginRequest request);
 
     UserProfileResponse currentUser(Long currentUserId);
+
+    void register(@Valid RegisterRequest request);
 }

@@ -1,4 +1,4 @@
-package org.puregxl.site.jobbacked.dto.resp;
+package org.puregxl.site.jobbacked.common.context;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,14 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class UserProfileResponse{
+@AllArgsConstructor
+@Builder
+public class UserInfoDTO {
     /**
      * 用户id
      */
-    private Long userId;
+    private String userId;
 
     /**
      * 用户姓名
