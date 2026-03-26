@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: job-backed
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/jobbacked;MODE=MySQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+app:
+  jwt:
+    secret: jobbacked-demo-secret-key-jobbacked-demo-secret-key
+    expiration-hours: 24

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobBright Backend Demo</title>
+    <style>
+        :root {
+            --bg: #f4efe7;
+            --panel: rgba(255, 250, 243, 0.82);
+            --text: #1f2937;
+            --muted: #6b7280;
+            --primary: #d96f32;
+            --primary-deep: #8f3d18;
+            --line: rgba(31, 41, 55, 0.08);
+            --success: #0f766e;
+            --shadow: 0 24px 80px rgba(73, 48, 27, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(217, 111, 50, 0.2), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.16), transparent 24%),
+                linear-gradient(135deg, #f7f2ea 0%, #efe5d7 52%, #f7efe5 100%);
+        }
+
+        .page {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            min-height: 100vh;
+        }
+
+        .hero,
+        .panel-wrap {
+            padding: 48px;
+        }
+
+        .hero {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .brand {
+            font-size: 1rem;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: var(--primary-deep);
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 24px 0 16px;
+            max-width: 560px;
+            font-size: clamp(2.8rem, 6vw, 5.4rem);
+            line-height: 0.95;
+            letter-spacing: -0.05em;
+        }
+
+        .hero p {
+            max-width: 540px;
+            color: var(--muted);
+            font-size: 1.05rem;
+            line-height: 1.75;
+        }
+
+        .stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 32px;
+        }
+
+        .stat {
+            min-width: 160px;
+            padding: 18px 20px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.46);
+            backdrop-filter: blur(12px);
+        }
+
+        .stat strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.6rem;
+        }
+
+        .stat span {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .panel-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel {
+            width: min(100%, 480px);
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 28px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            border: 0;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.72);
+            color: var(--muted);
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: var(--text);
+            color: white;
+        }
+
+        .form {
+            display: none;
+            gap: 14px;
+        }
+
+        .form.active {
+            display: grid;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            border: 1px solid rgba(31, 41, 55, 0.1);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        button[type="submit"] {
+            margin-top: 8px;
+            border: 0;
+            border-radius: 16px;
+            padding: 15px 18px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, var(--primary) 0%, #be5621 100%);
+            cursor: pointer;
+        }
+
+        .hint,
+        .message,
+        .profile {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .hint {
+            background: rgba(255, 255, 255, 0.65);
+            color: var(--muted);
+        }
+
+        .message {
+            display: none;
+            background: rgba(15, 118, 110, 0.12);
+            color: var(--success);
+        }
+
+        .message.error {
+            display: block;
+            background: rgba(185, 28, 28, 0.1);
+            color: #991b1b;
+        }
+
+        .message.success {
+            display: block;
+        }
+
+        .profile {
+            display: none;
+            background: rgba(31, 41, 55, 0.06);
+        }
+
+        .profile.visible {
+            display: block;
+        }
+
+        @media (max-width: 960px) {
+            .page {
+                grid-template-columns: 1fr;
+            }
+
+            .hero,
+            .panel-wrap {
+                padding: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+        <div>
+            <div class="brand">JobBright</div>
+            <h1>让候选人更快遇到合适机会。</h1>
+            <p>
+                这是一个为职位平台准备的登录演示页，风格上参考了现代求职产品常见的“轻品牌感 + 高转化表单”布局。
+                现在它已经接通后端注册、登录和当前用户接口，后续可以继续扩展职位搜索、简历投递和企业工作台。
+            </p>
+            <div class="stats">
+                <div class="stat">
+                    <strong>10s</strong>
+                    <span>从登录到进入平台的首屏节奏</span>
+                </div>
+                <div class="stat">
+                    <strong>JWT</strong>
+                    <span>轻量鉴权，方便前后端分离</span>
+                </div>
+                <div class="stat">
+                    <strong>H2</strong>
+                    <span>默认开箱即跑，后续可切 MySQL</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel-wrap">
+        <div class="panel">
+            <div class="tabs">
+                <button class="tab active" data-target="login-form">登录</button>
+                <button class="tab" data-target="register-form">注册</button>
+            </div>
+
+            <form id="login-form" class="form active">
+                <label>
+                    用户名或邮箱
+                    <input name="account" placeholder="demo 或 demo@jobbacked.com" required>
+                </label>
+                <label>
+                    密码
+                    <input name="password" type="password" placeholder="请输入密码" required>
+                </label>
+                <button type="submit">进入平台</button>
+            </form>
+
+            <form id="register-form" class="form">
+                <label>
+                    用户名
+                    <input name="username" placeholder="3-24 位用户名" required>
+                </label>
+                <label>
+                    邮箱
+                    <input name="email" type="email" placeholder="you@example.com" required>
+                </label>
+                <label>
+                    昵称
+                    <input name="displayName" placeholder="你的展示名称" required>
+                </label>
+                <label>
+                    密码
+                    <input name="password" type="password" placeholder="至少 6 位" required>
+                </label>
+                <button type="submit">创建账号</button>
+            </form>
+
+            <div id="message" class="message"></div>
+            <div class="hint">演示账号：`demo` / `JobBacked123`。登录后会自动请求 `/api/auth/me`。</div>
+            <div id="profile" class="profile"></div>
+        </div>
+    </section>
+</div>
+
+<script>
+    const tabs = document.querySelectorAll('.tab');
+    const forms = document.querySelectorAll('.form');
+    const messageBox = document.getElementById('message');
+    const profileBox = document.getElementById('profile');
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            tabs.forEach((item) => item.classList.remove('active'));
+            forms.forEach((form) => form.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.target).classList.add('active');
+            renderMessage('');
+        });
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        await authenticate('/api/auth/login', Object.fromEntries(formData.entries()), '登录成功');
+    });
+
+    document.getElementById('register-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        await authenticate('/api/auth/register', Object.fromEntries(formData.entries()), '注册成功，已自动登录');
+    });
+
+    async function authenticate(url, payload, successText) {
+        renderMessage('');
+        profileBox.classList.remove('visible');
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            renderMessage(result.message || '请求失败', true);
+            return;
+        }
+
+        localStorage.setItem('jobbacked_token', result.data.accessToken);
+        renderMessage(successText, false);
+        await fetchCurrentUser();
+    }
+
+    async function fetchCurrentUser() {
+        const token = localStorage.getItem('jobbacked_token');
+        if (!token) {
+            return;
+        }
+
+        const response = await fetch('/api/auth/me', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            renderMessage(result.message || '获取用户信息失败', true);
+            return;
+        }
+
+        profileBox.innerHTML = `
+            <strong>${result.data.displayName}</strong><br>
+            用户名：${result.data.username}<br>
+            邮箱：${result.data.email}<br>
+            角色：${result.data.role}
+        `;
+        profileBox.classList.add('visible');
+    }
+
+    function renderMessage(text, isError = false) {
+        messageBox.textContent = text;
+        messageBox.className = `message ${text ? (isError ? 'error' : 'success') : ''}`;
+    }
+
+    fetchCurrentUser();
+</script>
+</body>
+</html>
