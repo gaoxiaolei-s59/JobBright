@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.Put;
 import org.puregxl.site.framework.exception.ClientException;
 import org.puregxl.site.rag.config.RustfsProperties;
 import org.puregxl.site.rag.dao.entity.RagFile;
@@ -39,6 +40,11 @@ public class FileServiceImpl implements FileService {
 
     private final RustfsProperties rustfsProperties;
 
+    /**
+     * 上传文件接口
+     * @param file
+     * @return
+     */
     @Override
     public UploadFileResponse uploadFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -81,6 +87,11 @@ public class FileServiceImpl implements FileService {
                 .build();
     }
 
+    /**
+     * 获取文件
+     * @param fileId
+     * @return
+     */
     @Override
     public UploadFileResponse getFile(String fileId) {
         RagFile ragFile = getRagFile(fileId);
@@ -95,6 +106,11 @@ public class FileServiceImpl implements FileService {
                 .build();
     }
 
+    /**
+     * 下载文件接口
+     * @param fileId
+     * @return
+     */
     @Override
     public DownloadFileResponse downloadFile(String fileId) {
         RagFile ragFile = getRagFile(fileId);
@@ -128,6 +144,11 @@ public class FileServiceImpl implements FileService {
         return ragFile;
     }
 
+    /**
+     * 插入到云存储中
+     * @param file
+     * @param objectKey
+     */
     private void putObject(MultipartFile file, String objectKey) {
         try {
             PutObjectRequest request = PutObjectRequest.builder()
@@ -141,10 +162,6 @@ public class FileServiceImpl implements FileService {
         } catch (S3Exception exception) {
             throw new ClientException("上传文件到对象存储失败");
         }
-    }
-
-    private void putObjects(MultipartFile file, String objectKey) {
-
     }
 
     private void ensureBucketExists() {

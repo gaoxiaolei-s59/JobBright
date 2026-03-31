@@ -16,9 +16,21 @@ spring:
     redis:
       host: 127.0.0.1
       port: 6379
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
 
 
 app:
   jwt:
     secret: jobbacked-demo-secret-key-jobbacked-demo-secret-key
     expiration-hours: 24
+
+
+rustfs:
+  url: http://localhost:9000
+  access-key-id: rustfsadmin
+  secret-access-key: rustfsadmin
+  bucket-name: job-rag
+  create-bucket-if-missing: true

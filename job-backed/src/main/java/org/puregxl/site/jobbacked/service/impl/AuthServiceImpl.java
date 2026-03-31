@@ -17,6 +17,7 @@ import org.puregxl.site.jobbacked.dto.req.RegisterRequest;
 import org.puregxl.site.jobbacked.dto.resp.AuthResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserProfileResponse;
 import org.puregxl.site.jobbacked.service.AuthService;
+import org.puregxl.site.jobbacked.service.FileStorageService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserAccountMapper userAccountMapper;
 
     private final StringRedisTemplate stringRedisTemplate;
+
 
     @Override
     public AuthResponse login(LoginRequest requestParam) {
