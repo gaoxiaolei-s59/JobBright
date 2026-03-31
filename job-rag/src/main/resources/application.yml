@@ -1,0 +1,23 @@
+server:
+  port: 10020
+
+spring:
+  application:
+    name: job-rag
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/job_rag?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+rustfs:
+  url: http://localhost:9000
+  access-key-id: rustfsadmin
+  secret-access-key: rustfsadmin
+  bucket-name: job-rag
+  create-bucket-if-missing: true
+

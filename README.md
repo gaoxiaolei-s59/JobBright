@@ -49,6 +49,7 @@ npm run dev
 
 - 前端说明: `job-frontend-react/README.md`
 - 后端说明: `docs/backend-auth-system.md`
+- 前端风格规范: `docs/frontend-style-guide.md`
 
 ## 演示账号
 
