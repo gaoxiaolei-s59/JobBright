@@ -1,312 +1,308 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:10010";
-const TOKEN_KEY = "jobbright_access_token";
-const TOKEN_HEADER = "X-Access-Token";
+const sidebarItems = [
+  { key: "jobs", label: "Jobs", badge: null, active: true },
+  { key: "resume", label: "Resume", badge: null, active: false },
+  { key: "profile", label: "Profile", badge: null, active: false },
+  { key: "agent", label: "Agent", badge: null, active: false },
+  { key: "coaching", label: "Coaching", badge: "NEW", active: false }
+];
 
-const initialLoginForm = {
-  account: "demo",
-  password: "JobBacked123"
-};
+const filters = [
+  "United States",
+  "Backend Engineer",
+  "Intern/New Grad",
+  "Full-time +1",
+  "Onsite +2",
+  "Date Posted",
+  "Years of Experience",
+  "Industry",
+  "Hidden Jobs",
+  "All Filters"
+];
 
-const initialRegisterForm = {
-  username: "",
-  email: "",
-  displayName: "",
-  password: ""
-};
+const savedFilters = [
+  "Backend Engineer, US",
+  "New Grad, Remote Friendly",
+  "AI Platform, Full-time"
+];
+
+const jobItems = [
+  {
+    id: "job-1",
+    company: "Samsung",
+    title: "Software Engineer, Backend Internship",
+    meta: "Samsung Electronics America / Manufacturing / Late Stage",
+    postedAt: "6 hours ago",
+    location: "Mountain View, CA",
+    workMode: "Onsite",
+    employmentType: "Internship",
+    level: "Intern",
+    applicants: 54,
+    match: 82,
+    sponsor: "H1B Sponsor Likely",
+    cta: "Apply with Autofill",
+    brand: "SAMSUNG",
+    theme: "dark"
+  },
+  {
+    id: "job-2",
+    company: "Informatica",
+    title: "Software Engineering AMTS (College Grad)",
+    meta: "Informatica / Big Data / Cloud Computing / Public Company",
+    postedAt: "10 hours ago",
+    location: "CA",
+    workMode: "Onsite",
+    employmentType: "Full-time",
+    level: "New Grad, Entry Level",
+    applicants: 72,
+    match: 98,
+    sponsor: "H1B Sponsor Likely",
+    cta: "Apply Now",
+    brand: "I",
+    theme: "orange"
+  },
+  {
+    id: "job-3",
+    company: "Salesforce",
+    title: "Software Engineering AMTS (College Grad)",
+    meta: "Salesforce / AI Cloud / Enterprise SaaS / Public Company",
+    postedAt: "Reposted 14 hours ago",
+    location: "San Francisco, CA",
+    workMode: "Hybrid",
+    employmentType: "Full-time",
+    level: "Early Career",
+    applicants: 108,
+    match: 93,
+    sponsor: "Strong alumni network",
+    cta: "Open Role",
+    brand: "salesforce",
+    theme: "blue"
+  }
+];
 
 function App() {
-  const [activeTab, setActiveTab] = useState("login");
-  const [loginForm, setLoginForm] = useState(initialLoginForm);
-  const [registerForm, setRegisterForm] = useState(initialRegisterForm);
-  const [message, setMessage] = useState({ type: "", text: "" });
-  const [loading, setLoading] = useState(false);
-  const [auth, setAuth] = useState(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    return {
-      token,
-      user: null
-    };
-  });
+  const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("Recommended");
 
-  useEffect(() => {
-    if (auth.token) {
-      loadCurrentUser(auth.token);
+  const visibleJobs = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    if (!keyword) {
+      return jobItems;
     }
-  }, []);
-
-  async function request(path, options = {}) {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { [TOKEN_HEADER]: token } : {}),
-        ...(options.headers || {})
-      }
-    });
-
-    const result = await response.json();
-    if (!response.ok || result.code !== "0") {
-      throw new Error(result.message || "请求失败");
-    }
-    return result.data;
-  }
-
-  async function loadCurrentUser(token = auth.token) {
-    if (!token) {
-      return;
-    }
-
-    try {
-      const user = await request("/api/auth/me", {
-        method: "GET"
-      });
-      setAuth((current) => ({ ...current, user }));
-    } catch (error) {
-      logout();
-      setMessage({ type: "error", text: error.message });
-    }
-  }
-
-  async function handleLogin(event) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    try {
-      const data = await request("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify(loginForm)
-      });
-      localStorage.setItem(TOKEN_KEY, data.accessToken);
-      setAuth({ token: data.accessToken, user: null });
-      await loadCurrentUser(data.accessToken);
-      setMessage({ type: "success", text: "登录成功，欢迎回来。" });
-    } catch (error) {
-      setMessage({ type: "error", text: error.message });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleRegister(event) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    try {
-      const data = await request("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify(registerForm)
-      });
-      setRegisterForm(initialRegisterForm);
-      setMessage({ type: "success", text: "注册成功，请使用新账号登录。" });
-    } catch (error) {
-      setMessage({ type: "error", text: error.message });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function logout() {
-    localStorage.removeItem(TOKEN_KEY);
-    setAuth({ token: null, user: null });
-    setActiveTab("login");
-  }
-
-  function updateForm(setter, field, value) {
-    setter((current) => ({
-      ...current,
-      [field]: value
-    }));
-  }
+    return jobItems.filter((item) =>
+      [item.title, item.company, item.meta].some((text) => text.toLowerCase().includes(keyword))
+    );
+  }, [query]);
 
   return (
-    <div className="page-shell">
-      <div className="ambient ambient-left" />
-      <div className="ambient ambient-right" />
+    <div className="dashboard-shell">
+      <div className="promo-bar">
+        <span>Offer window closes in 59m 38s.</span>
+        <strong>Last chance to unlock more matched jobs this week.</strong>
+      </div>
 
-      <main className="layout">
-        <section className="hero-card">
-          <span className="eyebrow">JobBright Platform</span>
-          <h1>把登录页做成真正能承接转化的求职平台首页入口。</h1>
-          <p className="hero-copy">
-            这套 React 前端已经对接当前 Spring Boot 登录接口，可直接继续扩展成职位搜索、
-            候选人中心、企业端控制台。视觉方向参考现代招聘平台官网，强调品牌、速度和信任感。
-          </p>
-
-          <div className="feature-grid">
-            <article className="feature-card">
-              <strong>React + Vite</strong>
-              <span>轻量前端工程，适合快速迭代官网和业务页。</span>
-            </article>
-            <article className="feature-card">
-              <strong>JWT Auth</strong>
-              <span>已接通登录、注册、当前用户接口。</span>
-            </article>
-            <article className="feature-card">
-              <strong>Docs Ready</strong>
-              <span>前后端说明文档已补齐，方便继续开发。</span>
-            </article>
+      <div className="dashboard-layout">
+        <aside className="sidebar">
+          <div className="brand-block">
+            <div className="brand-mark">J</div>
+            <div>
+              <strong>JobBright</strong>
+              <span>Career OS</span>
+            </div>
           </div>
-        </section>
 
-        <section className="panel-card">
-          {auth.user ? (
-            <div className="dashboard">
-              <div className="dashboard-header">
-                <div>
-                  <span className="eyebrow">Authenticated</span>
-                  <h2>{auth.user.displayName}</h2>
-                  <p>你已经完成登录，当前可以继续扩展职位推荐、简历投递和个人工作台。</p>
-                </div>
-                <button className="secondary-button" onClick={logout}>
-                  退出登录
-                </button>
-              </div>
+          <nav className="sidebar-nav">
+            {sidebarItems.map((item) => (
+              <button
+                key={item.key}
+                className={item.active ? "sidebar-link active" : "sidebar-link"}
+                type="button"
+              >
+                <span>{item.label}</span>
+                {item.badge ? <em>{item.badge}</em> : null}
+              </button>
+            ))}
+          </nav>
 
-              <div className="profile-grid">
-                <div className="profile-card">
-                  <span>用户名</span>
-                  <strong>{auth.user.userName}</strong>
-                </div>
-                <div className="profile-card">
-                  <span>邮箱</span>
-                  <strong>{auth.user.email}</strong>
-                </div>
-                <div className="profile-card">
-                  <span>接口地址</span>
-                  <strong>/api/auth/me</strong>
-                </div>
-                <div className="profile-card">
-                  <span>用户ID</span>
-                  <strong>{auth.user.userId}</strong>
-                </div>
-              </div>
+          <div className="sidebar-card">
+            <small>Resume Score</small>
+            <strong>82 / 100</strong>
+            <p>Upload your latest resume and unlock a better match score for backend roles.</p>
+            <button className="ghost-button" type="button">
+              Improve Resume
+            </button>
+          </div>
 
-              <div className="tips-card">
-                <strong>下一步建议</strong>
-                <p>
-                  继续补职位列表页、搜索筛选、公司详情页和投递流程，就能把这个登录壳扩展成完整的职位平台前台。
-                </p>
+          <div className="sidebar-footer">
+            <button type="button">Messages</button>
+            <button type="button">Feedback</button>
+            <button type="button">Settings</button>
+          </div>
+        </aside>
+
+        <main className="main-panel">
+          <header className="topbar">
+            <div className="topbar-title">
+              <span className="section-label">Jobs</span>
+              <div className="tab-strip">
+                {["Recommended", "Liked", "Applied", "External"].map((tab) => (
+                  <button
+                    key={tab}
+                    className={activeTab === tab ? "top-tab active" : "top-tab"}
+                    onClick={() => setActiveTab(tab)}
+                    type="button"
+                  >
+                    {tab}
+                  </button>
+                ))}
               </div>
             </div>
-          ) : (
-            <>
-              <div className="tab-row">
-                <button
-                  className={activeTab === "login" ? "tab active" : "tab"}
-                  onClick={() => setActiveTab("login")}
-                >
-                  登录
-                </button>
-                <button
-                  className={activeTab === "register" ? "tab active" : "tab"}
-                  onClick={() => setActiveTab("register")}
-                >
-                  注册
-                </button>
-              </div>
 
-              {message.text ? (
-                <div className={message.type === "error" ? "notice error" : "notice success"}>
-                  {message.text}
+            <div className="topbar-actions">
+              <label className="search-box">
+                <span>Search</span>
+                <input
+                  placeholder="Search by title or company"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+              <button className="turbo-button" type="button">
+                Turbo for Students
+              </button>
+            </div>
+          </header>
+
+          <section className="hero-panel">
+            <div>
+              <span className="eyebrow">Career Command Center</span>
+              <h1>Track the best-fit jobs, sharpen your resume, and move faster on every application.</h1>
+              <p>
+                This homepage is designed as a Jobright-inspired operating system for job seekers:
+                recommendation-first, filter-heavy, and centered on match quality instead of plain lists.
+              </p>
+            </div>
+            <div className="hero-stats">
+              <article>
+                <strong>1,286</strong>
+                <span>Fresh backend roles this week</span>
+              </article>
+              <article>
+                <strong>82%</strong>
+                <span>Average match after resume optimization</span>
+              </article>
+              <article>
+                <strong>9 min</strong>
+                <span>Typical time to shortlist a target set</span>
+              </article>
+            </div>
+          </section>
+
+          <section className="filter-row">
+            {filters.map((filter) => (
+              <button key={filter} className={filter === "All Filters" ? "filter-pill accent" : "filter-pill"} type="button">
+                {filter}
+              </button>
+            ))}
+          </section>
+
+          <section className="job-feed">
+            {visibleJobs.map((job) => (
+              <article key={job.id} className="job-card">
+                <div className="job-card-main">
+                  <div className={job.theme ? `company-badge ${job.theme}` : "company-badge"}>
+                    {job.brand}
+                  </div>
+
+                  <div className="job-copy">
+                    <span className="posted-chip">{job.postedAt}</span>
+                    <h2>{job.title}</h2>
+                    <p className="job-meta">{job.meta}</p>
+
+                    <div className="job-tags">
+                      <span>{job.location}</span>
+                      <span>{job.workMode}</span>
+                      <span>{job.employmentType}</span>
+                      <span>{job.level}</span>
+                    </div>
+
+                    <div className="job-actions">
+                      <button className="icon-button" type="button">
+                        Skip
+                      </button>
+                      <button className="icon-button" type="button">
+                        Save
+                      </button>
+                      <button className="secondary-action" type="button">
+                        Ask Copilot
+                      </button>
+                      <button className="primary-action" type="button">
+                        {job.cta}
+                      </button>
+                    </div>
+
+                    <small>{job.applicants} applicants</small>
+                  </div>
                 </div>
-              ) : null}
 
-              {activeTab === "login" ? (
-                <form className="auth-form" onSubmit={handleLogin}>
-                  <h2>欢迎回来</h2>
-                  <p>使用演示账号或你刚注册的账户直接登录。</p>
+                <aside className="job-match-panel">
+                  <div className="match-ring">
+                    <span>{job.match}%</span>
+                  </div>
+                  <strong>{job.match >= 95 ? "Strong Match" : "Good Match"}</strong>
+                  <p>{job.sponsor}</p>
+                </aside>
+              </article>
+            ))}
+          </section>
+        </main>
 
-                  <label>
-                    用户名或邮箱
-                    <input
-                      value={loginForm.account}
-                      onChange={(event) => updateForm(setLoginForm, "account", event.target.value)}
-                      placeholder="demo 或 demo@jobbacked.com"
-                    />
-                  </label>
+        <aside className="right-rail">
+          <section className="profile-panel">
+            <div className="profile-header">
+              <div className="avatar">Y</div>
+              <div>
+                <strong>Your Workspace</strong>
+                <span>Free Plan</span>
+              </div>
+            </div>
+          </section>
 
-                  <label>
-                    密码
-                    <input
-                      type="password"
-                      value={loginForm.password}
-                      onChange={(event) => updateForm(setLoginForm, "password", event.target.value)}
-                      placeholder="请输入密码"
-                    />
-                  </label>
+          <section className="rail-card">
+            <div className="rail-title">
+              <strong>Saved Filters</strong>
+              <button type="button">+</button>
+            </div>
+            <div className="saved-filter-list">
+              {savedFilters.map((item) => (
+                <div key={item} className="saved-filter-item">
+                  <span>{item}</span>
+                  <button type="button">Edit</button>
+                </div>
+              ))}
+            </div>
+          </section>
 
-                  <button className="primary-button" type="submit" disabled={loading}>
-                    {loading ? "登录中..." : "进入平台"}
-                  </button>
+          <section className="rail-card progress-card">
+            <strong>Complete your profile to unlock more high-match jobs</strong>
+            <div className="progress-bar">
+              <div style={{ width: "42%" }} />
+            </div>
+            <ul>
+              <li>Upload your resume</li>
+              <li>Set location and visa preference</li>
+              <li>Add preferred role filters</li>
+            </ul>
+          </section>
 
-                  <div className="helper-text">演示账号：demo / JobBacked123</div>
-                </form>
-              ) : (
-                <form className="auth-form" onSubmit={handleRegister}>
-                  <h2>创建账号</h2>
-                  <p>先完成一个简单的注册闭环，后面可以继续补邮箱验证和企业身份。</p>
-
-                  <label>
-                    用户名
-                    <input
-                      value={registerForm.username}
-                      onChange={(event) =>
-                        updateForm(setRegisterForm, "username", event.target.value)
-                      }
-                      placeholder="3-24 位用户名"
-                    />
-                  </label>
-
-                  <label>
-                    邮箱
-                    <input
-                      type="email"
-                      value={registerForm.email}
-                      onChange={(event) =>
-                        updateForm(setRegisterForm, "email", event.target.value)
-                      }
-                      placeholder="you@example.com"
-                    />
-                  </label>
-
-                  <label>
-                    昵称
-                    <input
-                      value={registerForm.displayName}
-                      onChange={(event) =>
-                        updateForm(setRegisterForm, "displayName", event.target.value)
-                      }
-                      placeholder="展示给平台的名称"
-                    />
-                  </label>
-
-                  <label>
-                    密码
-                    <input
-                      type="password"
-                      value={registerForm.password}
-                      onChange={(event) =>
-                        updateForm(setRegisterForm, "password", event.target.value)
-                      }
-                      placeholder="至少 6 位"
-                    />
-                  </label>
-
-                  <button className="primary-button" type="submit" disabled={loading}>
-                    {loading ? "注册中..." : "创建账户"}
-                  </button>
-                </form>
-              )}
-            </>
-          )}
-        </section>
-      </main>
+          <section className="rail-card insight-card">
+            <small>Weekly Insight</small>
+            <strong>Backend internships with onsite preference are converting better this week.</strong>
+            <p>Try narrowing your filters to California, New Grad, and Distributed Systems.</p>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

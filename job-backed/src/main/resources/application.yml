@@ -34,3 +34,10 @@ rustfs:
   secret-access-key: rustfsadmin
   bucket-name: job-rag
   create-bucket-if-missing: true
+
+job:
+  semaphore:
+    name: job:upload
+    max-concurrent: 10
+    max-wait-seconds: 30
+    lease-seconds: 30

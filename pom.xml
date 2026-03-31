@@ -38,6 +38,7 @@
         <hutool-all.version>5.8.27</hutool-all.version>
         <tika.version>3.2.3</tika.version>
         <aws.sdk.version>2.25.27</aws.sdk.version>
+        <redisson.version>4.0.0</redisson.version>
     </properties>
 
 
@@ -73,12 +74,20 @@
                 <version>${mybatis-plus.version}</version>
             </dependency>
 
+
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
                 <version>${hutool-all.version}</version>
             </dependency>
         </dependencies>
+
     </dependencyManagement>
 
 
