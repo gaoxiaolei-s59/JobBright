@@ -29,7 +29,7 @@ public class UserContext {
      */
     public static String getUserName() {
         UserInfoDTO userInfoDto = userContext.get();
-        return Optional.ofNullable(userInfoDto).map(UserInfoDTO::getUserName).orElse(null);
+        return Optional.ofNullable(userInfoDto).map(UserInfoDTO::getUsername).orElse(null);
     }
 
 

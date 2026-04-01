@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:10010";
@@ -25,19 +25,6 @@ const sidebarItems = [
   { key: "coach", label: "求职辅导", badge: "新", active: false }
 ];
 
-const filters = [
-  "中国大陆",
-  "后端开发",
-  "应届 / 校招",
-  "全职",
-  "线下办公",
-  "发布时间",
-  "经验要求",
-  "行业方向",
-  "隐藏岗位",
-  "全部筛选"
-];
-
 const savedFilters = ["后端开发 · 上海", "校招岗位 · Java / Go", "AI 平台 · 全职"];
 
 const homeOverviewFallback = {
@@ -47,6 +34,42 @@ const homeOverviewFallback = {
   resumeScore: 82,
   profileCompletionRate: 42
 };
+
+const jobFilterInitialState = {
+  keyword: "",
+  country: "",
+  title: "",
+  experienceLevel: "",
+  employmentType: "",
+  workMode: "",
+  datePosted: "",
+  industryName: "",
+  page: 1,
+  pageSize: 10
+};
+
+const experienceLevelOptions = [
+  { value: "STUDENT", label: "在校生" },
+  { value: "NEW_GRAD", label: "应届生" },
+  { value: "JUNIOR", label: "初级岗位" }
+];
+
+const experienceLevelLabelMap = Object.fromEntries(
+  experienceLevelOptions.map((item) => [item.value, item.label])
+);
+
+const recommendRequestFieldNames = [
+  "keyword",
+  "country",
+  "title",
+  "experienceLevel",
+  "employmentType",
+  "workMode",
+  "datePosted",
+  "industryName",
+  "page",
+  "pageSize"
+];
 
 const jobItems = [
   {
@@ -59,7 +82,7 @@ const jobItems = [
     location: "上海",
     workMode: "线下办公",
     employmentType: "实习",
-    level: "在校生",
+    experienceLevel: "STUDENT",
     applicants: 54,
     match: 82,
     sponsor: "岗位画像匹配度较高",
@@ -77,7 +100,7 @@ const jobItems = [
     location: "北京",
     workMode: "混合办公",
     employmentType: "全职",
-    level: "应届生",
+    experienceLevel: "NEW_GRAD",
     applicants: 72,
     match: 98,
     sponsor: "高度匹配，建议优先投递",
@@ -95,7 +118,7 @@ const jobItems = [
     location: "深圳",
     workMode: "混合办公",
     employmentType: "全职",
-    level: "初级岗位",
+    experienceLevel: "JUNIOR",
     applicants: 108,
     match: 93,
     sponsor: "和你的简历关键词高度重合",
@@ -105,11 +128,42 @@ const jobItems = [
   }
 ];
 
+const mockRecommendedJobs = jobItems.map((job, index) => ({
+  jobId: job.id,
+  companyName: job.company,
+  companyLogo: job.companyLogo,
+  title: job.title,
+  meta: job.meta,
+  postedAt: job.postedAt,
+  location: job.location,
+  workMode: job.workMode,
+  employmentType: job.employmentType,
+  experienceLevel: job.experienceLevel,
+  applicantCount: job.applicants,
+  matchScore: job.match,
+  matchLabel: job.match >= 95 ? "高度匹配" : "较高匹配",
+  matchReason: job.sponsor,
+  applyUrl: "",
+  liked: false,
+  applied: false,
+  brand: job.brand,
+  theme: job.theme,
+  companyId: `comp-${index + 1}`
+}));
+
 function getCompanyBadgeText(job) {
   if (job.brand) {
     return job.brand;
   }
-  return (job.company || "U").slice(0, 2).toUpperCase();
+  return (job.companyName || "U").slice(0, 2).toUpperCase();
+}
+
+function getExperienceLevelLabel(level) {
+  return experienceLevelLabelMap[level] || level || "";
+}
+
+function getAuthDisplayName(user) {
+  return user?.displayName || user?.username || "U";
 }
 
 function CompanyBadge({ job }) {
@@ -123,7 +177,7 @@ function CompanyBadge({ job }) {
         <img
           className="company-badge-logo"
           src={job.companyLogo}
-          alt={`${job.company} logo`}
+          alt={`${job.companyName} logo`}
           onError={() => setLogoFailed(true)}
         />
       ) : (
@@ -133,8 +187,56 @@ function CompanyBadge({ job }) {
   );
 }
 
+class RequestError extends Error {
+  constructor(message, options = {}) {
+    super(message);
+    this.name = "RequestError";
+    this.code = options.code ?? "";
+    this.status = options.status ?? 0;
+    this.payload = options.payload;
+  }
+}
+
+async function readResponsePayload(response) {
+  const contentType = response.headers.get("content-type") || "";
+  const rawText = await response.text();
+  if (!rawText) {
+    return null;
+  }
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(rawText);
+    } catch {
+      return { message: rawText };
+    }
+  }
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return { message: rawText };
+  }
+}
+
+function getErrorMessage(payload, fallbackMessage) {
+  if (!payload) {
+    return fallbackMessage;
+  }
+  if (typeof payload === "string" && payload.trim()) {
+    return payload;
+  }
+  if (typeof payload.message === "string" && payload.message.trim()) {
+    return payload.message;
+  }
+  if (typeof payload.error === "string" && payload.error.trim()) {
+    return payload.error;
+  }
+  if (payload.error && typeof payload.error.message === "string" && payload.error.message.trim()) {
+    return payload.error.message;
+  }
+  return fallbackMessage;
+}
+
 function App() {
-  const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("推荐职位");
   const [authView, setAuthView] = useState("login");
   const [loginForm, setLoginForm] = useState(loginInitialState);
@@ -142,12 +244,21 @@ function App() {
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeInfo, setResumeInfo] = useState(null);
   const [homeOverview, setHomeOverview] = useState(homeOverviewFallback);
+  const [jobFilters, setJobFilters] = useState(jobFilterInitialState);
+  const [jobsData, setJobsData] = useState({
+    total: mockRecommendedJobs.length,
+    hasMore: mockRecommendedJobs.length > 0,
+    records: []
+  });
+  const [jobLoading, setJobLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
+  const loadMoreRef = useRef(null);
   const [auth, setAuth] = useState(() => ({
     token: localStorage.getItem(TOKEN_KEY),
     user: null
   }));
+  const hasMoreJobs = Boolean(jobsData.hasMore);
 
   useEffect(() => {
     if (auth.token) {
@@ -155,29 +266,64 @@ function App() {
     }
   }, []);
 
-  const visibleJobs = useMemo(() => {
-    const keyword = query.trim().toLowerCase();
-    if (!keyword) {
-      return jobItems;
+  useEffect(() => {
+    if (!auth.token || !resumeInfo || !loadMoreRef.current || jobLoading || !hasMoreJobs) {
+      return undefined;
     }
-    return jobItems.filter((item) =>
-      [item.title, item.company, item.meta].some((text) => text.toLowerCase().includes(keyword))
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting) {
+          const nextFilters = {
+            ...jobFilters,
+            page: Number(jobFilters.page || 1) + 1
+          };
+          setJobFilters(nextFilters);
+          loadRecommendedJobs(nextFilters, true);
+        }
+      },
+      { rootMargin: "240px 0px" }
     );
-  }, [query]);
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [auth.token, resumeInfo, jobLoading, hasMoreJobs, jobFilters]);
 
   async function request(path, options = {}) {
     const token = localStorage.getItem(TOKEN_KEY);
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-        ...(token ? { [TOKEN_HEADER]: token } : {}),
-        ...(options.headers || {})
-      }
-    });
-    const result = await response.json();
-    if (!response.ok || result.code !== "0") {
-      throw new Error(result.message || "请求失败");
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+          ...(token ? { [TOKEN_HEADER]: token } : {}),
+          ...(options.headers || {})
+        }
+      });
+    } catch (error) {
+      throw new RequestError("网络连接失败，请检查前后端服务是否已启动", { payload: error });
+    }
+
+    const result = await readResponsePayload(response);
+    if (!response.ok) {
+      const message = getErrorMessage(
+        result,
+        response.status === 401 || response.status === 403
+          ? "登录状态已失效，请重新登录"
+          : `请求失败（${response.status}）`
+      );
+      throw new RequestError(message, {
+        code: result?.code,
+        status: response.status,
+        payload: result
+      });
+    }
+    if (!result || result.code !== "0") {
+      throw new RequestError(getErrorMessage(result, "请求失败"), {
+        code: result?.code,
+        status: response.status,
+        payload: result
+      });
     }
     return result.data;
   }
@@ -188,9 +334,10 @@ function App() {
       setAuth((current) => ({ ...current, user }));
       await loadCurrentResume();
       await loadHomeOverview();
+      await loadRecommendedJobs(jobFilterInitialState);
     } catch (error) {
       logout(false);
-      setMessage({ type: "error", text: error.message });
+      setMessage({ type: "error", text: error.message || "获取当前用户失败" });
     }
   }
 
@@ -209,6 +356,89 @@ function App() {
       setHomeOverview({ ...homeOverviewFallback, ...overview });
     } catch (error) {
       setHomeOverview(homeOverviewFallback);
+      if (!resumeInfo) {
+        return;
+      }
+      setMessage({ type: "error", text: `${error.message || "首页概览加载失败"}，已回退默认展示` });
+    }
+  }
+
+  function buildRecommendQueryString(params) {
+    const searchParams = new URLSearchParams();
+    recommendRequestFieldNames.forEach((key) => {
+      const value = params[key];
+      if (value !== null && value !== undefined && value !== "") {
+        searchParams.set(key, String(value));
+      }
+    });
+    return searchParams.toString();
+  }
+
+  function filterMockJobs(filters) {
+    const normalizedKeyword = filters.keyword.trim().toLowerCase();
+    const normalizedTitle = filters.title.trim().toLowerCase();
+    const filtered = mockRecommendedJobs.filter((job) => {
+      const keywordMatched =
+        !normalizedKeyword ||
+        [job.title, job.companyName, job.meta, job.location].some((text) =>
+          String(text).toLowerCase().includes(normalizedKeyword)
+        );
+      const countryMatched = !filters.country || filters.country === "中国大陆";
+      const titleMatched =
+        !normalizedTitle || job.title.toLowerCase().includes(normalizedTitle);
+      const experienceMatched =
+        !filters.experienceLevel || job.experienceLevel === filters.experienceLevel;
+      const employmentTypeMatched =
+        !filters.employmentType || job.employmentType === filters.employmentType;
+      const workModeMatched = !filters.workMode || job.workMode === filters.workMode;
+      const industryNameMatched =
+        !filters.industryName || job.meta.includes(filters.industryName);
+      return (
+        keywordMatched &&
+        countryMatched &&
+        titleMatched &&
+        experienceMatched &&
+        employmentTypeMatched &&
+        workModeMatched &&
+        industryNameMatched
+      );
+    });
+
+    const page = Number(filters.page) || 1;
+    const pageSize = Number(filters.pageSize) || jobFilterInitialState.pageSize;
+    const fromIndex = Math.max((page - 1) * pageSize, 0);
+    const toIndex = fromIndex + pageSize;
+    return {
+      total: filtered.length,
+      hasMore: toIndex < filtered.length,
+      records: filtered.slice(fromIndex, toIndex)
+    };
+  }
+
+  async function loadRecommendedJobs(nextFilters = jobFilters, append = false) {
+    setJobLoading(true);
+    try {
+      const queryString = buildRecommendQueryString(nextFilters);
+      const data = await request(`/api/jobs/recommended?${queryString}`, { method: "GET" });
+      const nextRecords = Array.isArray(data?.records) ? data.records : [];
+      setJobsData((current) => ({
+        total: data?.total ?? 0,
+        hasMore: Boolean(data?.hasMore),
+        records: append ? [...current.records, ...nextRecords] : nextRecords
+      }));
+    } catch (error) {
+      const fallback = filterMockJobs(nextFilters);
+      setJobsData((current) => ({
+        total: fallback.total,
+        hasMore: fallback.hasMore,
+        records: append ? [...current.records, ...fallback.records] : fallback.records
+      }));
+      setMessage({
+        type: "error",
+        text: `${error.message || "推荐职位加载失败"}，当前已切换到本地演示数据`
+      });
+    } finally {
+      setJobLoading(false);
     }
   }
 
@@ -256,6 +486,12 @@ function App() {
     setAuth({ token: null, user: null });
     setResumeInfo(null);
     setHomeOverview(homeOverviewFallback);
+    setJobFilters(jobFilterInitialState);
+    setJobsData({
+      total: mockRecommendedJobs.length,
+      hasMore: mockRecommendedJobs.length > 0,
+      records: []
+    });
     setResumeFile(null);
     setAuthView("login");
     if (clearMessage) {
@@ -265,6 +501,20 @@ function App() {
 
   function updateForm(setter, field, value) {
     setter((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateJobFilter(field, value) {
+    setJobFilters((current) => ({ ...current, [field]: value, page: 1 }));
+  }
+
+  async function handleJobSearch(event) {
+    event.preventDefault();
+    await loadRecommendedJobs(jobFilters);
+  }
+
+  async function handleResetFilters() {
+    setJobFilters(jobFilterInitialState);
+    await loadRecommendedJobs(jobFilterInitialState);
   }
 
   async function handleResumeUpload(event) {
@@ -284,6 +534,7 @@ function App() {
       });
       await loadCurrentResume();
       await loadHomeOverview();
+      await loadRecommendedJobs(jobFilterInitialState);
       setResumeFile(null);
       setMessage({ type: "success", text: "简历上传成功，已进入首页。" });
     } catch (error) {
@@ -386,8 +637,8 @@ function App() {
                 <label>
                   用户名
                   <input
-                    value={registerForm.username}
-                    onChange={(event) =>
+                  value={registerForm.username}
+                  onChange={(event) =>
                       updateForm(setRegisterForm, "username", event.target.value)
                     }
                     placeholder="请输入用户名"
@@ -583,8 +834,8 @@ function App() {
                 <span>搜索</span>
                 <input
                   placeholder="搜索职位、公司或关键词"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  value={jobFilters.keyword}
+                  onChange={(event) => updateJobFilter("keyword", event.target.value)}
                 />
               </label>
               <button className="turbo-button" type="button">
@@ -592,6 +843,12 @@ function App() {
               </button>
             </div>
           </header>
+
+          {message.text ? (
+            <div className={message.type === "error" ? "notice error" : "notice success"}>
+              {message.text}
+            </div>
+          ) : null}
 
           <section className="hero-panel">
             <div>
@@ -618,21 +875,121 @@ function App() {
             </div>
           </section>
 
-          <section className="filter-row">
-            {filters.map((filter) => (
-              <button
-                key={filter}
-                className={filter === "全部筛选" ? "filter-pill accent" : "filter-pill"}
-                type="button"
-              >
-                {filter}
-              </button>
-            ))}
+          <section className="filter-panel">
+            <form className="filter-grid" onSubmit={handleJobSearch}>
+              <label>
+                国家
+                <select
+                  value={jobFilters.country}
+                  onChange={(event) => updateJobFilter("country", event.target.value)}
+                >
+                  <option value="">全部国家</option>
+                  <option value="中国大陆">中国大陆</option>
+                </select>
+              </label>
+              <label>
+                职位名称
+                <input
+                  value={jobFilters.title}
+                  onChange={(event) => updateJobFilter("title", event.target.value)}
+                  placeholder="如 后端开发"
+                />
+              </label>
+              <label>
+                经验等级
+                <select
+                  value={jobFilters.experienceLevel}
+                  onChange={(event) => updateJobFilter("experienceLevel", event.target.value)}
+                >
+                  <option value="">全部等级</option>
+                  {experienceLevelOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                工作类型
+                <select
+                  value={jobFilters.employmentType}
+                  onChange={(event) => updateJobFilter("employmentType", event.target.value)}
+                >
+                  <option value="">全部类型</option>
+                  <option value="全职">全职</option>
+                  <option value="实习">实习</option>
+                </select>
+              </label>
+              <label>
+                工作模式
+                <select
+                  value={jobFilters.workMode}
+                  onChange={(event) => updateJobFilter("workMode", event.target.value)}
+                >
+                  <option value="">全部模式</option>
+                  <option value="线下办公">线下办公</option>
+                  <option value="混合办公">混合办公</option>
+                  <option value="远程">远程</option>
+                </select>
+              </label>
+              <label>
+                发布时间
+                <select
+                  value={jobFilters.datePosted}
+                  onChange={(event) => updateJobFilter("datePosted", event.target.value)}
+                >
+                  <option value="">全部时间</option>
+                  <option value="24h">24 小时内</option>
+                  <option value="3d">3 天内</option>
+                  <option value="7d">7 天内</option>
+                </select>
+              </label>
+              <label>
+                行业方向
+                <select
+                  value={jobFilters.industryName}
+                  onChange={(event) => updateJobFilter("industryName", event.target.value)}
+                >
+                  <option value="">全部行业</option>
+                  <option value="互联网">互联网</option>
+                  <option value="制造业">制造业</option>
+                  <option value="企业 SaaS">企业 SaaS</option>
+                  <option value="云计算">云计算</option>
+                </select>
+              </label>
+              <label>
+                每次加载
+                <select
+                  value={jobFilters.pageSize}
+                  onChange={(event) => updateJobFilter("pageSize", Number(event.target.value))}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </label>
+
+              <div className="filter-actions">
+                <button className="ghost-button" onClick={handleResetFilters} type="button">
+                  重置筛选
+                </button>
+                <button className="primary-button" disabled={jobLoading} type="submit">
+                  {jobLoading ? "筛选中..." : "应用筛选"}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="results-bar">
+            <strong>推荐职位</strong>
+            <span>
+              已加载 {jobsData.records.length} / {jobsData.total} 条
+            </span>
           </section>
 
           <section className="job-feed">
-            {visibleJobs.map((job) => (
-              <article key={job.id} className="job-card">
+            {jobsData.records.length ? jobsData.records.map((job) => (
+              <article key={job.jobId} className="job-card">
                 <div className="job-card-main">
                   <CompanyBadge job={job} />
 
@@ -645,48 +1002,59 @@ function App() {
                       <span>{job.location}</span>
                       <span>{job.workMode}</span>
                       <span>{job.employmentType}</span>
-                      <span>{job.level}</span>
+                      <span>{getExperienceLevelLabel(job.experienceLevel)}</span>
                     </div>
 
                     <div className="job-actions">
                       <button className="icon-button" type="button">
-                        跳过
+                        {job.applied ? "已投递" : "跳过"}
                       </button>
                       <button className="icon-button" type="button">
-                        收藏
+                        {job.liked ? "已收藏" : "收藏"}
                       </button>
                       <button className="secondary-action" type="button">
                         问求职助手
                       </button>
                       <button className="primary-action" type="button">
-                        {job.cta}
+                        {job.applyUrl ? "立即申请" : "查看岗位"}
                       </button>
                     </div>
 
-                    <small>{job.applicants} 人已投递</small>
+                    <small>{job.applicantCount} 人已投递</small>
                   </div>
                 </div>
 
                 <aside className="job-match-panel">
                   <div className="match-ring">
-                    <span>{job.match}%</span>
+                    <span>{job.matchScore}%</span>
                   </div>
-                  <strong>{job.match >= 95 ? "高度匹配" : "较高匹配"}</strong>
-                  <p>{job.sponsor}</p>
+                  <strong>{job.matchLabel}</strong>
+                  <p>{job.matchReason}</p>
                 </aside>
               </article>
-            ))}
+            )) : (
+              <div className="empty-state-card">
+                <strong>没有找到符合条件的职位</strong>
+                <span>换一个关键词，或者放宽筛选条件后再试一次。</span>
+              </div>
+            )}
           </section>
+
+          {jobsData.records.length ? (
+            <div className="load-more-anchor" ref={loadMoreRef}>
+              {jobLoading ? "正在加载更多职位..." : hasMoreJobs ? "继续下滑加载更多" : "已经到底了"}
+            </div>
+          ) : null}
         </main>
 
         <aside className="right-rail">
           <section className="profile-panel">
             <div className="profile-header">
               <div className="avatar">
-                {(auth.user.displayName || auth.user.userName || "U").slice(0, 1)}
+                {getAuthDisplayName(auth.user).slice(0, 1)}
               </div>
               <div>
-                <strong>{auth.user.displayName || auth.user.userName}</strong>
+                <strong>{getAuthDisplayName(auth.user)}</strong>
                 <span>免费版</span>
               </div>
             </div>

@@ -27,10 +27,6 @@ public class HomeServiceImpl implements HomeService {
     @Override
     public HomeOverviewResponse getOverview() {
         String currentUserId = UserContext.getUserId();
-        if (!StringUtils.hasText(currentUserId)) {
-            throw new ClientException("请先登录");
-        }
-
         UserResumeFile currentResume = userResumeFileMapper.selectOne(Wrappers.lambdaQuery(UserResumeFile.class)
                 .eq(UserResumeFile::getUserId, Long.parseLong(currentUserId))
                 .eq(UserResumeFile::getIsCurrent, 1));
@@ -49,7 +45,7 @@ public class HomeServiceImpl implements HomeService {
             return 0;
         }
         int completionRate = 0;
-        if (StringUtils.hasText(userInfoDTO.getUserName())) {
+        if (StringUtils.hasText(userInfoDTO.getUsername())) {
             completionRate += 14;
         }
         if (StringUtils.hasText(userInfoDTO.getEmail())) {

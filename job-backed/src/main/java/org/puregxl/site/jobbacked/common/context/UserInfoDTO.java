@@ -16,9 +16,9 @@ public class UserInfoDTO {
     private String userId;
 
     /**
-     * 用户姓名
+     * 用户名
      */
-    private String userName;
+    private String username;
 
     /**
      * 邮箱

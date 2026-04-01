@@ -35,8 +35,8 @@ public class JobPost {
     /** 用工类型 */
     private String employmentType;
 
-    /** 岗位级别 */
-    private String level;
+    /** 经验等级枚举值：STUDENT / NEW_GRAD / JUNIOR */
+    private String experienceLevel;
 
     /** 投递人数 */
     private Integer applicantCount;
@@ -47,8 +47,11 @@ public class JobPost {
     /** 发布时间 */
     private Date postedAt;
 
-    /** 职位状态 */
+    /** 职位状态枚举值：ONLINE / OFFLINE / DRAFT / EXPIRED */
     private String status;
+
+    /** 国家 */
+    private String country;
 
     /** 创建时间 */
     private Date createTime;

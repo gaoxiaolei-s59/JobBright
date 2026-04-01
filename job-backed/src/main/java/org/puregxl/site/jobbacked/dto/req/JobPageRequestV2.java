@@ -1,12 +1,17 @@
 package org.puregxl.site.jobbacked.dto.req;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.puregxl.site.jobbacked.dao.entity.JobPost;
 
-
 @Data
-public class JobPageRequest extends Page<Object> {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class JobPageRequestV2 extends Page<JobPost> {
 
     /**
      * 搜索关键词
@@ -24,7 +29,7 @@ public class JobPageRequest extends Page<Object> {
     private String title;
 
     /**
-     * 经验等级枚举值：STUDENT / NEW_GRAD / JUNIOR
+     * 经验等级
      */
     private String experienceLevel;
 
@@ -48,13 +53,5 @@ public class JobPageRequest extends Page<Object> {
      */
     private String industryName;
 
-    /**
-     * 页码
-     */
-    private Integer page;
 
-    /**
-     * 每页条数
-     */
-    private Integer pageSize;
 }

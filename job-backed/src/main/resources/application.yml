@@ -28,6 +28,7 @@ app:
     expiration-hours: 24
 
 
+
 rustfs:
   url: http://localhost:9000
   access-key-id: rustfsadmin
