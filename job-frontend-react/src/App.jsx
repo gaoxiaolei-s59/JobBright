@@ -52,6 +52,7 @@ const jobItems = [
   {
     id: "job-1",
     company: "三星",
+    companyLogo: "",
     title: "后端开发实习生",
     meta: "三星电子 / 制造业 / 成长期",
     postedAt: "6 小时前",
@@ -69,6 +70,7 @@ const jobItems = [
   {
     id: "job-2",
     company: "Informatica",
+    companyLogo: "",
     title: "软件工程师 AMTS（校招生）",
     meta: "数据平台 / 云计算 / 上市公司",
     postedAt: "10 小时前",
@@ -86,6 +88,7 @@ const jobItems = [
   {
     id: "job-3",
     company: "Salesforce",
+    companyLogo: "",
     title: "平台后端工程师（校招）",
     meta: "企业 SaaS / AI Cloud / 上市公司",
     postedAt: "14 小时前重新发布",
@@ -101,6 +104,34 @@ const jobItems = [
     theme: "blue"
   }
 ];
+
+function getCompanyBadgeText(job) {
+  if (job.brand) {
+    return job.brand;
+  }
+  return (job.company || "U").slice(0, 2).toUpperCase();
+}
+
+function CompanyBadge({ job }) {
+  const [logoFailed, setLogoFailed] = useState(false);
+  const badgeClassName = job.theme ? `company-badge ${job.theme}` : "company-badge";
+  const showLogo = Boolean(job.companyLogo) && !logoFailed;
+
+  return (
+    <div className={badgeClassName}>
+      {showLogo ? (
+        <img
+          className="company-badge-logo"
+          src={job.companyLogo}
+          alt={`${job.company} logo`}
+          onError={() => setLogoFailed(true)}
+        />
+      ) : (
+        <span>{getCompanyBadgeText(job)}</span>
+      )}
+    </div>
+  );
+}
 
 function App() {
   const [query, setQuery] = useState("");
@@ -603,9 +634,7 @@ function App() {
             {visibleJobs.map((job) => (
               <article key={job.id} className="job-card">
                 <div className="job-card-main">
-                  <div className={job.theme ? `company-badge ${job.theme}` : "company-badge"}>
-                    {job.brand}
-                  </div>
+                  <CompanyBadge job={job} />
 
                   <div className="job-copy">
                     <span className="posted-chip">{job.postedAt}</span>
