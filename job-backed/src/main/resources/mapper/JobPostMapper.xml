@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.puregxl.site.jobbacked.dao.mapper.JobPostMapper">
+
+    <resultMap id="JobPostResultMap" type="org.puregxl.site.jobbacked.dao.entity.JobPost">
+        <id column="id" property="id"/>
+        <result column="job_id" property="jobId"/>
+        <result column="company_id" property="companyId"/>
+        <result column="title" property="title"/>
+        <result column="job_summary" property="jobSummary"/>
+        <result column="location" property="location"/>
+        <result column="work_mode" property="workMode"/>
+        <result column="employment_type" property="employmentType"/>
+        <result column="experience_level" property="experienceLevel"/>
+        <result column="applicant_count" property="applicantCount"/>
+        <result column="apply_url" property="applyUrl"/>
+        <result column="posted_at" property="postedAt"/>
+        <result column="status" property="status"/>
+        <result column="country" property="country"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="del_flag" property="delFlag"/>
+    </resultMap>
+
+    <sql id="RecommendJobV2Where">
+        jp.del_flag = 0
+        AND jp.status = 'ONLINE'
+        <if test="req != null">
+            <if test="req.country != null and req.country != ''">
+                AND jp.country = #{req.country}
+            </if>
+            <if test="req.title != null and req.title != ''">
+                AND jp.title LIKE CONCAT('%', #{req.title}, '%')
+            </if>
+            <if test="req.experienceLevel != null and req.experienceLevel != ''">
+                AND jp.experience_level = #{req.experienceLevel}
+            </if>
+            <if test="req.employmentType != null and req.employmentType != ''">
+                AND jp.employment_type = #{req.employmentType}
+            </if>
+            <if test="req.workMode != null and req.workMode != ''">
+                AND jp.work_mode = #{req.workMode}
+            </if>
+            <if test="req.keyword != null and req.keyword != ''">
+                AND (
+                    jp.title LIKE CONCAT('%', #{req.keyword}, '%')
+                    OR jp.job_summary LIKE CONCAT('%', #{req.keyword}, '%')
+                    OR c.company_name LIKE CONCAT('%', #{req.keyword}, '%')
+                    OR c.industry_name LIKE CONCAT('%', #{req.keyword}, '%')
+                )
+            </if>
+            <if test="req.industryName != null and req.industryName != ''">
+                AND c.del_flag = 0
+                AND c.industry_name LIKE CONCAT('%', #{req.industryName}, '%')
+            </if>
+            <if test="req.datePosted != null and req.datePosted != ''">
+                <choose>
+                    <when test="req.datePosted == '24h'">
+                        AND jp.posted_at <![CDATA[>=]]> DATE_SUB(NOW(), INTERVAL 1 DAY)
+                    </when>
+                    <when test="req.datePosted == '3d' or req.datePosted == '三天内'">
+                        AND jp.posted_at <![CDATA[>=]]> DATE_SUB(NOW(), INTERVAL 3 DAY)
+                    </when>
+                    <when test="req.datePosted == '7d' or req.datePosted == '七天内'">
+                        AND jp.posted_at <![CDATA[>=]]> DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    </when>
+                </choose>
+            </if>
+        </if>
+    </sql>
+
+    <!--分页查询职位-->
+    <select id="selectRecommendJobPageV2" resultMap="JobPostResultMap">
+        SELECT
+            jp.id,
+            jp.job_id,
+            jp.company_id,
+            jp.title,
+            jp.job_summary,
+            jp.location,
+            jp.work_mode,
+            jp.employment_type,
+            jp.experience_level,
+            jp.applicant_count,
+            jp.apply_url,
+            jp.posted_at,
+            jp.status,
+            jp.country,
+            jp.create_time,
+            jp.update_time,
+            jp.del_flag
+        FROM job_post jp
+        LEFT JOIN company c ON jp.company_id = c.company_id
+        WHERE
+        <include refid="RecommendJobV2Where"/>
+        ORDER BY jp.posted_at DESC, jp.id DESC
+    </select>
+
+</mapper>
