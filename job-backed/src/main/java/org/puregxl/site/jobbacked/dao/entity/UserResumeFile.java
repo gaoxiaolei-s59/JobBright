@@ -45,6 +45,9 @@ public class UserResumeFile {
     /** 是否当前生效版本 0-否 1-是 */
     private Integer isCurrent;
 
+    /** 用户简历分数 */
+    private Double score;
+
     /** 创建时间 */
     private Date createTime;
 

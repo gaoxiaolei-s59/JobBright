@@ -11,6 +11,7 @@ import org.puregxl.site.jobbacked.config.RustfsProperties;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.jobbacked.dto.file.UploadFileInfo;
+import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.puregxl.site.jobbacked.service.FileStorageService;
 import org.puregxl.site.jobbacked.service.UserResumeService;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+
+import static org.puregxl.site.framework.errorcode.BaseErrorCode.USER_RESUME_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -96,6 +99,31 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                 .build();
 
         userResumeFileMapper.insert(userResumeFile);
+    }
+
+    /**
+     * 获取用户简历信息
+     *
+     * @return
+     */
+    @Override
+    public UserResumeResponse getResumeMessage() {
+        String userId = UserContext.getUserId();
+        LambdaQueryWrapper<UserResumeFile> userResumeFileLambdaQueryWrapper = Wrappers.lambdaQuery(UserResumeFile.class)
+                .eq(UserResumeFile::getUserId, userId)
+                .eq(UserResumeFile::getIsCurrent, 1);
+        UserResumeFile userResumeFile = userResumeFileMapper.selectOne(userResumeFileLambdaQueryWrapper);
+        if (userResumeFile == null) {
+            throw new ClientException(USER_RESUME_NOT_FOUND);
+        }
+
+        return UserResumeResponse.builder()
+                .resumeId(userResumeFile.getResumeId())
+                .fileName(userResumeFile.getFileName())
+                .score(88) //测试数据
+                .status("ACTIVE")
+                .uploadTime(userResumeFile.getUpdateTime())
+                .build();
     }
 
 

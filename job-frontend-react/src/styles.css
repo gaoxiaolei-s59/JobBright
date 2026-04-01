@@ -48,6 +48,231 @@ button {
   border: 0;
 }
 
+.auth-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.auth-backdrop {
+  position: absolute;
+  width: 28rem;
+  height: 28rem;
+  border-radius: 999px;
+  filter: blur(60px);
+  opacity: 0.52;
+}
+
+.auth-left {
+  top: -6rem;
+  left: -5rem;
+  background: rgba(4, 217, 151, 0.28);
+}
+
+.auth-right {
+  right: -8rem;
+  bottom: -8rem;
+  background: rgba(13, 34, 49, 0.18);
+}
+
+.auth-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.08fr 0.92fr;
+  gap: 28px;
+  min-height: 100vh;
+  padding: 34px;
+}
+
+.resume-gate-layout {
+  grid-template-columns: 1fr 420px;
+}
+
+.auth-hero,
+.auth-panel {
+  border: 1px solid rgba(16, 35, 49, 0.08);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 22px 60px rgba(18, 38, 53, 0.08);
+}
+
+.auth-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px;
+}
+
+.auth-panel {
+  padding: 28px;
+}
+
+.resume-upload-panel h2 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.resume-upload-panel > p {
+  margin: 8px 0 20px;
+  color: var(--brand-subtle);
+}
+
+.auth-copy {
+  max-width: 62ch;
+  margin-top: 20px;
+  color: var(--brand-subtle);
+  font-size: 1.04rem;
+  line-height: 1.8;
+}
+
+.auth-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.auth-feature-grid article {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(244, 251, 248, 0.95);
+  border: 1px solid rgba(4, 217, 151, 0.12);
+}
+
+.auth-feature-grid strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.auth-feature-grid span {
+  color: var(--brand-subtle);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.auth-tab {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f4f7f8;
+  color: var(--brand-subtle);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.auth-tab.active {
+  background: var(--brand-ink);
+  color: white;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-form h2 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.auth-form p {
+  margin: 0 0 4px;
+  color: var(--brand-subtle);
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--brand-line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  outline: none;
+}
+
+input:focus {
+  border-color: rgba(4, 217, 151, 0.82);
+  box-shadow: 0 0 0 4px rgba(4, 217, 151, 0.14);
+}
+
+.primary-button,
+.ghost-button {
+  border-radius: 16px;
+  font-weight: 800;
+}
+
+.primary-button {
+  padding: 14px 18px;
+  color: var(--brand-ink);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, #9bffd6 100%);
+}
+
+.helper-text {
+  color: var(--brand-subtle);
+  font-size: 0.9rem;
+}
+
+.file-upload-box {
+  padding: 18px;
+  border: 1px dashed rgba(4, 217, 151, 0.55);
+  border-radius: 20px;
+  background: rgba(237, 248, 244, 0.72);
+}
+
+.file-upload-box input[type="file"] {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.selected-file-card {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--brand-line);
+}
+
+.selected-file-card.empty {
+  background: rgba(244, 247, 248, 0.86);
+}
+
+.selected-file-card span {
+  color: var(--brand-subtle);
+}
+
+.notice {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-size: 0.94rem;
+}
+
+.notice.success {
+  background: rgba(4, 217, 151, 0.12);
+  color: #0c7357;
+}
+
+.notice.error {
+  background: rgba(255, 95, 87, 0.12);
+  color: #b14039;
+}
+
 .dashboard-shell {
   min-height: 100vh;
 }
@@ -521,6 +746,11 @@ h1 {
   gap: 12px;
 }
 
+.rail-logout {
+  width: 100%;
+  margin-top: 14px;
+}
+
 .saved-filter-item {
   display: flex;
   justify-content: space-between;
@@ -597,10 +827,12 @@ h1 {
 }
 
 @media (max-width: 1100px) {
+  .auth-layout,
   .dashboard-layout {
     grid-template-columns: 1fr;
   }
 
+  .auth-feature-grid,
   .sidebar {
     display: none;
   }
@@ -623,6 +855,16 @@ h1 {
 }
 
 @media (max-width: 720px) {
+  .auth-layout {
+    padding: 16px;
+  }
+
+  .auth-hero,
+  .auth-panel {
+    border-radius: 24px;
+    padding: 20px;
+  }
+
   .promo-bar {
     flex-direction: column;
     text-align: center;
