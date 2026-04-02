@@ -16,4 +16,10 @@ public class UploadResumeExecuteTaskEvent {
      * 文件地址
      */
     private String fileAddress;
+
+
+    /**
+     * 文件id
+     */
+    private String fileId;
 }

@@ -6,11 +6,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface FileService {
 
-    UploadFileResponse uploadFile(MultipartFile file);
 
-    UploadFileResponse getFile(String resumeId);
+    UploadFileResponse getFile(String resumeId, String buckName);
 
-    DownloadFileResponse downloadFile(String resumeId);
+    DownloadFileResponse downloadFile(String resumeId, String buckName);
 
     DownloadFileResponse downloadFileByUrl(String fileUrl);
 

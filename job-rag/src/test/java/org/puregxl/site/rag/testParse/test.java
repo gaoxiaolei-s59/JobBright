@@ -2,6 +2,7 @@ package org.puregxl.site.rag.testParse;
 
 import org.apache.tika.exception.TikaException;
 import org.junit.jupiter.api.Test;
+import org.puregxl.site.rag.dao.entity.UserResumeProfile;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -60,5 +61,57 @@ public class test {
 
         System.out.println("=======================================================");
         System.out.println(result.getMetadata());
+    }
+
+    @Test
+    void testGenerateResumeProfile() throws Exception {
+        TikaParseService parseService = new TikaParseService();
+        ResumeChunker resumeChunker = new ResumeChunker();
+
+        String filePath = "src/test/java/org/puregxl/site/rag/testParse/高晓雷-实习.pdf";
+        MultipartFile file;
+        try (InputStream inputStream = new FileInputStream(filePath)) {
+            file = new MockMultipartFile("file", "demo.pdf", "application/pdf", inputStream);
+        }
+
+        ParseResult parseResult = parseService.parseFile(file);
+        ResumeChunker.ChunkingResult chunkingResult = resumeChunker.chunk(parseResult.getContent());
+
+        String systemPrompt = ResumeProfilePromptBuilder.buildSystemPrompt();
+        String userPrompt = ResumeProfilePromptBuilder.buildUserPrompt(chunkingResult);
+
+        System.out.println("===== System Prompt =====");
+        System.out.println(systemPrompt);
+        System.out.println("=======================================================");
+        System.out.println("===== User Prompt =====");
+        System.out.println(userPrompt);
+
+        String apiKey = "sk-rjtfqcpnhpzonswkebygmaqnqvibqcndgqxqfxghizuguthf";
+
+        ResumeProfileLlmClient llmClient = new ResumeProfileLlmClient(apiKey);
+        String profileJson = llmClient.generateProfileJson(systemPrompt, userPrompt);
+
+        System.out.println("=======================================================");
+        System.out.println("===== Resume Profile JSON =====");
+        System.out.println(profileJson);
+
+        ResumeProfileDTO dto = ResumeProfileConverter.toDto(profileJson);
+        System.out.println("=======================================================");
+        System.out.println("===== Resume Profile DTO =====");
+        System.out.println(dto);
+
+        UserResumeProfile userResumeProfile = ResumeProfileConverter.toEntity(
+                dto,
+                profileJson,
+                "test_resume_id"
+        );
+        System.out.println("=======================================================");
+        System.out.println("===== UserResumeProfile Entity =====");
+        System.out.println(userResumeProfile);
+
+        UserResumeProfile cleanedProfile = ResumeProfilePostProcessor.clean(userResumeProfile);
+        System.out.println("=======================================================");
+        System.out.println("===== Cleaned UserResumeProfile Entity =====");
+        System.out.println(cleanedProfile);
     }
 }

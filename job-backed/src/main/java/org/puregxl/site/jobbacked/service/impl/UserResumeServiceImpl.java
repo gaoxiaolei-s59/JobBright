@@ -88,16 +88,6 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                     .objectUrl(buildObjectUrl(USER_RESUME_BUCKET_NAME, objectKey))
                     .content(file.getBytes())
                     .build());
-            //发送消息到下游 解析用户简历
-            UploadResumeExecuteTaskEvent uploadEvent = UploadResumeExecuteTaskEvent.builder()
-                    .fileAddress(uploadFileInfo.getObjectUrl())
-                    .build();
-            JobBackedUserResumeProduceTemplate producer = jobBackedUserResumeProduceTemplateProvider.getIfAvailable();
-            if (producer != null) {
-                producer.sendMessage(uploadEvent);
-            } else {
-                log.warn("RocketMQTemplate 未配置，跳过发送简历解析消息: fileAddress={}", uploadEvent.getFileAddress());
-            }
         } catch (IOException exception) {
             throw new ClientException("读取上传简历失败");
         }
@@ -115,6 +105,19 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                 .build();
 
         userResumeFileMapper.insert(userResumeFile);
+
+
+        //发送消息到下游 解析用户简历
+        UploadResumeExecuteTaskEvent uploadEvent = UploadResumeExecuteTaskEvent.builder()
+                .fileAddress(uploadFileInfo.getObjectUrl())
+                .resumeId(userResumeFile.getId().toString())
+                .build();
+        JobBackedUserResumeProduceTemplate producer = jobBackedUserResumeProduceTemplateProvider.getIfAvailable();
+        if (producer != null) {
+            producer.sendMessage(uploadEvent);
+        } else {
+            log.warn("RocketMQTemplate 未配置，跳过发送简历解析消息: fileAddress={}", uploadEvent.getFileAddress());
+        }
     }
 
     /**

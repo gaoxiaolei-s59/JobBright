@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.exception.ClientException;
-import org.puregxl.site.rag.config.RustfsProperties;
 import org.puregxl.site.rag.dao.entity.UserResumeFile;
 import org.puregxl.site.rag.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.rag.dto.resp.DownloadFileResponse;
@@ -40,59 +39,12 @@ import java.util.Objects;
 public class FileServiceImpl implements FileService {
 
     private static final String STATUS_UPLOADED = "UPLOADED";
-    private static final Integer CURRENT_VERSION = 1;
+
 
     private final UserResumeFileMapper userResumeFileMapper;
 
     private final S3Client s3Client;
 
-    private final RustfsProperties rustfsProperties;
-
-    /**
-     * 上传文件接口
-     * @param file
-     * @return
-     */
-    @Override
-    public UploadFileResponse uploadFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new ClientException("上传文件不能为空");
-        }
-        String originalFilename = file.getOriginalFilename();
-        if (!StringUtils.hasText(originalFilename)) {
-            throw new ClientException("文件名不能为空");
-        }
-
-        String resumeId = IdUtil.fastSimpleUUID();
-        String fileExt = getFileExt(originalFilename);
-        String objectKey = buildObjectKey(resumeId, fileExt);
-        //创建桶
-        ensureBucketExists();
-        putObject(file, objectKey);
-
-        String objectUrl = buildObjectUrl(objectKey);
-        UserResumeFile userResumeFile = UserResumeFile.builder()
-                .resumeId(resumeId)
-                .fileName(originalFilename)
-                .fileExt(fileExt)
-                .contentType(file.getContentType())
-                .fileSize(file.getSize())
-                .objectKey(objectKey)
-                .objectUrl(objectUrl)
-                .isCurrent(CURRENT_VERSION)
-                .build();
-        userResumeFileMapper.insert(userResumeFile);
-
-        return UploadFileResponse.builder()
-                .resumeId(resumeId)
-                .fileName(originalFilename)
-                .fileSize(file.getSize())
-                .bucketName(rustfsProperties.getBucketName())
-                .objectKey(objectKey)
-                .objectUrl(objectUrl)
-                .status(STATUS_UPLOADED)
-                .build();
-    }
 
     /**
      * 获取文件
@@ -100,13 +52,13 @@ public class FileServiceImpl implements FileService {
      * @return
      */
     @Override
-    public UploadFileResponse getFile(String resumeId) {
+    public UploadFileResponse getFile(String resumeId, String buckName) {
         UserResumeFile userResumeFile = getUserResumeFile(resumeId);
         return UploadFileResponse.builder()
                 .resumeId(userResumeFile.getResumeId())
                 .fileName(userResumeFile.getFileName())
                 .fileSize(userResumeFile.getFileSize())
-                .bucketName(rustfsProperties.getBucketName())
+                .bucketName(buckName)
                 .objectKey(userResumeFile.getObjectKey())
                 .objectUrl(userResumeFile.getObjectUrl())
                 .status(STATUS_UPLOADED)
@@ -119,11 +71,11 @@ public class FileServiceImpl implements FileService {
      * @return
      */
     @Override
-    public DownloadFileResponse downloadFile(String resumeId) {
+    public DownloadFileResponse downloadFile(String resumeId, String buckName) {
         UserResumeFile userResumeFile = getUserResumeFile(resumeId);
         try {
             ResponseBytes<GetObjectResponse> objectBytes = s3Client.getObjectAsBytes(GetObjectRequest.builder()
-                    .bucket(rustfsProperties.getBucketName())
+                    .bucket(buckName)
                     .key(userResumeFile.getObjectKey())
                     .build());
             return DownloadFileResponse.builder()
@@ -218,57 +170,7 @@ public class FileServiceImpl implements FileService {
         return userResumeFile;
     }
 
-    /**
-     * 插入到云存储中
-     * @param file
-     * @param objectKey
-     */
-    private void putObject(MultipartFile file, String objectKey) {
-        try {
-            PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(rustfsProperties.getBucketName())
-                    .key(objectKey)
-                    .contentType(file.getContentType())
-                    .build();
-            s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
-        } catch (IOException exception) {
-            throw new ClientException("读取上传文件失败");
-        } catch (S3Exception exception) {
-            throw new ClientException("上传文件到对象存储失败");
-        }
-    }
 
-    private void ensureBucketExists() {
-        if (!Boolean.TRUE.equals(rustfsProperties.getCreateBucketIfMissing())) {
-            return;
-        }
-        try {
-            s3Client.headBucket(HeadBucketRequest.builder()
-                    .bucket(rustfsProperties.getBucketName())
-                    .build());
-        } catch (NoSuchBucketException exception) {
-            s3Client.createBucket(CreateBucketRequest.builder()
-                    .bucket(rustfsProperties.getBucketName())
-                    .build());
-        } catch (S3Exception exception) {
-            if (exception.statusCode() == 404) {
-                s3Client.createBucket(CreateBucketRequest.builder()
-                        .bucket(rustfsProperties.getBucketName())
-                        .build());
-                return;
-            }
-            throw new ClientException("检查对象存储桶失败");
-        }
-    }
-
-    private String buildObjectKey(String resumeId, String fileExt) {
-        String suffix = StringUtils.hasText(fileExt) ? "." + fileExt : "";
-        return "rag/upload/" + resumeId + suffix;
-    }
-
-    private String buildObjectUrl(String objectKey) {
-        return rustfsProperties.getUrl() + "/" + rustfsProperties.getBucketName() + "/" + objectKey;
-    }
 
     private String getFileExt(String originalFilename) {
         int index = originalFilename.lastIndexOf('.');

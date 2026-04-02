@@ -11,6 +11,7 @@ import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.BodyContentHandler;
+import org.puregxl.site.rag.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.rag.dto.resp.DownloadFileResponse;
 import org.puregxl.site.rag.mq.base.MessageWrapper;
 import org.puregxl.site.rag.mq.event.UploadResumeExecuteTaskEvent;
@@ -41,6 +42,8 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
     private final FileServiceImpl fileService;
 
     private final TikaParseService tikaParseService;
+
+    private final UserResumeFileMapper userResumeFileMapper;
     /**
      * 自动检测解析器
      */
@@ -61,11 +64,19 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
             return;
         }
 
+        String fileId = message.getFileId();
+
+        if (fileId == null) {
+            log.warn("[消费者] - 用户简历切块处理 - 文件id为空: {}", JSON.toJSONString(message));
+            return;
+        }
+
+        userResumeFileMapper.selectById(fileId);
         //使用tika提取文档的内容
         MultipartFile multipartFile = fileService.downloadMultipartFileByUrl(fileAddress);
         ParseResult parseResult = tikaParseService.parseFile(multipartFile);
+        //
         System.out.println(parseResult);
-
 
         //切块
         log.info("[消费者] - 用户简历切块处理 - 文件下载成功: fileName={}, fileSize={}",
