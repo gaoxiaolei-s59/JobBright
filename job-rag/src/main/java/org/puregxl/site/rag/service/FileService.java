@@ -11,4 +11,8 @@ public interface FileService {
     UploadFileResponse getFile(String fileId);
 
     DownloadFileResponse downloadFile(String fileId);
+
+    DownloadFileResponse downloadFileByUrl(String fileUrl);
+
+    MultipartFile downloadMultipartFileByUrl(String fileUrl);
 }

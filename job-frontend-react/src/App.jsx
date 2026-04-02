@@ -18,11 +18,11 @@ const registerInitialState = {
 };
 
 const sidebarItems = [
-  { key: "jobs", label: "职位推荐", badge: null, active: true },
-  { key: "resume", label: "简历中心", badge: null, active: false },
-  { key: "profile", label: "个人资料", badge: null, active: false },
-  { key: "agent", label: "求职助手", badge: null, active: false },
-  { key: "coach", label: "求职辅导", badge: "新", active: false }
+  { key: "jobs", label: "职位推荐", badge: null, icon: "briefcase" },
+  { key: "resume", label: "简历中心", badge: null, icon: "document" },
+  { key: "profile", label: "个人资料", badge: null, icon: "user" },
+  { key: "agent", label: "求职助手", badge: null, icon: "spark" },
+  { key: "coach", label: "求职辅导", badge: "新", icon: "target" }
 ];
 
 const savedFilters = ["后端开发 · 上海", "校招岗位 · Java / Go", "AI 平台 · 全职"];
@@ -34,6 +34,45 @@ const homeOverviewFallback = {
   resumeScore: 82,
   profileCompletionRate: 42
 };
+
+const userDashboardFallback = {
+  displayName: "演示用户",
+  planName: "免费版",
+  resumeScore: 82,
+  profileCompletionRate: 42,
+  tips: ["上传最新简历", "设置期望城市", "补充岗位关键词"]
+};
+
+const userProfileDraftInitialState = {
+  expectedCity: "",
+  targetRole: "后端开发",
+  keywordTags: "",
+  personalSummary: ""
+};
+
+const planOptions = [
+  {
+    code: "FREE",
+    name: "免费版",
+    price: "¥0 / 月",
+    description: "适合先跑通简历上传、岗位筛选和求职节奏管理。",
+    features: ["基础职位推荐", "简历上传与评分", "个人资料工作台"]
+  },
+  {
+    code: "PLUS",
+    name: "加速版",
+    price: "¥39 / 月",
+    description: "适合正在集中投递的同学，优先提高筛选和跟进效率。",
+    features: ["高级筛选组合", "每周简历优化建议", "重点岗位追踪提醒"]
+  },
+  {
+    code: "PRO",
+    name: "冲刺版",
+    price: "¥99 / 月",
+    description: "适合秋招冲刺阶段，强化匹配、提醒和求职助手联动。",
+    features: ["优先岗位洞察", "多份简历管理", "个性化投递建议"]
+  }
+];
 
 const jobFilterInitialState = {
   keyword: "",
@@ -151,6 +190,27 @@ const mockRecommendedJobs = jobItems.map((job, index) => ({
   companyId: `comp-${index + 1}`
 }));
 
+function getUserScopedStorageKey(user, scope) {
+  const userIdentifier = user?.userId || user?.username || user?.email || "guest";
+  return `jobbright_${scope}_${userIdentifier}`;
+}
+
+function readLocalJson(key, fallbackValue) {
+  try {
+    const rawValue = localStorage.getItem(key);
+    if (!rawValue) {
+      return fallbackValue;
+    }
+    return JSON.parse(rawValue);
+  } catch {
+    return fallbackValue;
+  }
+}
+
+function writeLocalJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 function getCompanyBadgeText(job) {
   if (job.brand) {
     return job.brand;
@@ -164,6 +224,87 @@ function getExperienceLevelLabel(level) {
 
 function getAuthDisplayName(user) {
   return user?.displayName || user?.username || "U";
+}
+
+function SidebarIcon({ type }) {
+  switch (type) {
+    case "briefcase":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M8 7V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1" />
+          <path d="M4 9.5c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v7.5c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V9.5Z" />
+          <path d="M4 11.5c2.8 1.5 5.4 2.2 8 2.2s5.2-.7 8-2.2" />
+        </svg>
+      );
+    case "document":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M8 4.5h5.5L18 9v10.5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" />
+          <path d="M13 4.5V9h5" />
+          <path d="M9 13h6" />
+          <path d="M9 16h6" />
+        </svg>
+      );
+    case "user":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+          <path d="M5 19a7 7 0 0 1 14 0" />
+        </svg>
+      );
+    case "spark":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z" />
+          <path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
+        </svg>
+      );
+    case "target":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
+          <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+          <path d="M12 12 19 5" />
+          <path d="M16 5h3v3" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+function buildUserDashboardView(dashboard, profileDraft, resumeInfo, authUser) {
+  const base = {
+    ...userDashboardFallback,
+    ...(dashboard || {})
+  };
+  const nextTips = [];
+  if (!resumeInfo) {
+    nextTips.push("上传最新简历");
+  }
+  if (!profileDraft.expectedCity) {
+    nextTips.push("设置期望城市");
+  }
+  if (!profileDraft.keywordTags) {
+    nextTips.push("补充岗位关键词");
+  }
+  if (!profileDraft.personalSummary) {
+    nextTips.push("补充个人亮点摘要");
+  }
+
+  const extraCompletion =
+    [profileDraft.expectedCity, profileDraft.targetRole, profileDraft.keywordTags, profileDraft.personalSummary]
+      .filter((value) => value && String(value).trim()).length * 12;
+
+  return {
+    ...base,
+    displayName: base.displayName || getAuthDisplayName(authUser),
+    profileCompletionRate: Math.min(
+      100,
+      Math.max(base.profileCompletionRate || 0, (base.profileCompletionRate || 0) + extraCompletion)
+    ),
+    tips: nextTips.length ? nextTips : ["保持当前资料新鲜度，持续更新简历和偏好设置"]
+  };
 }
 
 function CompanyBadge({ job }) {
@@ -238,12 +379,15 @@ function getErrorMessage(payload, fallbackMessage) {
 
 function App() {
   const [activeTab, setActiveTab] = useState("推荐职位");
+  const [activeSection, setActiveSection] = useState("jobs");
   const [authView, setAuthView] = useState("login");
   const [loginForm, setLoginForm] = useState(loginInitialState);
   const [registerForm, setRegisterForm] = useState(registerInitialState);
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeInfo, setResumeInfo] = useState(null);
   const [homeOverview, setHomeOverview] = useState(homeOverviewFallback);
+  const [userDashboard, setUserDashboard] = useState(userDashboardFallback);
+  const [userProfileDraft, setUserProfileDraft] = useState(userProfileDraftInitialState);
   const [jobFilters, setJobFilters] = useState(jobFilterInitialState);
   const [jobsData, setJobsData] = useState({
     total: mockRecommendedJobs.length,
@@ -259,6 +403,13 @@ function App() {
     user: null
   }));
   const hasMoreJobs = Boolean(jobsData.hasMore);
+  const dashboardView = buildUserDashboardView(
+    userDashboard,
+    userProfileDraft,
+    resumeInfo,
+    auth.user
+  );
+  const isUserHomeSection = activeSection !== "jobs";
 
   useEffect(() => {
     if (auth.token) {
@@ -332,6 +483,8 @@ function App() {
     try {
       const user = await request("/api/auth/me", { method: "GET" });
       setAuth((current) => ({ ...current, user }));
+      loadLocalUserProfileDraft(user);
+      await loadUserDashboard(user);
       await loadCurrentResume();
       await loadHomeOverview();
       await loadRecommendedJobs(jobFilterInitialState);
@@ -348,6 +501,40 @@ function App() {
     } catch (error) {
       setResumeInfo(null);
     }
+  }
+
+  async function loadUserDashboard(user = auth.user) {
+    try {
+      const dashboard = await request("/api/user/dashboard", { method: "GET" });
+      const localPlanName = readLocalPlanName(user);
+      setUserDashboard({
+        ...userDashboardFallback,
+        ...dashboard,
+        ...(localPlanName ? { planName: localPlanName } : {})
+      });
+    } catch {
+      const localPlanName = readLocalPlanName(user);
+      setUserDashboard({
+        ...userDashboardFallback,
+        displayName: getAuthDisplayName(user),
+        ...(localPlanName ? { planName: localPlanName } : {})
+      });
+    }
+  }
+
+  function readLocalPlanName(user = auth.user) {
+    return localStorage.getItem(getUserScopedStorageKey(user, "plan_name")) || "";
+  }
+
+  function loadLocalUserProfileDraft(user = auth.user) {
+    const storedDraft = readLocalJson(
+      getUserScopedStorageKey(user, "profile_draft"),
+      userProfileDraftInitialState
+    );
+    setUserProfileDraft({
+      ...userProfileDraftInitialState,
+      ...storedDraft
+    });
   }
 
   async function loadHomeOverview() {
@@ -484,8 +671,11 @@ function App() {
   function logout(clearMessage = true) {
     localStorage.removeItem(TOKEN_KEY);
     setAuth({ token: null, user: null });
+    setActiveSection("jobs");
     setResumeInfo(null);
     setHomeOverview(homeOverviewFallback);
+    setUserDashboard(userDashboardFallback);
+    setUserProfileDraft(userProfileDraftInitialState);
     setJobFilters(jobFilterInitialState);
     setJobsData({
       total: mockRecommendedJobs.length,
@@ -533,6 +723,7 @@ function App() {
         body: formData
       });
       await loadCurrentResume();
+      await loadUserDashboard();
       await loadHomeOverview();
       await loadRecommendedJobs(jobFilterInitialState);
       setResumeFile(null);
@@ -542,6 +733,283 @@ function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSidebarSwitch(sectionKey) {
+    setActiveSection(sectionKey);
+  }
+
+  function handleProfileDraftChange(field, value) {
+    setUserProfileDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleSaveUserProfileDraft() {
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), userProfileDraft);
+    setMessage({ type: "success", text: "个人主页设置已保存，后续可直接在这里继续完善资料。" });
+  }
+
+  function handleUpgradePlan(plan) {
+    localStorage.setItem(getUserScopedStorageKey(auth.user, "plan_name"), plan.name);
+    setUserDashboard((current) => ({ ...current, planName: plan.name }));
+    setMessage({
+      type: "success",
+      text: `${plan.name} 已在前端演示环境中启用，后续接入支付和后端套餐接口后即可持久化。`
+    });
+  }
+
+  function renderUserWorkspaceSection() {
+    if (activeSection === "agent" || activeSection === "coach") {
+      return (
+        <section className="user-home-shell">
+          <article className="user-home-hero">
+            <div>
+              <span className="eyebrow">求职工作区</span>
+              <h1>{activeSection === "agent" ? "求职助手能力正在准备接入。" : "求职辅导专区即将开放。"}</h1>
+              <p>
+                这一块我先给你留了工作区入口，当前版本重点先落在个人主页、简历完善和套餐升级。
+              </p>
+            </div>
+          </article>
+        </section>
+      );
+    }
+
+    if (activeSection === "resume") {
+      return (
+        <section className="user-home-shell">
+          <article className="user-home-hero">
+            <div>
+              <span className="eyebrow">简历中心</span>
+              <h1>把当前简历版本、评分和上传动作集中管理，保持推荐结果始终基于最新材料。</h1>
+              <p>
+                这里专门处理简历本身，不再混入个人偏好字段，方便你持续替换和优化版本。
+              </p>
+            </div>
+            <div className="user-home-kpis">
+              <article>
+                <strong>{dashboardView.resumeScore}</strong>
+                <span>当前简历评分</span>
+              </article>
+              <article>
+                <strong>{resumeInfo?.status || "ACTIVE"}</strong>
+                <span>当前简历状态</span>
+              </article>
+              <article>
+                <strong>{resumeInfo?.fileName || "未上传"}</strong>
+                <span>当前生效版本</span>
+              </article>
+            </div>
+          </article>
+
+          <div className="user-home-grid user-home-grid-single">
+            <section className="user-home-card resume-workbench">
+              <div className="rail-title">
+                <strong>上传与替换简历</strong>
+                <button type="button" onClick={() => setActiveSection("profile")}>
+                  去个人资料
+                </button>
+              </div>
+
+              <div className="resume-current-card">
+                <strong>{resumeInfo?.fileName || "当前还没有简历"}</strong>
+                <span>
+                  {resumeInfo
+                    ? `评分 ${resumeInfo.score || dashboardView.resumeScore} · 状态 ${resumeInfo.status || "ACTIVE"}`
+                    : "上传当前简历后，这里会展示最新版本和分数。"}
+                </span>
+              </div>
+
+              <form className="user-home-form" onSubmit={handleResumeUpload}>
+                <label className="file-upload-box compact">
+                  <span>选择新的简历文件</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(event) => setResumeFile(event.target.files?.[0] || null)}
+                  />
+                </label>
+
+                {resumeFile ? (
+                  <div className="selected-file-card">
+                    <strong>{resumeFile.name}</strong>
+                    <span>{Math.max(1, Math.round(resumeFile.size / 1024))} KB</span>
+                  </div>
+                ) : (
+                  <div className="selected-file-card empty">
+                    <strong>还没有选择新文件</strong>
+                    <span>支持 PDF、DOC、DOCX，上传后会替换当前生效简历。</span>
+                  </div>
+                )}
+
+                <div className="tips-grid">
+                  <article className="tip-card">
+                    <strong>建议保持一份最新校招版本</strong>
+                    <span>针对目标岗位更新关键词和项目描述，再上传替换当前版本。</span>
+                  </article>
+                  <article className="tip-card">
+                    <strong>上传后会刷新匹配结果</strong>
+                    <span>岗位推荐、匹配分和工作台提示会根据当前简历重新计算。</span>
+                  </article>
+                </div>
+
+                <div className="user-home-actions">
+                  <button className="primary-button" disabled={loading} type="submit">
+                    {loading ? "上传中..." : "上传并刷新简历"}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
+      );
+    }
+
+    return (
+      <section className="user-home-shell">
+        <article className="user-home-hero">
+          <div>
+            <span className="eyebrow">个人资料</span>
+            <h1>把求职偏好、关键词和套餐放在一个地方维护，方便你持续迭代求职策略。</h1>
+            <p>
+              这里专门维护个人画像和会员能力，简历上传则单独放到简历中心处理。
+            </p>
+          </div>
+          <div className="user-home-kpis">
+            <article>
+              <strong>{dashboardView.resumeScore}</strong>
+              <span>当前简历评分</span>
+            </article>
+            <article>
+              <strong>{dashboardView.profileCompletionRate}%</strong>
+              <span>资料完善度</span>
+            </article>
+            <article>
+              <strong>{dashboardView.planName}</strong>
+              <span>当前套餐</span>
+            </article>
+          </div>
+        </article>
+
+        <div className="user-home-grid">
+          <section className="user-home-card">
+            <div className="rail-title">
+              <strong>完善个人资料</strong>
+              <button type="button" onClick={() => setActiveSection("resume")}>
+                去简历中心
+              </button>
+            </div>
+
+            <form className="user-home-form">
+              <label>
+                期望城市
+                <input
+                  value={userProfileDraft.expectedCity}
+                  onChange={(event) => handleProfileDraftChange("expectedCity", event.target.value)}
+                  placeholder="例如 上海 / 深圳"
+                />
+              </label>
+
+              <label>
+                目标岗位
+                <input
+                  value={userProfileDraft.targetRole}
+                  onChange={(event) => handleProfileDraftChange("targetRole", event.target.value)}
+                  placeholder="例如 后端开发 / Java 工程师"
+                />
+              </label>
+
+              <label>
+                岗位关键词
+                <input
+                  value={userProfileDraft.keywordTags}
+                  onChange={(event) => handleProfileDraftChange("keywordTags", event.target.value)}
+                  placeholder="例如 Java, Spring Boot, MySQL"
+                />
+              </label>
+
+              <label>
+                个人亮点摘要
+                <textarea
+                  value={userProfileDraft.personalSummary}
+                  onChange={(event) =>
+                    handleProfileDraftChange("personalSummary", event.target.value)
+                  }
+                  placeholder="写下你最想让招聘方快速看到的项目经历、技术栈或求职方向。"
+                  rows={5}
+                />
+              </label>
+
+              <div className="user-home-actions">
+                <button className="primary-button" onClick={handleSaveUserProfileDraft} type="button">
+                  保存资料
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="user-home-card plan-workbench">
+            <div className="rail-title">
+              <strong>升级套餐</strong>
+              <button type="button">权益说明</button>
+            </div>
+
+            <div className="current-plan-banner">
+              <small>当前已启用</small>
+              <strong>{dashboardView.planName}</strong>
+              <span>你可以先在前端演示环境中切换套餐方案，验证交互和展示逻辑。</span>
+            </div>
+
+            <div className="plan-option-list">
+              {planOptions.map((plan) => {
+                const active = dashboardView.planName === plan.name;
+                return (
+                  <article key={plan.code} className={active ? "plan-option active" : "plan-option"}>
+                    <div className="plan-option-head">
+                      <div>
+                        <strong>{plan.name}</strong>
+                        <span>{plan.price}</span>
+                      </div>
+                      <button
+                        className={active ? "ghost-button" : "primary-button"}
+                        onClick={() => handleUpgradePlan(plan)}
+                        type="button"
+                      >
+                        {active ? "当前套餐" : "切换到此套餐"}
+                      </button>
+                    </div>
+                    <p>{plan.description}</p>
+                    <ul>
+                      {plan.features.map((feature) => (
+                        <li key={feature}>{feature}</li>
+                      ))}
+                    </ul>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <div className="user-home-grid">
+          <section className="user-home-card">
+            <div className="rail-title">
+              <strong>求职提醒</strong>
+              <button type="button" onClick={() => setActiveSection("jobs")}>
+                返回职位流
+              </button>
+            </div>
+            <div className="tips-grid">
+              {dashboardView.tips.map((tip) => (
+                <article key={tip} className="tip-card">
+                  <strong>{tip}</strong>
+                  <span>完成这一项后，你的主页完成度和岗位匹配解释会更完整。</span>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      </section>
+    );
   }
 
   if (!auth.token || !auth.user) {
@@ -786,10 +1254,16 @@ function App() {
             {sidebarItems.map((item) => (
               <button
                 key={item.key}
-                className={item.active ? "sidebar-link active" : "sidebar-link"}
+                className={activeSection === item.key ? "sidebar-link active" : "sidebar-link"}
+                onClick={() => handleSidebarSwitch(item.key)}
                 type="button"
               >
-                <span>{item.label}</span>
+                <span className="sidebar-link-main">
+                  <span className="sidebar-link-icon">
+                    <SidebarIcon type={item.icon} />
+                  </span>
+                  <span>{item.label}</span>
+                </span>
                 {item.badge ? <em>{item.badge}</em> : null}
               </button>
             ))}
@@ -797,9 +1271,9 @@ function App() {
 
           <div className="sidebar-card">
             <small>当前简历评分</small>
-            <strong>{homeOverview.resumeScore} / 100</strong>
+            <strong>{dashboardView.resumeScore} / 100</strong>
             <p>上传最新简历并补全偏好设置后，可以获得更高质量的岗位推荐。</p>
-            <button className="ghost-button" type="button">
+            <button className="ghost-button" onClick={() => setActiveSection("resume")} type="button">
               优化简历
             </button>
           </div>
@@ -812,37 +1286,39 @@ function App() {
         </aside>
 
         <main className="main-panel">
-          <header className="topbar">
-            <div className="topbar-title">
-              <span className="section-label">职位</span>
-              <div className="tab-strip">
-                {["推荐职位", "收藏职位", "已投递", "站外岗位"].map((tab) => (
-                  <button
-                    key={tab}
-                    className={activeTab === tab ? "top-tab active" : "top-tab"}
-                    onClick={() => setActiveTab(tab)}
-                    type="button"
-                  >
-                    {tab}
-                  </button>
-                ))}
+          {!isUserHomeSection ? (
+            <header className="topbar">
+              <div className="topbar-title">
+                <span className="section-label">职位</span>
+                <div className="tab-strip">
+                  {["推荐职位", "收藏职位", "已投递", "站外岗位"].map((tab) => (
+                    <button
+                      key={tab}
+                      className={activeTab === tab ? "top-tab active" : "top-tab"}
+                      onClick={() => setActiveTab(tab)}
+                      type="button"
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="topbar-actions">
-              <label className="search-box">
-                <span>搜索</span>
-                <input
-                  placeholder="搜索职位、公司或关键词"
-                  value={jobFilters.keyword}
-                  onChange={(event) => updateJobFilter("keyword", event.target.value)}
-                />
-              </label>
-              <button className="turbo-button" type="button">
-                加速求职模式
-              </button>
-            </div>
-          </header>
+              <div className="topbar-actions">
+                <label className="search-box">
+                  <span>搜索</span>
+                  <input
+                    placeholder="搜索职位、公司或关键词"
+                    value={jobFilters.keyword}
+                    onChange={(event) => updateJobFilter("keyword", event.target.value)}
+                  />
+                </label>
+                <button className="turbo-button" type="button">
+                  加速求职模式
+                </button>
+              </div>
+            </header>
+          ) : null}
 
           {message.text ? (
             <div className={message.type === "error" ? "notice error" : "notice success"}>
@@ -850,6 +1326,8 @@ function App() {
             </div>
           ) : null}
 
+          {!isUserHomeSection ? (
+            <>
           <section className="hero-panel">
             <div>
               <span className="eyebrow">求职首页</span>
@@ -1045,6 +1523,10 @@ function App() {
               {jobLoading ? "正在加载更多职位..." : hasMoreJobs ? "继续下滑加载更多" : "已经到底了"}
             </div>
           ) : null}
+            </>
+          ) : (
+            renderUserWorkspaceSection()
+          )}
         </main>
 
         <aside className="right-rail">
@@ -1053,14 +1535,23 @@ function App() {
               <div className="avatar">
                 {getAuthDisplayName(auth.user).slice(0, 1)}
               </div>
-              <div>
-                <strong>{getAuthDisplayName(auth.user)}</strong>
-                <span>免费版</span>
+              <div className="profile-copy">
+                <strong>{dashboardView.displayName}</strong>
+                <span>{dashboardView.planName}</span>
               </div>
             </div>
-            <button className="ghost-button rail-logout" onClick={() => logout()} type="button">
-              退出登录
-            </button>
+            <div className="profile-actions">
+              <button
+                className="ghost-button"
+                onClick={() => setActiveSection("profile")}
+                type="button"
+              >
+                用户主页
+              </button>
+              <button className="ghost-button rail-logout" onClick={() => logout()} type="button">
+                退出登录
+              </button>
+            </div>
           </section>
 
           <section className="rail-card">
@@ -1071,7 +1562,7 @@ function App() {
             <div className="saved-filter-list">
               {savedFilters.map((item) => (
                 <div key={item} className="saved-filter-item">
-                  <span>{item}</span>
+                  <span className="saved-filter-name">{item}</span>
                   <button type="button">编辑</button>
                 </div>
               ))}
@@ -1081,12 +1572,12 @@ function App() {
           <section className="rail-card progress-card">
             <strong>完善你的求职资料以获得更高匹配职位</strong>
             <div className="progress-bar">
-              <div style={{ width: `${homeOverview.profileCompletionRate}%` }} />
+              <div style={{ width: `${dashboardView.profileCompletionRate}%` }} />
             </div>
             <ul>
-              <li>上传最新简历</li>
-              <li>设置期望城市和岗位方向</li>
-              <li>补充工作偏好与经历标签</li>
+              {dashboardView.tips.map((tip) => (
+                <li key={tip}>{tip}</li>
+              ))}
             </ul>
           </section>
 
