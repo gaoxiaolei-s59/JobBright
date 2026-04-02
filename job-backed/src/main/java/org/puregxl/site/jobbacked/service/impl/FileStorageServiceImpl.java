@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.exception.ClientException;
 import org.puregxl.site.jobbacked.config.RustfsProperties;
 import org.puregxl.site.jobbacked.dto.file.UploadFileInfo;
+import org.puregxl.site.jobbacked.mq.event.UploadResumeExecuteTaskEvent;
+import org.puregxl.site.jobbacked.mq.producer.JobBackedUserResumeProduceTemplate;
 import org.puregxl.site.jobbacked.service.FileStorageService;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -21,6 +23,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     private final S3Client s3Client;
 
     private final RustfsProperties rustfsProperties;
+
 
     @Override
     public UploadFileInfo uploadFile(UploadFileInfo fileInfo) {

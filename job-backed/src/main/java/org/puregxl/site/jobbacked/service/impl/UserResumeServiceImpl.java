@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.puregxl.site.framework.exception.ClientException;
 import org.puregxl.site.jobbacked.common.context.UserContext;
 import org.puregxl.site.jobbacked.config.RustfsProperties;
@@ -12,8 +13,11 @@ import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.jobbacked.dto.file.UploadFileInfo;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
+import org.puregxl.site.jobbacked.mq.event.UploadResumeExecuteTaskEvent;
+import org.puregxl.site.jobbacked.mq.producer.JobBackedUserResumeProduceTemplate;
 import org.puregxl.site.jobbacked.service.FileStorageService;
 import org.puregxl.site.jobbacked.service.UserResumeService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +28,7 @@ import static org.puregxl.site.framework.errorcode.BaseErrorCode.USER_RESUME_NOT
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, UserResumeFile> implements UserResumeService {
 
     private final UserResumeFileMapper userResumeFileMapper;
@@ -36,6 +41,7 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
 
     private static final String USER_RESUME_BUCKET_NAME = "user-resume";
 
+    private final ObjectProvider<JobBackedUserResumeProduceTemplate> jobBackedUserResumeProduceTemplateProvider;
     /**
      * 上传用户简历
      *
@@ -82,6 +88,16 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                     .objectUrl(buildObjectUrl(USER_RESUME_BUCKET_NAME, objectKey))
                     .content(file.getBytes())
                     .build());
+            //发送消息到下游 解析用户简历
+            UploadResumeExecuteTaskEvent uploadEvent = UploadResumeExecuteTaskEvent.builder()
+                    .fileAddress(uploadFileInfo.getObjectUrl())
+                    .build();
+            JobBackedUserResumeProduceTemplate producer = jobBackedUserResumeProduceTemplateProvider.getIfAvailable();
+            if (producer != null) {
+                producer.sendMessage(uploadEvent);
+            } else {
+                log.warn("RocketMQTemplate 未配置，跳过发送简历解析消息: fileAddress={}", uploadEvent.getFileAddress());
+            }
         } catch (IOException exception) {
             throw new ClientException("读取上传简历失败");
         }
