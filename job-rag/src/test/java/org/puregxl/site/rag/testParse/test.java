@@ -68,17 +68,17 @@ public class test {
         TikaParseService parseService = new TikaParseService();
         ResumeChunker resumeChunker = new ResumeChunker();
 
-        String filePath = "src/test/java/org/puregxl/site/rag/testParse/高晓雷-实习.pdf";
+        String filePath = "src/test/java/org/puregxl/site/rag/testParse/木及简历 (1).md";
         MultipartFile file;
         try (InputStream inputStream = new FileInputStream(filePath)) {
             file = new MockMultipartFile("file", "demo.pdf", "application/pdf", inputStream);
         }
 
         ParseResult parseResult = parseService.parseFile(file);
-        ResumeChunker.ChunkingResult chunkingResult = resumeChunker.chunk(parseResult.getContent());
+//        ResumeChunker.ChunkingResult chunkingResult = resumeChunker.chunk(parseResult.getContent());
 
         String systemPrompt = ResumeProfilePromptBuilder.buildSystemPrompt();
-        String userPrompt = ResumeProfilePromptBuilder.buildUserPrompt(chunkingResult);
+        String userPrompt = parseResult.getContent();
 
         System.out.println("===== System Prompt =====");
         System.out.println(systemPrompt);
