@@ -8,9 +8,9 @@ public interface FileService {
 
     UploadFileResponse uploadFile(MultipartFile file);
 
-    UploadFileResponse getFile(String fileId);
+    UploadFileResponse getFile(String resumeId);
 
-    DownloadFileResponse downloadFile(String fileId);
+    DownloadFileResponse downloadFile(String resumeId);
 
     DownloadFileResponse downloadFileByUrl(String fileUrl);
 

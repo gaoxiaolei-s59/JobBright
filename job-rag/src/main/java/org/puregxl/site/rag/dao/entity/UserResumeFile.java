@@ -12,14 +12,17 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("rag_file")
-public class RagFile {
+@TableName("user_resume_file")
+public class UserResumeFile {
 
     /** 主键ID */
     private Long id;
 
-    /** 文件业务唯一标识 */
-    private String fileId;
+    /** 用户ID */
+    private Long userId;
+
+    /** 简历ID */
+    private String resumeId;
 
     /** 原始文件名 */
     private String fileName;
@@ -33,20 +36,17 @@ public class RagFile {
     /** 文件大小(byte) */
     private Long fileSize;
 
-    /** 对象存储桶名 */
-    private String bucketName;
-
     /** 对象存储路径 */
     private String objectKey;
 
     /** 文件访问地址 */
     private String objectUrl;
 
-    /** 文件状态 */
-    private String status;
+    /** 是否当前生效版本 0-否 1-是 */
+    private Integer isCurrent;
 
-    /** 备注 */
-    private String remark;
+    /** 用户简历分数 */
+    private Double score;
 
     /** 创建时间 */
     private Date createTime;
@@ -54,6 +54,6 @@ public class RagFile {
     /** 更新时间 */
     private Date updateTime;
 
-    /** 逻辑删除标识：0-未删除，1-已删除 */
+    /** 删除标识 0-未删除 1-已删除 */
     private Integer delFlag;
 }

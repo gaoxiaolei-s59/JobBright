@@ -12,9 +12,9 @@ import lombok.NoArgsConstructor;
 public class UploadFileResponse {
 
     /**
-     * 文件业务ID
+     * 简历业务ID
      */
-    private String fileId;
+    private String resumeId;
 
     /**
      * 原始文件名

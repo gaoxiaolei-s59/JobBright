@@ -1,8 +1,11 @@
 package org.puregxl.site.rag.testParse;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -18,6 +21,7 @@ public class ResumeChunker {
     private static final Pattern TIME_RANGE_PATTERN = Pattern.compile(
             "(20\\d{2}[./]\\d{1,2})\\s*[-~至]\\s*(至今|20\\d{2}[./]\\d{1,2})"
     );
+    private static final Map<String, String> TECH_ALIAS_MAP = buildTechAliasMap();
 
     public ChunkingResult chunk(String text) {
         List<String> lines = preprocessLines(text);
@@ -113,8 +117,25 @@ public class ResumeChunker {
 
     private List<EntryBlock> buildBasicEntries(SectionBlock section, int startSortNo) {
         List<EntryBlock> result = new ArrayList<>();
-        String content = String.join("\n", section.lines());
-        result.add(buildEntry(section.name(), "PROFILE", "基本信息", null, null, null, List.of(), content, startSortNo));
+        List<String> summaryLines = new ArrayList<>();
+        List<String> contactLines = new ArrayList<>();
+        for (String line : section.lines()) {
+            if (isContactLine(line)) {
+                contactLines.add(line);
+            } else if (!looksLikeProjectBullet(line)) {
+                summaryLines.add(line);
+            }
+        }
+
+        int sortNo = startSortNo;
+        if (!summaryLines.isEmpty()) {
+            result.add(buildEntry(section.name(), "PROFILE", "顶部摘要", null, null, null,
+                    List.of(), String.join("\n", summaryLines), sortNo++));
+        }
+        if (!contactLines.isEmpty()) {
+            result.add(buildEntry(section.name(), "CONTACT", "联系方式", null, null, null,
+                    List.of(), String.join("\n", contactLines), sortNo));
+        }
         return result;
     }
 
@@ -411,9 +432,9 @@ public class ResumeChunker {
             if (!looksLikeTechStack(line) && !line.startsWith("Java 基础与底层")) {
                 continue;
             }
-            for (String part : line.split("[ /]|\\s+")) {
-                String tech = part.trim();
-                if (tech.length() >= 2 && containsTechKeyword(tech)) {
+            for (String token : tokenizeTechLine(line)) {
+                String tech = normalizeTechToken(token);
+                if (tech != null) {
                     techs.add(tech);
                 }
             }
@@ -437,6 +458,47 @@ public class ResumeChunker {
 
     private boolean containsTechKeyword(String word) {
         return word.matches(".*[A-Za-z].*") || List.of("中间件", "微服务", "数据库", "缓存").contains(word);
+    }
+
+    private List<String> tokenizeTechLine(String line) {
+        String normalized = line
+                .replace("：", " ")
+                .replace(":", " ")
+                .replace("（", " ")
+                .replace("）", " ")
+                .replace("(", " ")
+                .replace(")", " ")
+                .replace("、", " ")
+                .replace("，", " ")
+                .replace(",", " ")
+                .replace("/", " ")
+                .replace("+", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+        return Arrays.asList(normalized.split(" "));
+    }
+
+    private String normalizeTechToken(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        String cleaned = token
+                .replaceAll("^[^\\p{IsAlphabetic}\\p{IsDigit}\\u4e00-\\u9fff]+", "")
+                .replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}.+#\\-\\u4e00-\\u9fff]+$", "");
+        if (cleaned.isBlank()) {
+            return null;
+        }
+        if (cleaned.matches(".*[；。].*")) {
+            return null;
+        }
+        String alias = TECH_ALIAS_MAP.get(cleaned.toLowerCase());
+        if (alias != null) {
+            return alias;
+        }
+        return null;
     }
 
     private boolean isLikelyProjectTitleText(String line) {
@@ -471,6 +533,45 @@ public class ResumeChunker {
                 || line.contains("学习能力强")
                 || line.contains("团队协作意识")
                 || line.contains("问题排查");
+    }
+
+    private boolean isContactLine(String line) {
+        return line.contains("@")
+                || line.startsWith("GitHub：")
+                || line.startsWith("求职意向：")
+                || line.startsWith("状态：")
+                || line.matches("^1\\d{2}.*")
+                || line.matches(".*\\d{4}\\.\\d.*");
+    }
+
+    private boolean looksLikeProjectBullet(String line) {
+        return line.contains("优化")
+                || line.contains("治理")
+                || line.contains("防护")
+                || line.contains("异步")
+                || line.contains("一致性")
+                || line.contains("统计")
+                || line.contains("分库分表");
+    }
+
+    private static Map<String, String> buildTechAliasMap() {
+        Map<String, String> aliasMap = new HashMap<>();
+        for (String tech : List.of(
+                "Java", "Spring", "Spring Boot", "Spring Cloud", "Alibaba", "RocketMQ", "Kafka",
+                "Redis", "MySQL", "MongoDB", "ShardingSphere", "Sentinel", "Nacos", "Redisson",
+                "Docker", "EasyExcel", "XXL-Job", "JUC", "JVM", "GC", "MyBatis-Plus", "EXPLAIN",
+                "Elasticsearch", "Lua", "Pipeline", "RAG", "Embedding", "Prompt Engineering"
+        )) {
+            aliasMap.put(tech.toLowerCase(), tech);
+        }
+        aliasMap.put("boot", "Spring Boot");
+        aliasMap.put("cloud", "Spring Cloud");
+        aliasMap.put("5.x", "RocketMQ");
+        aliasMap.put("v2", "RocketMQ");
+        aliasMap.put("xxl-job", "XXL-Job");
+        aliasMap.put("mybatis-plus", "MyBatis-Plus");
+        aliasMap.put("elasticsearch", "Elasticsearch");
+        return aliasMap;
     }
 
     private String extractLabelTitle(String line, String defaultTitle) {
