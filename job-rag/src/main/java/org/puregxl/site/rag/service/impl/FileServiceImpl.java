@@ -6,8 +6,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.exception.ClientException;
 import org.puregxl.site.rag.config.RustfsProperties;
-import org.puregxl.site.rag.dao.entity.RagFile;
-import org.puregxl.site.rag.dao.mapper.FileMapper;
+import org.puregxl.site.rag.dao.entity.UserResumeFile;
+import org.puregxl.site.rag.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.rag.dto.resp.DownloadFileResponse;
 import org.puregxl.site.rag.dto.resp.UploadFileResponse;
 import org.puregxl.site.rag.service.FileService;
@@ -40,8 +40,9 @@ import java.util.Objects;
 public class FileServiceImpl implements FileService {
 
     private static final String STATUS_UPLOADED = "UPLOADED";
+    private static final Integer CURRENT_VERSION = 1;
 
-    private final FileMapper fileMapper;
+    private final UserResumeFileMapper userResumeFileMapper;
 
     private final S3Client s3Client;
 
@@ -62,29 +63,28 @@ public class FileServiceImpl implements FileService {
             throw new ClientException("文件名不能为空");
         }
 
-        String fileId = IdUtil.fastSimpleUUID();
+        String resumeId = IdUtil.fastSimpleUUID();
         String fileExt = getFileExt(originalFilename);
-        String objectKey = buildObjectKey(fileId, fileExt);
+        String objectKey = buildObjectKey(resumeId, fileExt);
         //创建桶
         ensureBucketExists();
         putObject(file, objectKey);
 
         String objectUrl = buildObjectUrl(objectKey);
-        RagFile ragFile = RagFile.builder()
-                .fileId(fileId)
+        UserResumeFile userResumeFile = UserResumeFile.builder()
+                .resumeId(resumeId)
                 .fileName(originalFilename)
                 .fileExt(fileExt)
                 .contentType(file.getContentType())
                 .fileSize(file.getSize())
-                .bucketName(rustfsProperties.getBucketName())
                 .objectKey(objectKey)
                 .objectUrl(objectUrl)
-                .status(STATUS_UPLOADED)
+                .isCurrent(CURRENT_VERSION)
                 .build();
-        fileMapper.insert(ragFile);
+        userResumeFileMapper.insert(userResumeFile);
 
         return UploadFileResponse.builder()
-                .fileId(fileId)
+                .resumeId(resumeId)
                 .fileName(originalFilename)
                 .fileSize(file.getSize())
                 .bucketName(rustfsProperties.getBucketName())
@@ -96,40 +96,40 @@ public class FileServiceImpl implements FileService {
 
     /**
      * 获取文件
-     * @param fileId
+     * @param resumeId
      * @return
      */
     @Override
-    public UploadFileResponse getFile(String fileId) {
-        RagFile ragFile = getRagFile(fileId);
+    public UploadFileResponse getFile(String resumeId) {
+        UserResumeFile userResumeFile = getUserResumeFile(resumeId);
         return UploadFileResponse.builder()
-                .fileId(ragFile.getFileId())
-                .fileName(ragFile.getFileName())
-                .fileSize(ragFile.getFileSize())
-                .bucketName(ragFile.getBucketName())
-                .objectKey(ragFile.getObjectKey())
-                .objectUrl(ragFile.getObjectUrl())
-                .status(ragFile.getStatus())
+                .resumeId(userResumeFile.getResumeId())
+                .fileName(userResumeFile.getFileName())
+                .fileSize(userResumeFile.getFileSize())
+                .bucketName(rustfsProperties.getBucketName())
+                .objectKey(userResumeFile.getObjectKey())
+                .objectUrl(userResumeFile.getObjectUrl())
+                .status(STATUS_UPLOADED)
                 .build();
     }
 
     /**
      * 下载文件接口
-     * @param fileId
+     * @param resumeId
      * @return
      */
     @Override
-    public DownloadFileResponse downloadFile(String fileId) {
-        RagFile ragFile = getRagFile(fileId);
+    public DownloadFileResponse downloadFile(String resumeId) {
+        UserResumeFile userResumeFile = getUserResumeFile(resumeId);
         try {
             ResponseBytes<GetObjectResponse> objectBytes = s3Client.getObjectAsBytes(GetObjectRequest.builder()
-                    .bucket(ragFile.getBucketName())
-                    .key(ragFile.getObjectKey())
+                    .bucket(rustfsProperties.getBucketName())
+                    .key(userResumeFile.getObjectKey())
                     .build());
             return DownloadFileResponse.builder()
-                    .fileName(ragFile.getFileName())
-                    .contentType(ragFile.getContentType())
-                    .fileSize(ragFile.getFileSize())
+                    .fileName(userResumeFile.getFileName())
+                    .contentType(userResumeFile.getContentType())
+                    .fileSize(userResumeFile.getFileSize())
                     .content(objectBytes.asByteArray())
                     .build();
         } catch (S3Exception exception) {
@@ -204,18 +204,18 @@ public class FileServiceImpl implements FileService {
         );
     }
 
-    private RagFile getRagFile(String fileId) {
-        if (!StringUtils.hasText(fileId)) {
-            throw new ClientException("文件ID不能为空");
+    private UserResumeFile getUserResumeFile(String resumeId) {
+        if (!StringUtils.hasText(resumeId)) {
+            throw new ClientException("简历ID不能为空");
         }
-        LambdaQueryWrapper<RagFile> queryWrapper = Wrappers.lambdaQuery(RagFile.class)
-                .eq(RagFile::getFileId, fileId)
-                .eq(RagFile::getDelFlag, 0);
-        RagFile ragFile = fileMapper.selectOne(queryWrapper);
-        if (ragFile == null) {
-            throw new ClientException("文件不存在");
+        LambdaQueryWrapper<UserResumeFile> queryWrapper = Wrappers.lambdaQuery(UserResumeFile.class)
+                .eq(UserResumeFile::getResumeId, resumeId)
+                .eq(UserResumeFile::getDelFlag, 0);
+        UserResumeFile userResumeFile = userResumeFileMapper.selectOne(queryWrapper);
+        if (userResumeFile == null) {
+            throw new ClientException("简历文件不存在");
         }
-        return ragFile;
+        return userResumeFile;
     }
 
     /**
@@ -261,9 +261,9 @@ public class FileServiceImpl implements FileService {
         }
     }
 
-    private String buildObjectKey(String fileId, String fileExt) {
+    private String buildObjectKey(String resumeId, String fileExt) {
         String suffix = StringUtils.hasText(fileExt) ? "." + fileExt : "";
-        return "rag/upload/" + fileId + suffix;
+        return "rag/upload/" + resumeId + suffix;
     }
 
     private String buildObjectUrl(String objectKey) {
