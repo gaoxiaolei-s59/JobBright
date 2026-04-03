@@ -1,3 +1,8 @@
+# Sensitive local test documents
+**/src/test/**/*.pdf
+**/src/test/**/*.doc
+**/src/test/**/*.docx
+**/src/test/**/*
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar

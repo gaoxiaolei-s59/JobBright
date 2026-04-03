@@ -84,4 +84,8 @@ public class EmbeddingSearchDemo {
             System.out.println();
         }
     }
+
+
+
+    
 }

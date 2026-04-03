@@ -66,17 +66,14 @@ public class test {
     @Test
     void testGenerateResumeProfile() throws Exception {
         TikaParseService parseService = new TikaParseService();
-        ResumeChunker resumeChunker = new ResumeChunker();
 
-        String filePath = "src/test/java/org/puregxl/site/rag/testParse/木及简历 (1).md";
+        String filePath = "src/test/java/org/puregxl/site/rag/testParse/test1.pdf";
         MultipartFile file;
         try (InputStream inputStream = new FileInputStream(filePath)) {
             file = new MockMultipartFile("file", "demo.pdf", "application/pdf", inputStream);
         }
 
         ParseResult parseResult = parseService.parseFile(file);
-//        ResumeChunker.ChunkingResult chunkingResult = resumeChunker.chunk(parseResult.getContent());
-
         String systemPrompt = ResumeProfilePromptBuilder.buildSystemPrompt();
         String userPrompt = parseResult.getContent();
 

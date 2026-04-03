@@ -27,7 +27,7 @@ public class JobBackedUserResumeProduceTemplate extends AbstractCommonSendProduc
     @Override
     protected BaseSendExtendDTO buildBaseSendExtendDTO(UploadResumeExecuteTaskEvent messageSendEvent) {
         return BaseSendExtendDTO.builder()
-                .eventName("用户简历切块")
+                .eventName("用户简历画像处理")
                 .topic(UPLOAD_RESUME_TOPIC)
                 .sentTimeout(2000L)
                 .build();
