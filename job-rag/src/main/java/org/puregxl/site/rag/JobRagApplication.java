@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @MapperScan("org.puregxl.site.rag.dao.mapper")
+
 public class JobRagApplication {
     public static void main(String[] args) {
         SpringApplication.run(JobRagApplication.class);
