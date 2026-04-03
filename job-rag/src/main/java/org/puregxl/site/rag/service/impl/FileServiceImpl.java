@@ -89,6 +89,17 @@ public class FileServiceImpl implements FileService {
         }
     }
 
+    @Override
+    public MultipartFile downloadMultipartFile(String resumeId, String buckName) {
+        DownloadFileResponse response = downloadFile(resumeId, buckName);
+        return new InMemoryMultipartFile(
+                "file",
+                response.getFileName(),
+                response.getContentType(),
+                response.getContent()
+        );
+    }
+
     /**
      * url获取文件
      * @return

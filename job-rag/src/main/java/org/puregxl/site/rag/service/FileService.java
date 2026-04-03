@@ -11,6 +11,8 @@ public interface FileService {
 
     DownloadFileResponse downloadFile(String resumeId, String buckName);
 
+    MultipartFile downloadMultipartFile(String resumeId, String buckName);
+
     DownloadFileResponse downloadFileByUrl(String fileUrl);
 
     MultipartFile downloadMultipartFileByUrl(String fileUrl);

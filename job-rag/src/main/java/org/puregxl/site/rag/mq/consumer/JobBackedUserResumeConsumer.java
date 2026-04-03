@@ -1,20 +1,23 @@
 package org.puregxl.site.rag.mq.consumer;
 
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.puregxl.site.framework.mq.UploadResumeExecuteTaskEvent;
+import org.puregxl.site.rag.config.RustfsProperties;
 import org.puregxl.site.rag.dao.entity.UserResumeFile;
 import org.puregxl.site.rag.dao.entity.UserResumeProfile;
 import org.puregxl.site.rag.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.rag.dao.mapper.UserResumeProfileMapper;
 import org.puregxl.site.rag.dto.profile.ResumeProfileDTO;
 import org.puregxl.site.rag.mq.base.MessageWrapper;
-import org.puregxl.site.rag.mq.event.UploadResumeExecuteTaskEvent;
 import org.puregxl.site.rag.parse.ParseResult;
 import org.puregxl.site.rag.parse.TikaParseService;
 import org.puregxl.site.rag.profile.ResumeProfileConverter;
+import org.puregxl.site.rag.profile.ResumeProfilePostProcessor;
 import org.puregxl.site.rag.profile.client.ResumeProfileLlmClient;
 import org.puregxl.site.rag.profile.prompt.ResumeProfilePromptBuilder;
 import org.puregxl.site.rag.service.impl.FileServiceImpl;
@@ -47,6 +50,8 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
 
     private final UserResumeProfileMapper userResumeProfileMapper;
 
+    private final RustfsProperties rustfsProperties;
+
     @Override
     public void onMessage(MessageWrapper<UploadResumeExecuteTaskEvent> messageWrapper) {
         log.info("[消费者] - 用户简历画像处理 - 执行消费逻辑，消息体:{}", JSON.toJSONString(messageWrapper));
@@ -56,26 +61,25 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
             return;
         }
 
-        String fileAddress = message.getFileAddress();
-        if (!StringUtils.hasText(fileAddress)) {
-            log.warn("[消费者] - 用户简历画像处理 - 文件地址为空: {}", JSON.toJSONString(message));
+        String resumeId = message.getResumeId();
+        if (!StringUtils.hasText(resumeId)) {
+            log.warn("[消费者] - 用户简历画像处理 - 简历ID为空: {}", JSON.toJSONString(message));
             return;
         }
 
-        String fileId = message.getFileId();
-
-        if (fileId == null) {
-            log.warn("[消费者] - 用户简历画像处理 - 文件id为空: {}", JSON.toJSONString(message));
-            return;
-        }
-
-        UserResumeFile userResumeFile = userResumeFileMapper.selectById(fileId);
+        UserResumeFile userResumeFile = userResumeFileMapper.selectOne(
+                Wrappers.lambdaQuery(UserResumeFile.class)
+                        .eq(UserResumeFile::getResumeId, resumeId)
+                        .eq(UserResumeFile::getDelFlag, 0)
+                        .last("limit 1")
+        );
         if (userResumeFile == null) {
-            log.warn("[消费者] - 用户简历画像处理 - 未找到简历文件记录, fileId:{}", fileId);
+            log.warn("[消费者] - 用户简历画像处理 - 未找到简历文件记录, resumeId:{}", resumeId);
             return;
         }
-        //使用tika提取文档的内容
-        MultipartFile multipartFile = fileService.downloadMultipartFileByUrl(fileAddress);
+
+        // 通过私有对象存储凭证直接下载文件
+        MultipartFile multipartFile = fileService.downloadMultipartFile(userResumeFile.getResumeId(), rustfsProperties.getBucketName());
         ParseResult parseResult = tikaParseService.parseFile(multipartFile);
         String systemPrompt = ResumeProfilePromptBuilder.buildSystemPrompt();
         String userPrompt = parseResult.getContent();
@@ -109,8 +113,17 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
         //两次重试
         for (int round = 1; round <= 2; round++) {
             String userProfileJson = resumeProfileLlmClient.generateProfileJson(systemPrompt, userPrompt);
-            ResumeProfileDTO dto = ResumeProfileConverter.toDto(userProfileJson);
-            List<String> validationErrors = validateProfile(dto, userPrompt);
+            ResumeProfileDTO rawDto = ResumeProfileConverter.toDto(userProfileJson);
+            ResumeProfilePostProcessor.PostProcessResult postProcessResult = ResumeProfilePostProcessor.clean(rawDto, userPrompt);
+            ResumeProfileDTO dto = postProcessResult.dto();
+            if (!postProcessResult.warnings().isEmpty()) {
+                log.warn("用户简历画像存在可自动修正字段, userId:{}, resumeId:{}, warnings:{}",
+                        userResumeFile.getUserId(),
+                        userResumeFile.getResumeId(),
+                        postProcessResult.warnings());
+            }
+
+            List<String> validationErrors = validateProfile(dto);
             if (validationErrors.isEmpty()) {
                 UserResumeProfile profile = ResumeProfileConverter.toEntity(dto, userProfileJson, userResumeFile.getResumeId());
                 return new ProfileBuildResult(true, profile, dto, List.of());
@@ -127,7 +140,7 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
         return new ProfileBuildResult(false, null, null, errors);
     }
 
-    private List<String> validateProfile(ResumeProfileDTO dto, String sourceText) {
+    private List<String> validateProfile(ResumeProfileDTO dto) {
         List<String> errors = new ArrayList<>();
         if (dto == null) {
             errors.add("画像DTO为空");
@@ -148,15 +161,6 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
         if (!isAllowedValue(dto.getPreferred_job_type(), List.of("实习", "校招", "社招"))) {
             errors.add("preferred_job_type不合法");
         }
-        if (dto.getPreferred_cities() != null
-                && !dto.getPreferred_cities().isEmpty()
-                && !containsExplicitCityIntent(sourceText)) {
-            errors.add("preferred_cities存在明显臆造");
-        }
-        if (dto.getSchool_tags() != null
-                && dto.getSchool_tags().stream().anyMatch(tag -> tag != null && tag.equals(dto.getSchool_name()))) {
-            errors.add("school_tags与school_name重复");
-        }
         if (!StringUtils.hasText(dto.getResume_summary())) {
             errors.add("resume_summary为空");
         }
@@ -165,17 +169,6 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
 
     private boolean isAllowedValue(String value, List<String> allowedValues) {
         return StringUtils.hasText(value) && allowedValues.contains(value);
-    }
-
-    private boolean containsExplicitCityIntent(String content) {
-        return content.contains("意向城市")
-                || content.contains("工作地点")
-                || content.contains("base")
-                || content.contains("上海")
-                || content.contains("杭州")
-                || content.contains("深圳")
-                || content.contains("广州")
-                || content.contains("成都");
     }
 
     private record ProfileBuildResult(

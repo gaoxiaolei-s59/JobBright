@@ -1,4 +1,4 @@
-package org.puregxl.site.rag.mq.event;
+package org.puregxl.site.framework.mq;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,15 +11,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UploadResumeExecuteTaskEvent {
 
-
     /**
-     * 文件地址
+     * 简历ID
      */
-    private String fileAddress;
-
-
-    /**
-     * 文件id
-     */
-    private String fileId;
+    private String resumeId;
 }

@@ -18,8 +18,10 @@ rustfs:
   url: http://localhost:9000
   access-key-id: rustfsadmin
   secret-access-key: rustfsadmin
-  bucket-name: job-rag
+  bucket-name: user-resume
   create-bucket-if-missing: true
+
+
 
 
 rocketmq:
@@ -29,4 +31,8 @@ rocketmq:
     send-message-timeout: 10000 # 发送超时时间
     retry-times-when-send-failed: 1 # 同步发送重试次数
     retry-times-when-send-async-failed: 1 # 异步发送重试次数
+
+
+llm:
+  api-key: ${SILICONFLOW_API_KEY:}
 

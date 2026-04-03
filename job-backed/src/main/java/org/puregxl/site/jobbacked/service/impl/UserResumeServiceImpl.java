@@ -7,17 +7,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.puregxl.site.framework.exception.ClientException;
+import org.puregxl.site.framework.mq.UploadResumeExecuteTaskEvent;
 import org.puregxl.site.jobbacked.common.context.UserContext;
 import org.puregxl.site.jobbacked.config.RustfsProperties;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.jobbacked.dto.file.UploadFileInfo;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
-import org.puregxl.site.jobbacked.mq.event.UploadResumeExecuteTaskEvent;
 import org.puregxl.site.jobbacked.mq.producer.JobBackedUserResumeProduceTemplate;
 import org.puregxl.site.jobbacked.service.FileStorageService;
 import org.puregxl.site.jobbacked.service.UserResumeService;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -110,8 +109,7 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
 
         //发送消息到下游 解析用户简历
         UploadResumeExecuteTaskEvent uploadEvent = UploadResumeExecuteTaskEvent.builder()
-                .fileAddress(uploadFileInfo.getObjectUrl())
-                .resumeId(userResumeFile.getId().toString())
+                .resumeId(userResumeFile.getResumeId())
                 .build();
 
         jobBackedUserResumeProduceTemplate.sendMessage(uploadEvent);

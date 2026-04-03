@@ -22,6 +22,10 @@ public class RustfsProperties {
      */
     private String secretAccessKey;
 
+    /**
+     * 默认桶名
+     */
+    private String bucketName;
 
     /**
      * 若桶不存在是否自动创建
