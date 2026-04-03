@@ -41,7 +41,8 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
 
     private static final String USER_RESUME_BUCKET_NAME = "user-resume";
 
-    private final ObjectProvider<JobBackedUserResumeProduceTemplate> jobBackedUserResumeProduceTemplateProvider;
+    private final JobBackedUserResumeProduceTemplate jobBackedUserResumeProduceTemplate;
+
     /**
      * 上传用户简历
      *
@@ -112,12 +113,9 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                 .fileAddress(uploadFileInfo.getObjectUrl())
                 .resumeId(userResumeFile.getId().toString())
                 .build();
-        JobBackedUserResumeProduceTemplate producer = jobBackedUserResumeProduceTemplateProvider.getIfAvailable();
-        if (producer != null) {
-            producer.sendMessage(uploadEvent);
-        } else {
-            log.warn("RocketMQTemplate 未配置，跳过发送简历解析消息: fileAddress={}", uploadEvent.getFileAddress());
-        }
+
+        jobBackedUserResumeProduceTemplate.sendMessage(uploadEvent);
+
     }
 
     /**

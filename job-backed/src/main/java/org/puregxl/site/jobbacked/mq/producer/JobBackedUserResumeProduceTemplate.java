@@ -16,7 +16,6 @@ import static org.puregxl.site.framework.common.constant.RocketMqConstant.UPLOAD
 
 
 @Component
-@ConditionalOnBean(RocketMQTemplate.class)
 public class JobBackedUserResumeProduceTemplate extends AbstractCommonSendProduceTemplate<UploadResumeExecuteTaskEvent>{
 
     public JobBackedUserResumeProduceTemplate(RocketMQTemplate rocketMQTemplate) {
