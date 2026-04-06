@@ -29,6 +29,11 @@ public class JobPageRequestV2 extends Page<JobPost> {
     private String title;
 
     /**
+     * 城市
+     */
+    private String city;
+
+    /**
      * 经验等级
      */
     private String experienceLevel;
@@ -53,5 +58,9 @@ public class JobPageRequestV2 extends Page<JobPost> {
      */
     private String industryName;
 
+    /**
+     * 学历要求
+     */
+    private String educationRequirement;
 
 }

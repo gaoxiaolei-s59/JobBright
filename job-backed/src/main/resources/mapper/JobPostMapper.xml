@@ -10,10 +10,27 @@
         <result column="company_id" property="companyId"/>
         <result column="title" property="title"/>
         <result column="job_summary" property="jobSummary"/>
+        <result column="job_description" property="jobDescription"/>
+        <result column="role_category" property="roleCategory"/>
+        <result column="role_tags" property="roleTags"/>
+        <result column="skill_tags" property="skillTags"/>
+        <result column="industry_tags" property="industryTags"/>
+        <result column="benefit_tags" property="benefitTags"/>
+        <result column="highlight_tags" property="highlightTags"/>
         <result column="location" property="location"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
         <result column="work_mode" property="workMode"/>
         <result column="employment_type" property="employmentType"/>
+        <result column="education_requirement" property="educationRequirement"/>
+        <result column="preferred_major" property="preferredMajor"/>
         <result column="experience_level" property="experienceLevel"/>
+        <result column="min_experience_years" property="minExperienceYears"/>
+        <result column="max_experience_years" property="maxExperienceYears"/>
+        <result column="internship_months" property="internshipMonths"/>
+        <result column="salary_min_monthly" property="salaryMinMonthly"/>
+        <result column="salary_max_monthly" property="salaryMaxMonthly"/>
+        <result column="salary_months" property="salaryMonths"/>
         <result column="applicant_count" property="applicantCount"/>
         <result column="apply_url" property="applyUrl"/>
         <result column="posted_at" property="postedAt"/>
@@ -34,6 +51,12 @@
             <if test="req.title != null and req.title != ''">
                 AND jp.title LIKE CONCAT('%', #{req.title}, '%')
             </if>
+            <if test="req.city != null and req.city != ''">
+                AND (
+                    jp.city = #{req.city}
+                    OR jp.location LIKE CONCAT('%', #{req.city}, '%')
+                )
+            </if>
             <if test="req.experienceLevel != null and req.experienceLevel != ''">
                 AND jp.experience_level = #{req.experienceLevel}
             </if>
@@ -47,13 +70,22 @@
                 AND (
                     jp.title LIKE CONCAT('%', #{req.keyword}, '%')
                     OR jp.job_summary LIKE CONCAT('%', #{req.keyword}, '%')
+                    OR jp.job_description LIKE CONCAT('%', #{req.keyword}, '%')
+                    OR jp.skill_tags LIKE CONCAT('%', #{req.keyword}, '%')
+                    OR jp.role_tags LIKE CONCAT('%', #{req.keyword}, '%')
                     OR c.company_name LIKE CONCAT('%', #{req.keyword}, '%')
                     OR c.industry_name LIKE CONCAT('%', #{req.keyword}, '%')
                 )
             </if>
             <if test="req.industryName != null and req.industryName != ''">
                 AND c.del_flag = 0
-                AND c.industry_name LIKE CONCAT('%', #{req.industryName}, '%')
+                AND (
+                    c.industry_name LIKE CONCAT('%', #{req.industryName}, '%')
+                    OR jp.industry_tags LIKE CONCAT('%', #{req.industryName}, '%')
+                )
+            </if>
+            <if test="req.educationRequirement != null and req.educationRequirement != ''">
+                AND jp.education_requirement = #{req.educationRequirement}
             </if>
             <if test="req.datePosted != null and req.datePosted != ''">
                 <choose>
@@ -79,10 +111,27 @@
             jp.company_id,
             jp.title,
             jp.job_summary,
+            jp.job_description,
+            jp.role_category,
+            jp.role_tags,
+            jp.skill_tags,
+            jp.industry_tags,
+            jp.benefit_tags,
+            jp.highlight_tags,
             jp.location,
+            jp.city,
+            jp.district,
             jp.work_mode,
             jp.employment_type,
+            jp.education_requirement,
+            jp.preferred_major,
             jp.experience_level,
+            jp.min_experience_years,
+            jp.max_experience_years,
+            jp.internship_months,
+            jp.salary_min_monthly,
+            jp.salary_max_monthly,
+            jp.salary_months,
             jp.applicant_count,
             jp.apply_url,
             jp.posted_at,

@@ -1,5 +1,6 @@
 package org.puregxl.site.jobbacked.service.impl;
 
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -28,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -68,6 +70,7 @@ public class RecommendServiceImpl implements RecommendService {
                 .map(JobPost::getCompanyId)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toSet());
+
         Map<String, Company> companyMap = companyIds.isEmpty() ? Collections.emptyMap() :
                 companyMapper.selectList(Wrappers.lambdaQuery(Company.class)
                                 .in(Company::getCompanyId, companyIds)
@@ -176,10 +179,20 @@ public class RecommendServiceImpl implements RecommendService {
                 .title(jobPost.getTitle())
                 .meta(buildMeta(company))
                 .postedAt(formatPostedAt(jobPost.getPostedAt()))
-                .location(jobPost.getLocation())
+                .salaryRange(formatSalaryRange(jobPost))
+                .location(formatLocation(jobPost))
+                .city(jobPost.getCity())
+                .district(jobPost.getDistrict())
                 .workMode(jobPost.getWorkMode())
                 .employmentType(jobPost.getEmploymentType())
                 .experienceLevel(ExperienceLevelEnum.normalize(jobPost.getExperienceLevel()))
+                .educationRequirement(jobPost.getEducationRequirement())
+                .preferredMajor(jobPost.getPreferredMajor())
+                .roleCategory(jobPost.getRoleCategory())
+                .internshipMonths(jobPost.getInternshipMonths())
+                .jobSummary(firstNonBlank(jobPost.getJobSummary(), jobPost.getJobDescription()))
+                .skillTags(parseTagList(jobPost.getSkillTags()))
+                .highlightTags(parseTagList(jobPost.getHighlightTags()))
                 .applicantCount(jobPost.getApplicantCount())
                 .matchScore(matchScore)
                 .matchLabel(matchScore >= 95 ? "高度匹配" : "较高匹配")
@@ -261,14 +274,26 @@ public class RecommendServiceImpl implements RecommendService {
     }
 
     private int calculateMatchScore(JobPost jobPost, Company company) {
-        int score = 72;
-        if (StringUtils.hasText(jobPost.getTitle()) && jobPost.getTitle().contains("后端")) {
-            score += 12;
+        int score = 68;
+        if (StringUtils.hasText(jobPost.getRoleCategory())) {
+            score += 8;
+        }
+        if (StringUtils.hasText(jobPost.getTitle()) && (jobPost.getTitle().contains("后端") || jobPost.getTitle().contains("Java"))) {
+            score += 10;
+        }
+        if (!parseTagList(jobPost.getSkillTags()).isEmpty()) {
+            score += 8;
+        }
+        if (!parseTagList(jobPost.getHighlightTags()).isEmpty()) {
+            score += 4;
         }
         if ("全职".equals(jobPost.getEmploymentType())) {
             score += 4;
         }
         if ("混合办公".equals(jobPost.getWorkMode())) {
+            score += 3;
+        }
+        if (jobPost.getSalaryMaxMonthly() != null && jobPost.getSalaryMaxMonthly() >= 30) {
             score += 3;
         }
         if (company != null && StringUtils.hasText(company.getIndustryName()) && company.getIndustryName().contains("互联网")) {
@@ -278,6 +303,13 @@ public class RecommendServiceImpl implements RecommendService {
     }
 
     private String buildMatchReason(JobPost jobPost, Company company, int matchScore) {
+        List<String> skillTags = parseTagList(jobPost.getSkillTags());
+        if (!skillTags.isEmpty()) {
+            return "命中核心技能：" + skillTags.stream().limit(3).collect(Collectors.joining("、"));
+        }
+        if (StringUtils.hasText(jobPost.getRoleCategory())) {
+            return "岗位角色聚焦于" + jobPost.getRoleCategory() + "，便于和简历画像做定向匹配";
+        }
         if (matchScore >= 95) {
             return "岗位方向和当前简历关键词高度重合";
         }
@@ -308,6 +340,63 @@ public class RecommendServiceImpl implements RecommendService {
             return days + " 天前";
         }
         return postedAt.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().toString();
+    }
+
+    private String formatLocation(JobPost jobPost) {
+        if (StringUtils.hasText(jobPost.getLocation())) {
+            return jobPost.getLocation();
+        }
+        return joinNonBlank(" / ", jobPost.getCity(), jobPost.getDistrict());
+    }
+
+    private String formatSalaryRange(JobPost jobPost) {
+        if (jobPost.getSalaryMinMonthly() == null && jobPost.getSalaryMaxMonthly() == null) {
+            return "";
+        }
+        String range = (jobPost.getSalaryMinMonthly() == null ? "面议" : jobPost.getSalaryMinMonthly() + "k")
+                + "-"
+                + (jobPost.getSalaryMaxMonthly() == null ? "面议" : jobPost.getSalaryMaxMonthly() + "k");
+        if (jobPost.getSalaryMonths() != null && jobPost.getSalaryMonths() > 0) {
+            return range + " * " + jobPost.getSalaryMonths() + "薪";
+        }
+        return range;
+    }
+
+    private String firstNonBlank(String... values) {
+        return Arrays.stream(values)
+                .filter(StringUtils::hasText)
+                .findFirst()
+                .orElse("");
+    }
+
+    private String joinNonBlank(String delimiter, String... values) {
+        return Arrays.stream(values)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.joining(delimiter));
+    }
+
+    private List<String> parseTagList(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return Collections.emptyList();
+        }
+        try {
+            if (raw.trim().startsWith("[")) {
+                return JSONUtil.parseArray(raw).stream()
+                        .map(String::valueOf)
+                        .map(String::trim)
+                        .filter(StringUtils::hasText)
+                        .distinct()
+                        .toList();
+            }
+        } catch (Exception ignored) {
+        }
+        return Arrays.stream(raw.split("[,，|/]"))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toCollection(LinkedHashSet::new),
+                        List::copyOf
+                ));
     }
 
 

@@ -26,8 +26,35 @@ public class JobPost {
     /** 职位简介 */
     private String jobSummary;
 
+    /** 职位详情描述 */
+    private String jobDescription;
+
+    /** 角色类别 */
+    private String roleCategory;
+
+    /** 角色标签，JSON数组或逗号分隔 */
+    private String roleTags;
+
+    /** 技能标签，JSON数组或逗号分隔 */
+    private String skillTags;
+
+    /** 行业标签，JSON数组或逗号分隔 */
+    private String industryTags;
+
+    /** 福利标签，JSON数组或逗号分隔 */
+    private String benefitTags;
+
+    /** 岗位亮点标签，JSON数组或逗号分隔 */
+    private String highlightTags;
+
     /** 工作地点 */
     private String location;
+
+    /** 城市 */
+    private String city;
+
+    /** 区县/区域 */
+    private String district;
 
     /** 办公方式 */
     private String workMode;
@@ -35,8 +62,32 @@ public class JobPost {
     /** 用工类型 */
     private String employmentType;
 
+    /** 学历要求 */
+    private String educationRequirement;
+
+    /** 优先专业 */
+    private String preferredMajor;
+
     /** 经验等级枚举值：STUDENT / NEW_GRAD / JUNIOR */
     private String experienceLevel;
+
+    /** 最低经验年限 */
+    private Integer minExperienceYears;
+
+    /** 最高经验年限 */
+    private Integer maxExperienceYears;
+
+    /** 实习时长要求（月） */
+    private Integer internshipMonths;
+
+    /** 月薪下限 */
+    private Integer salaryMinMonthly;
+
+    /** 月薪上限 */
+    private Integer salaryMaxMonthly;
+
+    /** 年薪月数 */
+    private Integer salaryMonths;
 
     /** 投递人数 */
     private Integer applicantCount;

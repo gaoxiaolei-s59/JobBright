@@ -3,6 +3,8 @@ package org.puregxl.site.jobbacked.dto.resp;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 @Builder
 public class RecommendJobResponse {
@@ -38,9 +40,24 @@ public class RecommendJobResponse {
     private String postedAt;
 
     /**
+     * 薪资范围
+     */
+    private String salaryRange;
+
+    /**
      * 工作地点
      */
     private String location;
+
+    /**
+     * 城市
+     */
+    private String city;
+
+    /**
+     * 区域
+     */
+    private String district;
 
     /**
      * 工作模式
@@ -56,6 +73,41 @@ public class RecommendJobResponse {
      * 经验等级枚举值：STUDENT / NEW_GRAD / JUNIOR
      */
     private String experienceLevel;
+
+    /**
+     * 学历要求
+     */
+    private String educationRequirement;
+
+    /**
+     * 优先专业
+     */
+    private String preferredMajor;
+
+    /**
+     * 角色类别
+     */
+    private String roleCategory;
+
+    /**
+     * 实习时长要求（月）
+     */
+    private Integer internshipMonths;
+
+    /**
+     * 职位摘要
+     */
+    private String jobSummary;
+
+    /**
+     * 技能标签
+     */
+    private List<String> skillTags;
+
+    /**
+     * 岗位亮点
+     */
+    private List<String> highlightTags;
 
     /**
      * 投递人数
