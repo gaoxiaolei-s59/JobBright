@@ -50,6 +50,17 @@ const userProfileDraftInitialState = {
   personalSummary: ""
 };
 
+const settingsDraftInitialState = {
+  emailNotifications: true,
+  weeklyReport: true,
+  pushNewMatches: true,
+  autoLoadMoreJobs: true,
+  compactCards: false,
+  showMatchReason: true,
+  privateProfile: false,
+  shareResumeScore: true
+};
+
 const planOptions = [
   {
     code: "FREE",
@@ -78,13 +89,15 @@ const jobFilterInitialState = {
   keyword: "",
   country: "",
   title: "",
+  city: "",
   experienceLevel: "",
   employmentType: "",
   workMode: "",
   datePosted: "",
   industryName: "",
-  page: 1,
-  pageSize: 10
+  educationRequirement: "",
+  current: 1,
+  size: 10
 };
 
 const experienceLevelOptions = [
@@ -97,18 +110,79 @@ const experienceLevelLabelMap = Object.fromEntries(
   experienceLevelOptions.map((item) => [item.value, item.label])
 );
 
+const countryOptions = [
+  { value: "", label: "全部国家" },
+  { value: "中国大陆", label: "中国大陆" }
+];
+
+const cityOptions = [
+  { value: "", label: "全部城市" },
+  { value: "上海", label: "上海" },
+  { value: "北京", label: "北京" },
+  { value: "深圳", label: "深圳" },
+  { value: "杭州", label: "杭州" },
+  { value: "广州", label: "广州" }
+];
+
+const employmentTypeOptions = [
+  { value: "", label: "全部类型" },
+  { value: "全职", label: "全职" },
+  { value: "实习", label: "实习" },
+  { value: "校招", label: "校招" }
+];
+
+const workModeOptions = [
+  { value: "", label: "全部模式" },
+  { value: "现场办公", label: "现场办公" },
+  { value: "混合办公", label: "混合办公" },
+  { value: "远程办公", label: "远程办公" }
+];
+
+const datePostedOptions = [
+  { value: "", label: "全部时间" },
+  { value: "24h", label: "24 小时内" },
+  { value: "3d", label: "3 天内" },
+  { value: "7d", label: "7 天内" }
+];
+
+const industryOptions = [
+  { value: "", label: "全部行业" },
+  { value: "互联网", label: "互联网" },
+  { value: "制造业", label: "制造业" },
+  { value: "企业 SaaS", label: "企业 SaaS" },
+  { value: "云计算", label: "云计算" }
+];
+
+const educationOptions = [
+  { value: "", label: "全部学历" },
+  { value: "大专及以上", label: "大专及以上" },
+  { value: "本科", label: "本科" },
+  { value: "本科及以上", label: "本科及以上" },
+  { value: "硕士及以上", label: "硕士及以上" }
+];
+
+const sizeOptions = [
+  { value: 10, label: "10" },
+  { value: 20, label: "20" },
+  { value: 50, label: "50" }
+];
+
 const recommendRequestFieldNames = [
   "keyword",
   "country",
   "title",
+  "city",
   "experienceLevel",
   "employmentType",
   "workMode",
   "datePosted",
   "industryName",
-  "page",
-  "pageSize"
+  "educationRequirement",
+  "current",
+  "size"
 ];
+
+const jobTabs = ["推荐职位", "收藏职位", "已投递"];
 
 const jobItems = [
   {
@@ -119,9 +193,17 @@ const jobItems = [
     meta: "三星电子 / 制造业 / 成长期",
     postedAt: "6 小时前",
     location: "上海",
-    workMode: "线下办公",
+    city: "上海",
+    district: "浦东新区",
+    workMode: "现场办公",
     employmentType: "实习",
     experienceLevel: "STUDENT",
+    educationRequirement: "本科",
+    roleCategory: "后端开发",
+    salaryRange: "250-300/天",
+    jobSummary: "参与招聘平台接口开发与测试，适合想进入 Java 后端方向的同学。",
+    skillTags: ["Java", "Spring Boot", "MySQL"],
+    highlightTags: ["实习转正", "导师带教", "业务核心"],
     applicants: 54,
     match: 82,
     sponsor: "岗位画像匹配度较高",
@@ -137,9 +219,17 @@ const jobItems = [
     meta: "数据平台 / 云计算 / 上市公司",
     postedAt: "10 小时前",
     location: "北京",
+    city: "北京",
+    district: "海淀区",
     workMode: "混合办公",
     employmentType: "全职",
     experienceLevel: "NEW_GRAD",
+    educationRequirement: "本科及以上",
+    roleCategory: "平台研发",
+    salaryRange: "28k-38k * 15薪",
+    jobSummary: "负责数据平台服务和云端应用研发，校招友好。",
+    skillTags: ["Java", "SQL", "云计算"],
+    highlightTags: ["上市公司", "导师培养", "成长路径清晰"],
     applicants: 72,
     match: 98,
     sponsor: "高度匹配，建议优先投递",
@@ -155,9 +245,17 @@ const jobItems = [
     meta: "企业 SaaS / AI Cloud / 上市公司",
     postedAt: "14 小时前重新发布",
     location: "深圳",
+    city: "深圳",
+    district: "南山区",
     workMode: "混合办公",
     employmentType: "全职",
     experienceLevel: "JUNIOR",
+    educationRequirement: "本科及以上",
+    roleCategory: "推荐平台",
+    salaryRange: "24k-34k * 14薪",
+    jobSummary: "参与推荐链路、画像服务与企业级平台后端建设。",
+    skillTags: ["Java", "Redis", "推荐系统"],
+    highlightTags: ["校招友好", "平台型业务", "核心项目"],
     applicants: 108,
     match: 93,
     sponsor: "和你的简历关键词高度重合",
@@ -174,10 +272,18 @@ const mockRecommendedJobs = jobItems.map((job, index) => ({
   title: job.title,
   meta: job.meta,
   postedAt: job.postedAt,
+  salaryRange: job.salaryRange,
   location: job.location,
+  city: job.city,
+  district: job.district,
   workMode: job.workMode,
   employmentType: job.employmentType,
   experienceLevel: job.experienceLevel,
+  educationRequirement: job.educationRequirement,
+  roleCategory: job.roleCategory,
+  jobSummary: job.jobSummary,
+  skillTags: job.skillTags,
+  highlightTags: job.highlightTags,
   applicantCount: job.applicants,
   matchScore: job.match,
   matchLabel: job.match >= 95 ? "高度匹配" : "较高匹配",
@@ -209,6 +315,10 @@ function readLocalJson(key, fallbackValue) {
 
 function writeLocalJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function normalizeBoolean(value) {
+  return value === true || value === 1;
 }
 
 function getCompanyBadgeText(job) {
@@ -328,6 +438,61 @@ function CompanyBadge({ job }) {
   );
 }
 
+function FilterSelect({ value, options, onChange, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (!containerRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find((option) => option.value === value);
+  const displayLabel = selectedOption?.label || placeholder;
+
+  return (
+    <div className={open ? "custom-select open" : "custom-select"} ref={containerRef}>
+      <button
+        className="custom-select-trigger"
+        onClick={() => setOpen((current) => !current)}
+        type="button"
+      >
+        <span>{displayLabel}</span>
+        <span className={open ? "custom-select-caret open" : "custom-select-caret"}>
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="m5 7.5 5 5 5-5" />
+          </svg>
+        </span>
+      </button>
+
+      {open ? (
+        <div className="custom-select-menu">
+          {options.map((option) => (
+            <button
+              key={String(option.value)}
+              className={option.value === value ? "custom-select-option active" : "custom-select-option"}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+              type="button"
+            >
+              <span>{option.label}</span>
+              {option.value === value ? <strong>✓</strong> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 class RequestError extends Error {
   constructor(message, options = {}) {
     super(message);
@@ -380,6 +545,7 @@ function getErrorMessage(payload, fallbackMessage) {
 function App() {
   const [activeTab, setActiveTab] = useState("推荐职位");
   const [activeSection, setActiveSection] = useState("jobs");
+  const [filterExpanded, setFilterExpanded] = useState(false);
   const [authView, setAuthView] = useState("login");
   const [loginForm, setLoginForm] = useState(loginInitialState);
   const [registerForm, setRegisterForm] = useState(registerInitialState);
@@ -388,6 +554,7 @@ function App() {
   const [homeOverview, setHomeOverview] = useState(homeOverviewFallback);
   const [userDashboard, setUserDashboard] = useState(userDashboardFallback);
   const [userProfileDraft, setUserProfileDraft] = useState(userProfileDraftInitialState);
+  const [settingsDraft, setSettingsDraft] = useState(settingsDraftInitialState);
   const [jobFilters, setJobFilters] = useState(jobFilterInitialState);
   const [jobsData, setJobsData] = useState({
     total: mockRecommendedJobs.length,
@@ -397,7 +564,10 @@ function App() {
   const [jobLoading, setJobLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
+  const [jobActionOverrides, setJobActionOverrides] = useState({});
   const loadMoreRef = useRef(null);
+  const loadMoreLockRef = useRef(false);
+  const loadMoreReadyRef = useRef(true);
   const [auth, setAuth] = useState(() => ({
     token: localStorage.getItem(TOKEN_KEY),
     user: null
@@ -410,6 +580,26 @@ function App() {
     auth.user
   );
   const isUserHomeSection = activeSection !== "jobs";
+  const mergedJobRecords = jobsData.records.map((job) => {
+    const override = jobActionOverrides[job.jobId] || {};
+    return {
+      ...job,
+      liked: override.liked ?? job.liked,
+      applied: override.applied ?? job.applied
+    };
+  });
+  const visibleJobRecords = mergedJobRecords.filter((job) => {
+    if (activeTab === "收藏职位") {
+      return normalizeBoolean(job.liked);
+    }
+    if (activeTab === "已投递") {
+      return normalizeBoolean(job.applied);
+    }
+    return true;
+  });
+  const visibleJobTotal = activeTab === "推荐职位" ? jobsData.total : visibleJobRecords.length;
+  const favoriteCount = mergedJobRecords.filter((job) => normalizeBoolean(job.liked)).length;
+  const appliedCount = mergedJobRecords.filter((job) => normalizeBoolean(job.applied)).length;
 
   useEffect(() => {
     if (auth.token) {
@@ -424,10 +614,20 @@ function App() {
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry?.isIntersecting) {
+        if (!entry) {
+          return;
+        }
+        if (!entry.isIntersecting) {
+          loadMoreReadyRef.current = true;
+          return;
+        }
+        if (entry.isIntersecting && !loadMoreLockRef.current && loadMoreReadyRef.current) {
+          loadMoreLockRef.current = true;
+          loadMoreReadyRef.current = false;
+          observer.unobserve(entry.target);
           const nextFilters = {
             ...jobFilters,
-            page: Number(jobFilters.page || 1) + 1
+            current: Number(jobFilters.current || 1) + 1
           };
           setJobFilters(nextFilters);
           loadRecommendedJobs(nextFilters, true);
@@ -484,6 +684,8 @@ function App() {
       const user = await request("/api/auth/me", { method: "GET" });
       setAuth((current) => ({ ...current, user }));
       loadLocalUserProfileDraft(user);
+      loadLocalSettingsDraft(user);
+      loadLocalJobActions(user);
       await loadUserDashboard(user);
       await loadCurrentResume();
       await loadHomeOverview();
@@ -537,6 +739,23 @@ function App() {
     });
   }
 
+  function loadLocalSettingsDraft(user = auth.user) {
+    const storedDraft = readLocalJson(
+      getUserScopedStorageKey(user, "settings_draft"),
+      settingsDraftInitialState
+    );
+    setSettingsDraft({
+      ...settingsDraftInitialState,
+      ...storedDraft
+    });
+  }
+
+  function loadLocalJobActions(user = auth.user) {
+    setJobActionOverrides(
+      readLocalJson(getUserScopedStorageKey(user, "job_actions"), {})
+    );
+  }
+
   async function loadHomeOverview() {
     try {
       const overview = await request("/api/home/overview", { method: "GET" });
@@ -567,12 +786,13 @@ function App() {
     const filtered = mockRecommendedJobs.filter((job) => {
       const keywordMatched =
         !normalizedKeyword ||
-        [job.title, job.companyName, job.meta, job.location].some((text) =>
+        [job.title, job.companyName, job.meta, job.location, job.jobSummary, ...(job.skillTags || [])].some((text) =>
           String(text).toLowerCase().includes(normalizedKeyword)
         );
       const countryMatched = !filters.country || filters.country === "中国大陆";
       const titleMatched =
         !normalizedTitle || job.title.toLowerCase().includes(normalizedTitle);
+      const cityMatched = !filters.city || job.city === filters.city || job.location.includes(filters.city);
       const experienceMatched =
         !filters.experienceLevel || job.experienceLevel === filters.experienceLevel;
       const employmentTypeMatched =
@@ -580,21 +800,25 @@ function App() {
       const workModeMatched = !filters.workMode || job.workMode === filters.workMode;
       const industryNameMatched =
         !filters.industryName || job.meta.includes(filters.industryName);
+      const educationRequirementMatched =
+        !filters.educationRequirement || job.educationRequirement === filters.educationRequirement;
       return (
         keywordMatched &&
         countryMatched &&
         titleMatched &&
+        cityMatched &&
         experienceMatched &&
         employmentTypeMatched &&
         workModeMatched &&
-        industryNameMatched
+        industryNameMatched &&
+        educationRequirementMatched
       );
     });
 
-    const page = Number(filters.page) || 1;
-    const pageSize = Number(filters.pageSize) || jobFilterInitialState.pageSize;
-    const fromIndex = Math.max((page - 1) * pageSize, 0);
-    const toIndex = fromIndex + pageSize;
+    const current = Number(filters.current) || 1;
+    const size = Number(filters.size) || jobFilterInitialState.size;
+    const fromIndex = Math.max((current - 1) * size, 0);
+    const toIndex = fromIndex + size;
     return {
       total: filtered.length,
       hasMore: toIndex < filtered.length,
@@ -625,8 +849,93 @@ function App() {
         text: `${error.message || "推荐职位加载失败"}，当前已切换到本地演示数据`
       });
     } finally {
+      loadMoreLockRef.current = false;
       setJobLoading(false);
     }
+  }
+
+  function hasActiveJobFilters(filters = jobFilters) {
+    return [
+      filters.keyword,
+      filters.country,
+      filters.title,
+      filters.city,
+      filters.experienceLevel,
+      filters.employmentType,
+      filters.workMode,
+      filters.datePosted,
+      filters.industryName,
+      filters.educationRequirement
+    ].some((value) => value !== null && value !== undefined && String(value).trim() !== "");
+  }
+
+  function getEmptyStateCopy() {
+    if (activeTab === "收藏职位") {
+      return {
+        title: "你还没有收藏职位",
+        description: "看到感兴趣的岗位先点收藏，这里会自动帮你集中起来。"
+      };
+    }
+    if (activeTab === "已投递") {
+      return {
+        title: "你还没有已投递职位",
+        description: "给岗位标记为已投递后，这里会帮你集中管理后续跟进。"
+      };
+    }
+    if (hasActiveJobFilters()) {
+      return {
+        title: "暂时没有符合筛选条件的职位",
+        description: "你可以放宽城市、学历或经验条件，系统会重新帮你匹配。"
+      };
+    }
+    return {
+      title: "当前还没有可展示的推荐职位",
+      description: "先上传或更新简历、补充求职意向，系统会更快生成适合你的职位推荐。"
+    };
+  }
+
+  function getFilterSummaryItems() {
+    const summary = [];
+    if (jobFilters.city) {
+      summary.push({ key: "city", label: `城市 ${jobFilters.city}` });
+    }
+    if (jobFilters.experienceLevel) {
+      summary.push({ key: "experienceLevel", label: `经验 ${getExperienceLevelLabel(jobFilters.experienceLevel)}` });
+    }
+    if (jobFilters.employmentType) {
+      summary.push({ key: "employmentType", label: jobFilters.employmentType });
+    }
+    if (jobFilters.industryName) {
+      summary.push({ key: "industryName", label: jobFilters.industryName });
+    }
+    if (jobFilters.educationRequirement) {
+      summary.push({ key: "educationRequirement", label: jobFilters.educationRequirement });
+    }
+    if (jobFilters.datePosted) {
+      summary.push({
+        key: "datePosted",
+        label: jobFilters.datePosted === "24h"
+          ? "24 小时内"
+          : jobFilters.datePosted === "3d"
+            ? "3 天内"
+            : "7 天内"
+      });
+    }
+    return summary;
+  }
+
+  function clearJobFilter(field) {
+    updateJobFilter(field, "");
+  }
+
+  function getTabBadgeCount(tab) {
+    if (tab === "收藏职位") {
+      return favoriteCount;
+    }
+    if (tab === "已投递") {
+      return appliedCount;
+    }
+    return 0;
   }
 
   async function handleLogin(event) {
@@ -672,10 +981,12 @@ function App() {
     localStorage.removeItem(TOKEN_KEY);
     setAuth({ token: null, user: null });
     setActiveSection("jobs");
+    setActiveTab("推荐职位");
     setResumeInfo(null);
     setHomeOverview(homeOverviewFallback);
     setUserDashboard(userDashboardFallback);
     setUserProfileDraft(userProfileDraftInitialState);
+    setJobActionOverrides({});
     setJobFilters(jobFilterInitialState);
     setJobsData({
       total: mockRecommendedJobs.length,
@@ -694,7 +1005,44 @@ function App() {
   }
 
   function updateJobFilter(field, value) {
-    setJobFilters((current) => ({ ...current, [field]: value, page: 1 }));
+    setJobFilters((current) => ({ ...current, [field]: value, current: 1 }));
+  }
+
+  function saveJobActionOverrides(nextValue, user = auth.user) {
+    setJobActionOverrides(nextValue);
+    writeLocalJson(getUserScopedStorageKey(user, "job_actions"), nextValue);
+  }
+
+  function handleToggleJobLike(job) {
+    const currentLiked = normalizeBoolean(jobActionOverrides[job.jobId]?.liked ?? job.liked);
+    const nextOverrides = {
+      ...jobActionOverrides,
+      [job.jobId]: {
+        liked: !currentLiked,
+        applied: jobActionOverrides[job.jobId]?.applied ?? job.applied
+      }
+    };
+    saveJobActionOverrides(nextOverrides);
+    setMessage({
+      type: "success",
+      text: !currentLiked ? "已加入收藏职位，后续可以集中查看。" : "已从收藏职位移除。"
+    });
+  }
+
+  function handleToggleJobApplied(job) {
+    const currentApplied = normalizeBoolean(jobActionOverrides[job.jobId]?.applied ?? job.applied);
+    const nextOverrides = {
+      ...jobActionOverrides,
+      [job.jobId]: {
+        liked: jobActionOverrides[job.jobId]?.liked ?? job.liked,
+        applied: !currentApplied
+      }
+    };
+    saveJobActionOverrides(nextOverrides);
+    setMessage({
+      type: "success",
+      text: !currentApplied ? "已标记为已投递，后续会出现在已投递列表。" : "已取消已投递标记。"
+    });
   }
 
   async function handleJobSearch(event) {
@@ -746,6 +1094,15 @@ function App() {
   function handleSaveUserProfileDraft() {
     writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), userProfileDraft);
     setMessage({ type: "success", text: "个人主页设置已保存，后续可直接在这里继续完善资料。" });
+  }
+
+  function handleSettingsDraftChange(field, value) {
+    setSettingsDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleSaveSettingsDraft() {
+    writeLocalJson(getUserScopedStorageKey(auth.user, "settings_draft"), settingsDraft);
+    setMessage({ type: "success", text: "系统设置已保存，新的体验偏好已在本地生效。" });
   }
 
   function handleUpgradePlan(plan) {
@@ -858,6 +1215,162 @@ function App() {
                   </button>
                 </div>
               </form>
+            </section>
+          </div>
+        </section>
+      );
+    }
+
+    if (activeSection === "settings") {
+      return (
+        <section className="user-home-shell">
+          <article className="user-home-hero">
+            <div>
+              <span className="eyebrow">系统设置</span>
+              <h1>把通知、职位浏览体验和隐私偏好放在一个地方统一管理。</h1>
+              <p>当前版本先把常用设置做成前端可保存，后续可以继续接入服务端同步。</p>
+            </div>
+            <div className="user-home-kpis">
+              <article>
+                <strong>{settingsDraft.emailNotifications ? "已开启" : "已关闭"}</strong>
+                <span>邮件通知</span>
+              </article>
+              <article>
+                <strong>{settingsDraft.pushNewMatches ? "实时提醒" : "静默模式"}</strong>
+                <span>岗位推送</span>
+              </article>
+              <article>
+                <strong>{settingsDraft.privateProfile ? "仅自己可见" : "基础可见"}</strong>
+                <span>隐私设置</span>
+              </article>
+            </div>
+          </article>
+
+          <div className="user-home-grid">
+            <section className="user-home-card settings-card">
+              <div className="rail-title">
+                <strong>通知偏好</strong>
+                <button type="button" onClick={handleSaveSettingsDraft}>立即保存</button>
+              </div>
+              <div className="settings-list">
+                <label className="setting-item">
+                  <div>
+                    <strong>邮件通知</strong>
+                    <span>接收推荐职位、简历处理结果和账号提醒。</span>
+                  </div>
+                  <input
+                    checked={settingsDraft.emailNotifications}
+                    onChange={(event) => handleSettingsDraftChange("emailNotifications", event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+                <label className="setting-item">
+                  <div>
+                    <strong>每周求职周报</strong>
+                    <span>汇总本周匹配岗位、投递节奏和资料完善建议。</span>
+                  </div>
+                  <input
+                    checked={settingsDraft.weeklyReport}
+                    onChange={(event) => handleSettingsDraftChange("weeklyReport", event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+                <label className="setting-item">
+                  <div>
+                    <strong>新匹配职位提醒</strong>
+                    <span>当出现高匹配职位时，优先在工作台中提醒你。</span>
+                  </div>
+                  <input
+                    checked={settingsDraft.pushNewMatches}
+                    onChange={(event) => handleSettingsDraftChange("pushNewMatches", event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section className="user-home-card settings-card">
+              <div className="rail-title">
+                <strong>浏览体验</strong>
+                <button type="button" onClick={() => setActiveSection("jobs")}>返回职位页</button>
+              </div>
+              <div className="settings-list">
+                <label className="setting-item">
+                  <div>
+                    <strong>自动加载更多职位</strong>
+                    <span>滚动到底部时自动请求下一页职位。</span>
+                  </div>
+                  <input
+                    checked={settingsDraft.autoLoadMoreJobs}
+                    onChange={(event) => handleSettingsDraftChange("autoLoadMoreJobs", event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+                <label className="setting-item">
+                  <div>
+                    <strong>紧凑职位卡片</strong>
+                    <span>减少职位卡片留白，更适合连续浏览大量岗位。</span>
+                  </div>
+                  <input
+                    checked={settingsDraft.compactCards}
+                    onChange={(event) => handleSettingsDraftChange("compactCards", event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+                <label className="setting-item">
+                  <div>
+                    <strong>显示匹配原因</strong>
+                    <span>在职位卡片中展示画像匹配解释和技能命中信息。</span>
+                  </div>
+                  <input
+                    checked={settingsDraft.showMatchReason}
+                    onChange={(event) => handleSettingsDraftChange("showMatchReason", event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <div className="user-home-grid">
+            <section className="user-home-card settings-card">
+              <div className="rail-title">
+                <strong>隐私与账号</strong>
+                <button type="button" onClick={handleSaveSettingsDraft}>保存隐私设置</button>
+              </div>
+              <div className="settings-list">
+                <label className="setting-item">
+                  <div>
+                    <strong>隐藏公开画像</strong>
+                    <span>关闭后，个人画像只用于系统内部推荐，不在公开区域展示。</span>
+                  </div>
+                  <input
+                    checked={settingsDraft.privateProfile}
+                    onChange={(event) => handleSettingsDraftChange("privateProfile", event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+                <label className="setting-item">
+                  <div>
+                    <strong>展示简历评分</strong>
+                    <span>在工作台和简历中心中保留评分结果与趋势提示。</span>
+                  </div>
+                  <input
+                    checked={settingsDraft.shareResumeScore}
+                    onChange={(event) => handleSettingsDraftChange("shareResumeScore", event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section className="user-home-card settings-card settings-card-highlight">
+              <strong>建议先开启哪些设置？</strong>
+              <ul className="settings-tips">
+                <li>开启“新匹配职位提醒”，及时发现高匹配岗位。</li>
+                <li>保留“显示匹配原因”，更容易判断推荐质量。</li>
+                <li>如果你经常集中刷岗位，可以开启“自动加载更多职位”。</li>
+              </ul>
             </section>
           </div>
         </section>
@@ -1269,10 +1782,11 @@ function App() {
             ))}
           </nav>
 
-          <div className="sidebar-card">
-            <small>当前简历评分</small>
-            <strong>{dashboardView.resumeScore} / 100</strong>
-            <p>上传最新简历并补全偏好设置后，可以获得更高质量的岗位推荐。</p>
+          <div className="sidebar-card sidebar-score-card">
+            <div className="sidebar-score-main">
+              <small>当前简历评分</small>
+              <strong>{dashboardView.resumeScore} / 100</strong>
+            </div>
             <button className="ghost-button" onClick={() => setActiveSection("resume")} type="button">
               优化简历
             </button>
@@ -1281,7 +1795,7 @@ function App() {
           <div className="sidebar-footer">
             <button type="button">消息中心</button>
             <button type="button">意见反馈</button>
-            <button type="button">系统设置</button>
+            <button onClick={() => handleSidebarSwitch("settings")} type="button">系统设置</button>
           </div>
         </aside>
 
@@ -1291,14 +1805,17 @@ function App() {
               <div className="topbar-title">
                 <span className="section-label">职位</span>
                 <div className="tab-strip">
-                  {["推荐职位", "收藏职位", "已投递", "站外岗位"].map((tab) => (
+                  {jobTabs.map((tab) => (
                     <button
                       key={tab}
                       className={activeTab === tab ? "top-tab active" : "top-tab"}
                       onClick={() => setActiveTab(tab)}
                       type="button"
                     >
-                      {tab}
+                      <span>{tab}</span>
+                      {getTabBadgeCount(tab) > 0 ? (
+                        <em className="top-tab-badge">{getTabBadgeCount(tab)}</em>
+                      ) : null}
                     </button>
                   ))}
                 </div>
@@ -1329,14 +1846,6 @@ function App() {
           {!isUserHomeSection ? (
             <>
           <section className="hero-panel">
-            <div>
-              <span className="eyebrow">求职首页</span>
-              <h1>集中管理简历、职位推荐和投递动作，让求职节奏更清晰。</h1>
-              <p>
-                首页采用推荐优先的职位流设计，适合快速筛选目标岗位、对照简历匹配度、
-                并把高价值职位沉淀到后续投递流程里。
-              </p>
-            </div>
             <div className="hero-stats">
               <article>
                 <strong>{homeOverview.freshJobCount.toLocaleString("zh-CN")}</strong>
@@ -1354,18 +1863,52 @@ function App() {
           </section>
 
           <section className="filter-panel">
+            <div className="filter-toolbar">
+              <div>
+                <strong>智能筛选</strong>
+                <span>先看核心条件，需要时再展开更多筛选。</span>
+              </div>
+              <button
+                className={filterExpanded ? "filter-toggle active" : "filter-toggle"}
+                onClick={() => setFilterExpanded((current) => !current)}
+                type="button"
+              >
+                <span className={filterExpanded ? "filter-toggle-arrow active" : "filter-toggle-arrow"}>
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="m5 7.5 5 5 5-5" />
+                  </svg>
+                </span>
+                {filterExpanded ? "收起筛选" : "更多筛选"}
+              </button>
+            </div>
+
+            {getFilterSummaryItems().length ? (
+              <div className="filter-summary-row">
+                {getFilterSummaryItems().map((item) => (
+                  <button
+                    key={item.key}
+                    className="filter-summary-chip"
+                    onClick={() => clearJobFilter(item.key)}
+                    type="button"
+                  >
+                    <span>{item.label}</span>
+                    <strong>×</strong>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             <form className="filter-grid" onSubmit={handleJobSearch}>
-              <label>
+              <label className="filter-field">
                 国家
-                <select
+                <FilterSelect
                   value={jobFilters.country}
-                  onChange={(event) => updateJobFilter("country", event.target.value)}
-                >
-                  <option value="">全部国家</option>
-                  <option value="中国大陆">中国大陆</option>
-                </select>
+                  options={countryOptions}
+                  onChange={(nextValue) => updateJobFilter("country", nextValue)}
+                  placeholder="全部国家"
+                />
               </label>
-              <label>
+              <label className="filter-field">
                 职位名称
                 <input
                   value={jobFilters.title}
@@ -1373,85 +1916,87 @@ function App() {
                   placeholder="如 后端开发"
                 />
               </label>
-              <label>
+              <label className="filter-field">
+                城市
+                <FilterSelect
+                  value={jobFilters.city}
+                  options={cityOptions}
+                  onChange={(nextValue) => updateJobFilter("city", nextValue)}
+                  placeholder="全部城市"
+                />
+              </label>
+              <label className="filter-field">
                 经验等级
-                <select
+                <FilterSelect
                   value={jobFilters.experienceLevel}
-                  onChange={(event) => updateJobFilter("experienceLevel", event.target.value)}
-                >
-                  <option value="">全部等级</option>
-                  {experienceLevelOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                工作类型
-                <select
-                  value={jobFilters.employmentType}
-                  onChange={(event) => updateJobFilter("employmentType", event.target.value)}
-                >
-                  <option value="">全部类型</option>
-                  <option value="全职">全职</option>
-                  <option value="实习">实习</option>
-                </select>
-              </label>
-              <label>
-                工作模式
-                <select
-                  value={jobFilters.workMode}
-                  onChange={(event) => updateJobFilter("workMode", event.target.value)}
-                >
-                  <option value="">全部模式</option>
-                  <option value="线下办公">线下办公</option>
-                  <option value="混合办公">混合办公</option>
-                  <option value="远程">远程</option>
-                </select>
-              </label>
-              <label>
-                发布时间
-                <select
-                  value={jobFilters.datePosted}
-                  onChange={(event) => updateJobFilter("datePosted", event.target.value)}
-                >
-                  <option value="">全部时间</option>
-                  <option value="24h">24 小时内</option>
-                  <option value="3d">3 天内</option>
-                  <option value="7d">7 天内</option>
-                </select>
-              </label>
-              <label>
-                行业方向
-                <select
-                  value={jobFilters.industryName}
-                  onChange={(event) => updateJobFilter("industryName", event.target.value)}
-                >
-                  <option value="">全部行业</option>
-                  <option value="互联网">互联网</option>
-                  <option value="制造业">制造业</option>
-                  <option value="企业 SaaS">企业 SaaS</option>
-                  <option value="云计算">云计算</option>
-                </select>
-              </label>
-              <label>
-                每次加载
-                <select
-                  value={jobFilters.pageSize}
-                  onChange={(event) => updateJobFilter("pageSize", Number(event.target.value))}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
+                  options={[{ value: "", label: "全部等级" }, ...experienceLevelOptions]}
+                  onChange={(nextValue) => updateJobFilter("experienceLevel", nextValue)}
+                  placeholder="全部等级"
+                />
               </label>
 
-              <div className="filter-actions">
-                <button className="ghost-button" onClick={handleResetFilters} type="button">
+              <div className={filterExpanded ? "filter-grid-advanced expanded" : "filter-grid-advanced"}>
+              <label className="filter-field">
+                工作类型
+                <FilterSelect
+                  value={jobFilters.employmentType}
+                  options={employmentTypeOptions}
+                  onChange={(nextValue) => updateJobFilter("employmentType", nextValue)}
+                  placeholder="全部类型"
+                />
+              </label>
+              <label className="filter-field">
+                工作模式
+                <FilterSelect
+                  value={jobFilters.workMode}
+                  options={workModeOptions}
+                  onChange={(nextValue) => updateJobFilter("workMode", nextValue)}
+                  placeholder="全部模式"
+                />
+              </label>
+              <label className="filter-field">
+                发布时间
+                <FilterSelect
+                  value={jobFilters.datePosted}
+                  options={datePostedOptions}
+                  onChange={(nextValue) => updateJobFilter("datePosted", nextValue)}
+                  placeholder="全部时间"
+                />
+              </label>
+              <label className="filter-field">
+                行业方向
+                <FilterSelect
+                  value={jobFilters.industryName}
+                  options={industryOptions}
+                  onChange={(nextValue) => updateJobFilter("industryName", nextValue)}
+                  placeholder="全部行业"
+                />
+              </label>
+              <label className="filter-field">
+                学历要求
+                <FilterSelect
+                  value={jobFilters.educationRequirement}
+                  options={educationOptions}
+                  onChange={(nextValue) => updateJobFilter("educationRequirement", nextValue)}
+                  placeholder="全部学历"
+                />
+              </label>
+              <label className="filter-field">
+                每次加载
+                <FilterSelect
+                  value={jobFilters.size}
+                  options={sizeOptions}
+                  onChange={(nextValue) => updateJobFilter("size", nextValue)}
+                  placeholder="10"
+                />
+              </label>
+              </div>
+
+              <div className="filter-actions filter-actions-inline">
+                <button className="filter-secondary-button" onClick={handleResetFilters} type="button">
                   重置筛选
                 </button>
-                <button className="primary-button" disabled={jobLoading} type="submit">
+                <button className="filter-primary-button" disabled={jobLoading} type="submit">
                   {jobLoading ? "筛选中..." : "应用筛选"}
                 </button>
               </div>
@@ -1459,14 +2004,14 @@ function App() {
           </section>
 
           <section className="results-bar">
-            <strong>推荐职位</strong>
+            <strong>{activeTab}</strong>
             <span>
-              已加载 {jobsData.records.length} / {jobsData.total} 条
+              已显示 {visibleJobRecords.length} / {visibleJobTotal} 条
             </span>
           </section>
 
           <section className="job-feed">
-            {jobsData.records.length ? jobsData.records.map((job) => (
+            {visibleJobRecords.length ? visibleJobRecords.map((job) => (
               <article key={job.jobId} className="job-card">
                 <div className="job-card-main">
                   <CompanyBadge job={job} />
@@ -1475,20 +2020,42 @@ function App() {
                     <span className="posted-chip">{job.postedAt}</span>
                     <h2>{job.title}</h2>
                     <p className="job-meta">{job.meta}</p>
+                    <div className="job-headline-row">
+                      <strong className="salary-chip">{job.salaryRange || "薪资面议"}</strong>
+                      <span className="role-chip">{job.roleCategory || "通用岗位"}</span>
+                    </div>
+                    <p className="job-summary">{job.jobSummary || "该岗位已补充到用户画像友好的职位模型中。"} </p>
 
                     <div className="job-tags">
                       <span>{job.location}</span>
                       <span>{job.workMode}</span>
                       <span>{job.employmentType}</span>
                       <span>{getExperienceLevelLabel(job.experienceLevel)}</span>
+                      <span>{job.educationRequirement || "学历不限"}</span>
                     </div>
 
+                    {job.skillTags?.length ? (
+                      <div className="job-skill-tags">
+                        {job.skillTags.map((tag) => (
+                          <span key={`${job.jobId}-${tag}`}>{tag}</span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {job.highlightTags?.length ? (
+                      <div className="job-highlight-row">
+                        {job.highlightTags.map((tag) => (
+                          <span key={`${job.jobId}-highlight-${tag}`}>{tag}</span>
+                        ))}
+                      </div>
+                    ) : null}
+
                     <div className="job-actions">
-                      <button className="icon-button" type="button">
-                        {job.applied ? "已投递" : "跳过"}
+                      <button className="icon-button" onClick={() => handleToggleJobApplied(job)} type="button">
+                        {job.applied ? "取消投递" : "标记投递"}
                       </button>
-                      <button className="icon-button" type="button">
-                        {job.liked ? "已收藏" : "收藏"}
+                      <button className="icon-button" onClick={() => handleToggleJobLike(job)} type="button">
+                        {job.liked ? "取消收藏" : "收藏"}
                       </button>
                       <button className="secondary-action" type="button">
                         问求职助手
@@ -1512,13 +2079,13 @@ function App() {
               </article>
             )) : (
               <div className="empty-state-card">
-                <strong>没有找到符合条件的职位</strong>
-                <span>换一个关键词，或者放宽筛选条件后再试一次。</span>
+                <strong>{getEmptyStateCopy().title}</strong>
+                <span>{getEmptyStateCopy().description}</span>
               </div>
             )}
           </section>
 
-          {jobsData.records.length ? (
+          {activeTab === "推荐职位" && visibleJobRecords.length ? (
             <div className="load-more-anchor" ref={loadMoreRef}>
               {jobLoading ? "正在加载更多职位..." : hasMoreJobs ? "继续下滑加载更多" : "已经到底了"}
             </div>
@@ -1531,13 +2098,24 @@ function App() {
 
         <aside className="right-rail">
           <section className="profile-panel">
-            <div className="profile-header">
-              <div className="avatar">
-                {getAuthDisplayName(auth.user).slice(0, 1)}
+            <div className="profile-header profile-header-compact">
+              <div className="profile-identity">
+                <div className="avatar">
+                  {getAuthDisplayName(auth.user).slice(0, 1)}
+                </div>
+                <div className="profile-copy">
+                  <small className="profile-copy-eyebrow">当前账号</small>
+                  <strong>{dashboardView.displayName}</strong>
+                </div>
               </div>
-              <div className="profile-copy">
-                <strong>{dashboardView.displayName}</strong>
-                <span>{dashboardView.planName}</span>
+              <div className="profile-plan-group">
+                <span className="plan-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none">
+                    <path d="M10 2.4c3.78 0 6.84 3.06 6.84 6.84 0 3.49-2.61 6.38-5.98 6.8l-3.98 1.56 1.14-3.4A6.85 6.85 0 0 1 3.16 9.24C3.16 5.46 6.22 2.4 10 2.4Z" />
+                    <path d="m6.8 11.7 6.28-6.27" />
+                  </svg>
+                </span>
+                <span className="plan-pill">{dashboardView.planName}</span>
               </div>
             </div>
             <div className="profile-actions">
@@ -1557,35 +2135,51 @@ function App() {
           <section className="rail-card">
             <div className="rail-title">
               <strong>已保存筛选</strong>
-              <button type="button">+</button>
+              <button className="rail-round-button" type="button">+</button>
             </div>
             <div className="saved-filter-list">
-              {savedFilters.map((item) => (
+              {savedFilters.map((item, index) => (
                 <div key={item} className="saved-filter-item">
-                  <span className="saved-filter-name">{item}</span>
-                  <button type="button">编辑</button>
+                  <div className="saved-filter-copy">
+                    <small>方案 {index + 1}</small>
+                    <span className="saved-filter-name">{item}</span>
+                  </div>
+                  <button className="saved-filter-edit" type="button" aria-label={`编辑方案 ${index + 1}`}>
+                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M13.9 3.1a1.6 1.6 0 1 1 2.26 2.26l-8.6 8.6-3.22.95.95-3.22 8.6-8.6Z" />
+                      <path d="M12.55 4.45 14.8 6.7" />
+                    </svg>
+                  </button>
                 </div>
               ))}
             </div>
           </section>
 
           <section className="rail-card progress-card">
-            <strong>完善你的求职资料以获得更高匹配职位</strong>
-            <div className="progress-bar">
-              <div style={{ width: `${dashboardView.profileCompletionRate}%` }} />
+            <div className="progress-card-header">
+              <strong>完善资料以获得更高匹配职位</strong>
             </div>
-            <ul>
-              {dashboardView.tips.map((tip) => (
-                <li key={tip}>{tip}</li>
+            <div className="progress-shell">
+              <div className="progress-bar">
+                <div style={{ width: `${dashboardView.profileCompletionRate}%` }} />
+              </div>
+              <span className="progress-percent">{dashboardView.profileCompletionRate}%</span>
+            </div>
+            <ul className="progress-checklist">
+              {dashboardView.tips.map((tip, index) => (
+                <li key={tip}>
+                  <span className="progress-step-index">{index + 1}</span>
+                  <span>{tip}</span>
+                  <span className="progress-step-chevron" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" fill="none">
+                      <path d="m7 5 6 5-6 5" />
+                    </svg>
+                  </span>
+                </li>
               ))}
             </ul>
           </section>
 
-          <section className="rail-card insight-card">
-            <small>本周建议</small>
-            <strong>后端校招岗位在一线城市的匹配推荐更活跃，建议先补全城市偏好和简历关键词。</strong>
-            <p>后续这里可以接入简历评分、职位趋势和个性化推荐解释。</p>
-          </section>
         </aside>
       </div>
     </div>
