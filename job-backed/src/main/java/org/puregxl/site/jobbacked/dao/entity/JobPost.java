@@ -9,6 +9,9 @@ import java.util.Date;
 @Data
 @Builder
 @TableName("job_post")
+/**
+ * 职位表 - 标签优先以json格式存储
+ */
 public class JobPost {
 
     /** 主键ID */

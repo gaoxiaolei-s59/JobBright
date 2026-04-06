@@ -2118,18 +2118,6 @@ function App() {
                 <span className="plan-pill">{dashboardView.planName}</span>
               </div>
             </div>
-            <div className="profile-actions">
-              <button
-                className="ghost-button"
-                onClick={() => setActiveSection("profile")}
-                type="button"
-              >
-                用户主页
-              </button>
-              <button className="ghost-button rail-logout" onClick={() => logout()} type="button">
-                退出登录
-              </button>
-            </div>
           </section>
 
           <section className="rail-card">
@@ -2157,6 +2145,13 @@ function App() {
 
           <section className="rail-card progress-card">
             <div className="progress-card-header">
+              <span className="progress-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none">
+                  <path d="M10 2.8c2.5 0 4.53 2.03 4.53 4.53 0 1.72-.96 3.21-2.37 3.97v1.12a1.6 1.6 0 0 1-1.6 1.6H9.44a1.6 1.6 0 0 1-1.6-1.6v-1.12A4.53 4.53 0 0 1 5.47 7.33C5.47 4.83 7.5 2.8 10 2.8Z" />
+                  <path d="M8.45 16.2h3.1" />
+                  <path d="M8.85 13.95h2.3" />
+                </svg>
+              </span>
               <strong>完善资料以获得更高匹配职位</strong>
             </div>
             <div className="progress-shell">
@@ -2166,13 +2161,13 @@ function App() {
               <span className="progress-percent">{dashboardView.profileCompletionRate}%</span>
             </div>
             <ul className="progress-checklist">
-              {dashboardView.tips.map((tip, index) => (
+              {dashboardView.tips.map((tip) => (
                 <li key={tip}>
-                  <span className="progress-step-index">{index + 1}</span>
+                  <span className="progress-step-index" aria-hidden="true" />
                   <span>{tip}</span>
                   <span className="progress-step-chevron" aria-hidden="true">
                     <svg viewBox="0 0 20 20" fill="none">
-                      <path d="m7 5 6 5-6 5" />
+                      <path d="m6 8 4 4 4-4" />
                     </svg>
                   </span>
                 </li>
