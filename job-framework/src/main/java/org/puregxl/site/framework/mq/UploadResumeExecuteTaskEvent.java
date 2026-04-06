@@ -15,4 +15,9 @@ public class UploadResumeExecuteTaskEvent {
      * 简历ID
      */
     private String resumeId;
+
+    /**
+     * 用户id
+     */
+    private String userId;
 }

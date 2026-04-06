@@ -110,6 +110,7 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
         //发送消息到下游 解析用户简历
         UploadResumeExecuteTaskEvent uploadEvent = UploadResumeExecuteTaskEvent.builder()
                 .resumeId(userResumeFile.getResumeId())
+                .userId(UserContext.getUserId())
                 .build();
 
         jobBackedUserResumeProduceTemplate.sendMessage(uploadEvent);
