@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
-public class RecommendController {
+public class JobController {
 
     private final RecommendService recommendService;
 
@@ -26,4 +26,6 @@ public class RecommendController {
     public Result<RecommendJobListResponse> getRecommendJob(@ModelAttribute JobPageRequestV2 requestParam) {
         return Results.success(recommendService.getRecommendJobsV2(requestParam));
     }
+
+
 }
