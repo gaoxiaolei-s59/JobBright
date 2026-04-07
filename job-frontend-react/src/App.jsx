@@ -183,6 +183,11 @@ const recommendRequestFieldNames = [
 ];
 
 const jobTabs = ["推荐职位", "收藏职位", "已投递"];
+const jobTabEndpointMap = {
+  推荐职位: "/api/jobs/recommended",
+  收藏职位: "/api/jobs/favorites",
+  已投递: "/api/jobs/applied"
+};
 
 const jobItems = [
   {
@@ -295,6 +300,14 @@ const mockRecommendedJobs = jobItems.map((job, index) => ({
   theme: job.theme,
   companyId: `comp-${index + 1}`
 }));
+
+function createJobListState(records = [], total = 0, hasMore = false) {
+  return {
+    total,
+    hasMore,
+    records
+  };
+}
 
 function getUserScopedStorageKey(user, scope) {
   const userIdentifier = user?.userId || user?.username || user?.email || "guest";
@@ -556,11 +569,11 @@ function App() {
   const [userProfileDraft, setUserProfileDraft] = useState(userProfileDraftInitialState);
   const [settingsDraft, setSettingsDraft] = useState(settingsDraftInitialState);
   const [jobFilters, setJobFilters] = useState(jobFilterInitialState);
-  const [jobsData, setJobsData] = useState({
-    total: mockRecommendedJobs.length,
-    hasMore: mockRecommendedJobs.length > 0,
-    records: []
-  });
+  const [recommendedJobsData, setRecommendedJobsData] = useState(
+    createJobListState([], mockRecommendedJobs.length, mockRecommendedJobs.length > 0)
+  );
+  const [favoriteJobsData, setFavoriteJobsData] = useState(createJobListState());
+  const [appliedJobsData, setAppliedJobsData] = useState(createJobListState());
   const [jobLoading, setJobLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
@@ -572,7 +585,13 @@ function App() {
     token: localStorage.getItem(TOKEN_KEY),
     user: null
   }));
-  const hasMoreJobs = Boolean(jobsData.hasMore);
+  const currentJobsData =
+    activeTab === "收藏职位"
+      ? favoriteJobsData
+      : activeTab === "已投递"
+        ? appliedJobsData
+        : recommendedJobsData;
+  const hasMoreJobs = activeTab === "推荐职位" && Boolean(recommendedJobsData.hasMore);
   const dashboardView = buildUserDashboardView(
     userDashboard,
     userProfileDraft,
@@ -580,7 +599,7 @@ function App() {
     auth.user
   );
   const isUserHomeSection = activeSection !== "jobs";
-  const mergedJobRecords = jobsData.records.map((job) => {
+  const mergedJobRecords = currentJobsData.records.map((job) => {
     const override = jobActionOverrides[job.jobId] || {};
     return {
       ...job,
@@ -588,18 +607,10 @@ function App() {
       applied: override.applied ?? job.applied
     };
   });
-  const visibleJobRecords = mergedJobRecords.filter((job) => {
-    if (activeTab === "收藏职位") {
-      return normalizeBoolean(job.liked);
-    }
-    if (activeTab === "已投递") {
-      return normalizeBoolean(job.applied);
-    }
-    return true;
-  });
-  const visibleJobTotal = activeTab === "推荐职位" ? jobsData.total : visibleJobRecords.length;
-  const favoriteCount = mergedJobRecords.filter((job) => normalizeBoolean(job.liked)).length;
-  const appliedCount = mergedJobRecords.filter((job) => normalizeBoolean(job.applied)).length;
+  const visibleJobRecords = mergedJobRecords;
+  const visibleJobTotal = currentJobsData.total;
+  const favoriteCount = favoriteJobsData.total;
+  const appliedCount = appliedJobsData.total;
 
   useEffect(() => {
     if (auth.token) {
@@ -689,7 +700,11 @@ function App() {
       await loadUserDashboard(user);
       await loadCurrentResume();
       await loadHomeOverview();
-      await loadRecommendedJobs(jobFilterInitialState);
+      await Promise.all([
+        loadRecommendedJobs(jobFilterInitialState),
+        loadFavoriteJobs(jobFilterInitialState),
+        loadAppliedJobs(jobFilterInitialState)
+      ]);
     } catch (error) {
       logout(false);
       setMessage({ type: "error", text: error.message || "获取当前用户失败" });
@@ -826,32 +841,80 @@ function App() {
     };
   }
 
-  async function loadRecommendedJobs(nextFilters = jobFilters, append = false) {
-    setJobLoading(true);
+  function setJobListData(tab, updater) {
+    if (tab === "收藏职位") {
+      setFavoriteJobsData(updater);
+      return;
+    }
+    if (tab === "已投递") {
+      setAppliedJobsData(updater);
+      return;
+    }
+    setRecommendedJobsData(updater);
+  }
+
+  function getFallbackJobData(tab, filters) {
+    if (tab === "推荐职位") {
+      return filterMockJobs(filters);
+    }
+    const base = filterMockJobs(filters);
+    if (tab === "收藏职位") {
+      const records = base.records.filter((job) => normalizeBoolean(job.liked));
+      return { total: records.length, hasMore: false, records };
+    }
+    const records = base.records.filter((job) => normalizeBoolean(job.applied));
+    return { total: records.length, hasMore: false, records };
+  }
+
+  async function loadJobList(tab, nextFilters = jobFilters, append = false, silent = false) {
+    if (!silent) {
+      setJobLoading(true);
+    }
     try {
       const queryString = buildRecommendQueryString(nextFilters);
-      const data = await request(`/api/jobs/recommended?${queryString}`, { method: "GET" });
+      const endpoint = jobTabEndpointMap[tab] || jobTabEndpointMap["推荐职位"];
+      const data = await request(`${endpoint}?${queryString}`, { method: "GET" });
       const nextRecords = Array.isArray(data?.records) ? data.records : [];
-      setJobsData((current) => ({
+      setJobListData(tab, (current) => ({
         total: data?.total ?? 0,
         hasMore: Boolean(data?.hasMore),
         records: append ? [...current.records, ...nextRecords] : nextRecords
       }));
     } catch (error) {
-      const fallback = filterMockJobs(nextFilters);
-      setJobsData((current) => ({
+      const fallback = getFallbackJobData(tab, nextFilters);
+      setJobListData(tab, (current) => ({
         total: fallback.total,
         hasMore: fallback.hasMore,
         records: append ? [...current.records, ...fallback.records] : fallback.records
       }));
-      setMessage({
-        type: "error",
-        text: `${error.message || "推荐职位加载失败"}，当前已切换到本地演示数据`
-      });
+      if (!silent) {
+        setMessage({
+          type: "error",
+          text: `${error.message || `${tab}加载失败`}，当前已切换到本地演示数据`
+        });
+      }
     } finally {
       loadMoreLockRef.current = false;
-      setJobLoading(false);
+      if (!silent) {
+        setJobLoading(false);
+      }
     }
+  }
+
+  async function loadRecommendedJobs(nextFilters = jobFilters, append = false, silent = false) {
+    await loadJobList("推荐职位", nextFilters, append, silent);
+  }
+
+  async function loadFavoriteJobs(nextFilters = jobFilters, append = false, silent = false) {
+    await loadJobList("收藏职位", nextFilters, append, silent);
+  }
+
+  async function loadAppliedJobs(nextFilters = jobFilters, append = false, silent = false) {
+    await loadJobList("已投递", nextFilters, append, silent);
+  }
+
+  async function loadJobsByActiveTab(nextFilters = jobFilters, append = false) {
+    await loadJobList(activeTab, nextFilters, append, false);
   }
 
   function hasActiveJobFilters(filters = jobFilters) {
@@ -988,11 +1051,9 @@ function App() {
     setUserProfileDraft(userProfileDraftInitialState);
     setJobActionOverrides({});
     setJobFilters(jobFilterInitialState);
-    setJobsData({
-      total: mockRecommendedJobs.length,
-      hasMore: mockRecommendedJobs.length > 0,
-      records: []
-    });
+    setRecommendedJobsData(createJobListState([], mockRecommendedJobs.length, mockRecommendedJobs.length > 0));
+    setFavoriteJobsData(createJobListState());
+    setAppliedJobsData(createJobListState());
     setResumeFile(null);
     setAuthView("login");
     if (clearMessage) {
@@ -1013,46 +1074,76 @@ function App() {
     writeLocalJson(getUserScopedStorageKey(user, "job_actions"), nextValue);
   }
 
-  function handleToggleJobLike(job) {
-    const currentLiked = normalizeBoolean(jobActionOverrides[job.jobId]?.liked ?? job.liked);
-    const nextOverrides = {
-      ...jobActionOverrides,
-      [job.jobId]: {
-        liked: !currentLiked,
-        applied: jobActionOverrides[job.jobId]?.applied ?? job.applied
-      }
-    };
-    saveJobActionOverrides(nextOverrides);
-    setMessage({
-      type: "success",
-      text: !currentLiked ? "已加入收藏职位，后续可以集中查看。" : "已从收藏职位移除。"
-    });
+  async function refreshAllJobLists(filters = jobFilters) {
+    await Promise.all([
+      loadRecommendedJobs(filters, false, true),
+      loadFavoriteJobs(filters, false, true),
+      loadAppliedJobs(filters, false, true)
+    ]);
   }
 
-  function handleToggleJobApplied(job) {
+  async function handleToggleJobLike(job) {
+    const currentLiked = normalizeBoolean(jobActionOverrides[job.jobId]?.liked ?? job.liked);
+    try {
+      setJobLoading(true);
+      await request(`/api/jobs/${job.jobId}/favorite`, {
+        method: currentLiked ? "DELETE" : "POST"
+      });
+      const nextOverrides = {
+        ...jobActionOverrides,
+        [job.jobId]: {
+          liked: !currentLiked,
+          applied: jobActionOverrides[job.jobId]?.applied ?? job.applied
+        }
+      };
+      saveJobActionOverrides(nextOverrides);
+      await refreshAllJobLists(jobFilters);
+      setMessage({
+        type: "success",
+        text: currentLiked ? "已从收藏职位移除。" : "已加入收藏职位，后续可以集中查看。"
+      });
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "收藏职位失败" });
+    } finally {
+      setJobLoading(false);
+    }
+  }
+
+  async function handleToggleJobApplied(job) {
     const currentApplied = normalizeBoolean(jobActionOverrides[job.jobId]?.applied ?? job.applied);
-    const nextOverrides = {
-      ...jobActionOverrides,
-      [job.jobId]: {
-        liked: jobActionOverrides[job.jobId]?.liked ?? job.liked,
-        applied: !currentApplied
-      }
-    };
-    saveJobActionOverrides(nextOverrides);
-    setMessage({
-      type: "success",
-      text: !currentApplied ? "已标记为已投递，后续会出现在已投递列表。" : "已取消已投递标记。"
-    });
+    try {
+      setJobLoading(true);
+      await request(`/api/jobs/${job.jobId}/apply`, {
+        method: currentApplied ? "DELETE" : "POST"
+      });
+      const nextOverrides = {
+        ...jobActionOverrides,
+        [job.jobId]: {
+          liked: jobActionOverrides[job.jobId]?.liked ?? job.liked,
+          applied: !currentApplied
+        }
+      };
+      saveJobActionOverrides(nextOverrides);
+      await refreshAllJobLists(jobFilters);
+      setMessage({
+        type: "success",
+        text: currentApplied ? "已取消已投递标记。" : "已标记为已投递，后续会出现在已投递列表。"
+      });
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "标记投递失败" });
+    } finally {
+      setJobLoading(false);
+    }
   }
 
   async function handleJobSearch(event) {
     event.preventDefault();
-    await loadRecommendedJobs(jobFilters);
+    await loadJobsByActiveTab(jobFilters);
   }
 
   async function handleResetFilters() {
     setJobFilters(jobFilterInitialState);
-    await loadRecommendedJobs(jobFilterInitialState);
+    await loadJobList(activeTab, jobFilterInitialState);
   }
 
   async function handleResumeUpload(event) {
@@ -1073,7 +1164,7 @@ function App() {
       await loadCurrentResume();
       await loadUserDashboard();
       await loadHomeOverview();
-      await loadRecommendedJobs(jobFilterInitialState);
+      await refreshAllJobLists(jobFilterInitialState);
       setResumeFile(null);
       setMessage({ type: "success", text: "简历上传成功，已进入首页。" });
     } catch (error) {
@@ -1085,6 +1176,11 @@ function App() {
 
   function handleSidebarSwitch(sectionKey) {
     setActiveSection(sectionKey);
+  }
+
+  async function handleJobTabChange(tab) {
+    setActiveTab(tab);
+    await loadJobList(tab, jobFilters);
   }
 
   function handleProfileDraftChange(field, value) {
@@ -1809,7 +1905,7 @@ function App() {
                     <button
                       key={tab}
                       className={activeTab === tab ? "top-tab active" : "top-tab"}
-                      onClick={() => setActiveTab(tab)}
+                      onClick={() => handleJobTabChange(tab)}
                       type="button"
                     >
                       <span>{tab}</span>

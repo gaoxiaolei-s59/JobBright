@@ -18,7 +18,7 @@ public class UserJobAction {
     private Long userId;
 
     /** 职位业务ID */
-    private Long jobId;
+    private String jobId;
 
     /** 是否收藏 0-否 1-是 */
     private Integer liked;

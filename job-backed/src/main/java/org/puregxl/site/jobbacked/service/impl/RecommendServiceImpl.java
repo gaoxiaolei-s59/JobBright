@@ -21,6 +21,7 @@ import org.puregxl.site.jobbacked.dto.resp.RecommendJobListResponse;
 import org.puregxl.site.jobbacked.dto.resp.RecommendJobResponse;
 import org.puregxl.site.jobbacked.service.RecommendService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import java.time.Duration;
 import java.time.Instant;
@@ -38,6 +39,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+// 推荐列表以读取为主，这里显式声明只读事务，避免误开启写事务语义。
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Slf4j
 public class RecommendServiceImpl implements RecommendService {
@@ -104,6 +107,7 @@ public class RecommendServiceImpl implements RecommendService {
     public RecommendJobListResponse getRecommendJobsV2(JobPageRequestV2 requestParam) {
         JobPageRequestV2 request = requestParam == null ? new JobPageRequestV2() : requestParam;
 
+        // 兼容前端未传分页参数的场景，统一兜底默认值。
         if (request.getCurrent() == 0) {
             request.setCurrent(1);
         }
@@ -135,6 +139,7 @@ public class RecommendServiceImpl implements RecommendService {
                 .stream()
                 .collect(Collectors.toMap(Company::getCompanyId, Function.identity(), (a, b) -> a));
 
+        // 批量回填当前用户对这些职位的行为状态，避免前端二次请求。
         Map<String, UserJobAction> actionMap = getUserJobActionMap(jobPosts);
 
         List<RecommendJobResponse> records = jobPosts.stream()
@@ -158,10 +163,9 @@ public class RecommendServiceImpl implements RecommendService {
         if (currentUserId <= 0) {
             return Collections.emptyMap();
         }
-        List<Long> jobIds = jobPosts.stream()
+        List<String> jobIds = jobPosts.stream()
                 .map(JobPost::getJobId)
-                .map(this::parseJobId)
-                .filter(Objects::nonNull)
+                .filter(StringUtils::hasText)
                 .toList();
         if (jobIds.isEmpty()) {
             return Collections.emptyMap();
@@ -171,19 +175,7 @@ public class RecommendServiceImpl implements RecommendService {
                         .in(UserJobAction::getJobId, jobIds)
                         .eq(UserJobAction::getDelFlag, 0))
                 .stream()
-                .collect(Collectors.toMap(action -> String.valueOf(action.getJobId()), Function.identity(), (left, right) -> left));
-    }
-
-    private Long parseJobId(String jobId) {
-        if (!StringUtils.hasText(jobId)) {
-            return null;
-        }
-        try {
-            return Long.parseLong(jobId);
-        } catch (NumberFormatException ex) {
-            log.warn("jobId格式非法, jobId={}", jobId);
-            return null;
-        }
+                .collect(Collectors.toMap(UserJobAction::getJobId, Function.identity(), (left, right) -> left));
     }
 
     private RecommendJobResponse toResponse(JobPost jobPost, Company company, UserJobAction action) {
@@ -289,6 +281,12 @@ public class RecommendServiceImpl implements RecommendService {
                 .collect(Collectors.joining(" / "));
     }
 
+    /**
+     * 计算核心分数
+     * @param jobPost
+     * @param company
+     * @return
+     */
     private int calculateMatchScore(JobPost jobPost, Company company) {
         int score = 68;
         if (StringUtils.hasText(jobPost.getRoleCategory())) {

@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.result.Result;
 import org.puregxl.site.framework.web.Results;
 import org.puregxl.site.jobbacked.dto.req.JobPageRequestV2;
+import org.puregxl.site.jobbacked.dto.resp.AppliedJobResponse;
+import org.puregxl.site.jobbacked.dto.resp.FavoritesJobResponse;
 import org.puregxl.site.jobbacked.dto.resp.RecommendJobListResponse;
 import org.puregxl.site.jobbacked.service.JobService;
 import org.puregxl.site.jobbacked.service.RecommendService;
@@ -19,7 +21,8 @@ public class JobController {
     private final JobService jobService;
 
     /**
-     * 推荐职位接口
+     * 推荐职位列表。
+     * 支持分页，并会带回当前用户对职位的收藏/投递状态。
      *
      * @return
      */
@@ -30,50 +33,75 @@ public class JobController {
 
 
     /**
-     * 获取喜欢的职位列表
+     * 获取当前用户已收藏的职位列表。
+     * 返回结构与推荐列表一致，前端可以直接复用职位卡片组件。
      *
      * @param requestParam
      * @return
      */
     @GetMapping("/favorites")
-    public Result<RecommendJobListResponse> getFavoritesJob(@ModelAttribute JobPageRequestV2 requestParam) {
-        return Results.success(JobService.getFavoritesJob(requestParam));
+    public Result<FavoritesJobResponse> getFavoritesJob(@ModelAttribute JobPageRequestV2 requestParam) {
+        return Results.success(jobService.getFavoritesJob(requestParam));
     }
 
 
     /**
-     * 获取已经投递的职位列表
+     * 获取当前用户已投递的职位列表。
      *
      * @param requestParam
      * @return
      */
     @GetMapping("/applied")
-    public Result<RecommendJobListResponse> getAppliedJob(@ModelAttribute JobPageRequestV2 requestParam) {
-        return Results.success(JobService.getAppliedJob(requestParam));
+    public Result<AppliedJobResponse> getAppliedJob(@ModelAttribute JobPageRequestV2 requestParam) {
+        return Results.success(jobService.getAppliedJob(requestParam));
     }
 
     /**
-     * 喜欢职位
+     * 标记职位为收藏。
      *
      * @param jobId
      * @return
      */
-    @PostMapping("/api/jobs/{jobId}/favorite")
-    public Result<Void> favoritesJob(@PathVariable Long jobId) {
+    @PostMapping("/{jobId}/favorite")
+    public Result<Void> favoritesJob(@PathVariable String jobId) {
         jobService.favoritesJob(jobId);
+        return Results.success();
+    }
+
+    /**
+     * 取消职位收藏标记。
+     *
+     * @param jobId
+     * @return
+     */
+    @DeleteMapping("/{jobId}/favorite")
+    public Result<Void> cancelFavoritesJob(@PathVariable String jobId) {
+        jobService.cancelFavoritesJob(jobId);
         return Results.success();
     }
 
 
     /**
-     * 投递职位
+     * 标记职位为已投递。
      *
      * @param jobId
      * @return
      */
-    @PostMapping("/api/jobs/{jobId}/apply")
-    public Result<Void> applyJob(@PathVariable Long jobId) {
+    @PostMapping("/{jobId}/apply")
+    public Result<Void> applyJob(@PathVariable String jobId) {
         jobService.applyJob(jobId);
+        return Results.success();
+    }
+
+    /**
+     * 取消职位已投递标记。
+     *
+     * @param jobId
+     * @return
+     */
+    @DeleteMapping("/{jobId}/apply")
+    public Result<Void> cancelApplyJob(@PathVariable String jobId) {
+        jobService.cancelApplyJob(jobId);
         return Results.success();
     }
 

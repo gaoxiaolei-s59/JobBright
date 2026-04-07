@@ -1,7 +1,19 @@
 package org.puregxl.site.jobbacked.service;
 
-public interface JobService {
-    void favoritesJob(Long jobId);
+import org.puregxl.site.jobbacked.dto.req.JobPageRequestV2;
+import org.puregxl.site.jobbacked.dto.resp.AppliedJobResponse;
+import org.puregxl.site.jobbacked.dto.resp.FavoritesJobResponse;
 
-    void applyJob(Long jobId);
+public interface JobService {
+    FavoritesJobResponse getFavoritesJob(JobPageRequestV2 requestParam);
+
+    void favoritesJob(String jobId);
+
+    void cancelFavoritesJob(String jobId);
+
+    void applyJob(String jobId);
+
+    void cancelApplyJob(String jobId);
+
+    AppliedJobResponse getAppliedJob(JobPageRequestV2 requestParam);
 }
