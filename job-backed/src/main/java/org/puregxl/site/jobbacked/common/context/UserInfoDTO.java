@@ -13,12 +13,12 @@ public class UserInfoDTO {
     /**
      * 用户id
      */
-    private String userId;
+    private Long userId;
 
     /**
      * 用户名
      */
-    private String username;
+    private String userName;
 
     /**
      * 邮箱

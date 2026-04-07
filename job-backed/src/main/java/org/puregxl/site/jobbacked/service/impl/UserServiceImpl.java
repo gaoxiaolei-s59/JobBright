@@ -40,12 +40,12 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserResumeFile getCurrentResume() {
-        String currentUserId = UserContext.getUserId();
-        if (!StringUtils.hasText(currentUserId)) {
+        long currentUserId = UserContext.getUserId();
+        if (currentUserId <= 0) {
             return null;
         }
         return userResumeFileMapper.selectOne(Wrappers.lambdaQuery(UserResumeFile.class)
-                .eq(UserResumeFile::getUserId, Long.parseLong(currentUserId))
+                .eq(UserResumeFile::getUserId, currentUserId)
                 .eq(UserResumeFile::getIsCurrent, 1)
                 .eq(UserResumeFile::getDelFlag, 0)
                 .last("limit 1"));
@@ -58,8 +58,8 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.hasText(userInfo.getDisplayName())) {
             return userInfo.getDisplayName();
         }
-        if (StringUtils.hasText(userInfo.getUsername())) {
-            return userInfo.getUsername();
+        if (StringUtils.hasText(userInfo.getUserName())) {
+            return userInfo.getUserName();
         }
         return "";
     }
@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
             return 0;
         }
         int completionRate = 0;
-        if (StringUtils.hasText(userInfo.getUsername())) {
+        if (StringUtils.hasText(userInfo.getUserName())) {
             completionRate += 14;
         }
         if (StringUtils.hasText(userInfo.getEmail())) {

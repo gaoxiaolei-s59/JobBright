@@ -54,8 +54,7 @@ public class AuthController {
      */
     @GetMapping("/me")
     public Result<UserProfileResponse> currentUser() {
-        String currentUserId = UserContext.getUserId();
-        Long userId = currentUserId == null ? null : Long.parseLong(currentUserId);
-        return Results.success(authService.currentUser(userId));
+        long currentUserId = UserContext.getUserId();
+        return Results.success(authService.currentUser(currentUserId));
     }
 }

@@ -1102,21 +1102,22 @@ textarea:focus {
   line-height: 1.08;
 }
 
+.job-card-topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
 .job-meta {
   margin: 0;
   color: var(--brand-subtle);
 }
 
-.job-headline-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin: 10px 0 8px;
-}
-
 .salary-chip,
-.role-chip {
+.role-chip,
+.topline-chip {
   display: inline-flex;
   align-items: center;
   padding: 6px 10px;
@@ -1134,10 +1135,10 @@ textarea:focus {
   color: var(--brand-ink);
 }
 
-.job-summary {
-  margin: 0;
-  color: #314756;
-  line-height: 1.65;
+.topline-chip {
+  background: rgba(217, 255, 111, 0.3);
+  color: #48620f;
+  font-weight: 700;
 }
 
 .posted-chip {
@@ -1150,14 +1151,14 @@ textarea:focus {
   font-weight: 800;
 }
 
-.job-tags {
+.job-key-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 12px 0;
+  margin: 12px 0 10px;
 }
 
-.job-tags span {
+.job-key-grid span {
   padding: 6px 10px;
   border-radius: 999px;
   background: #f4f7f8;
@@ -1166,37 +1167,28 @@ textarea:focus {
   font-weight: 600;
 }
 
-.job-skill-tags,
-.job-highlight-row {
+.job-inline-skills {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 10px 0 0;
+  margin: 0 0 12px;
 }
 
-.job-skill-tags span,
-.job-highlight-row span {
+.job-inline-skills span {
   padding: 5px 10px;
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
-}
-
-.job-skill-tags span {
   background: rgba(17, 111, 255, 0.08);
   color: #2455c3;
-}
-
-.job-highlight-row span {
-  background: rgba(217, 255, 111, 0.38);
-  color: #485b10;
 }
 
 .job-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 
 .secondary-action {
@@ -1208,6 +1200,12 @@ textarea:focus {
   background: linear-gradient(135deg, var(--brand-primary) 0%, #66ffc7 100%);
   color: var(--brand-ink);
   font-weight: 800;
+}
+
+.job-footnote {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--brand-subtle);
 }
 
 .job-match-panel {

@@ -1,7 +1,5 @@
 package org.puregxl.site.jobbacked.common.context;
 
-import org.apache.catalina.User;
-
 import java.util.Optional;
 
 public class UserContext {
@@ -29,7 +27,7 @@ public class UserContext {
      */
     public static String getUserName() {
         UserInfoDTO userInfoDto = userContext.get();
-        return Optional.ofNullable(userInfoDto).map(UserInfoDTO::getUsername).orElse(null);
+        return Optional.ofNullable(userInfoDto).map(UserInfoDTO::getUserName).orElse(null);
     }
 
 
@@ -37,9 +35,9 @@ public class UserContext {
      * 获取用户id
      * @return
      */
-    public static String getUserId() {
+    public static long getUserId() {
         UserInfoDTO userInfoDto = userContext.get();
-        return Optional.ofNullable(userInfoDto).map(UserInfoDTO::getUserId).orElse(null);
+        return Optional.ofNullable(userInfoDto).map(UserInfoDTO::getUserId).orElse(0L);
     }
 
     public static UserInfoDTO getDTO() {

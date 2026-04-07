@@ -26,9 +26,9 @@ public class HomeServiceImpl implements HomeService {
 
     @Override
     public HomeOverviewResponse getOverview() {
-        String currentUserId = UserContext.getUserId();
+        long currentUserId = UserContext.getUserId();
         UserResumeFile currentResume = userResumeFileMapper.selectOne(Wrappers.lambdaQuery(UserResumeFile.class)
-                .eq(UserResumeFile::getUserId, Long.parseLong(currentUserId))
+                .eq(UserResumeFile::getUserId, currentUserId)
                 .eq(UserResumeFile::getIsCurrent, 1));
 
         return HomeOverviewResponse.builder()
@@ -45,7 +45,7 @@ public class HomeServiceImpl implements HomeService {
             return 0;
         }
         int completionRate = 0;
-        if (StringUtils.hasText(userInfoDTO.getUsername())) {
+        if (StringUtils.hasText(userInfoDTO.getUserName())) {
             completionRate += 14;
         }
         if (StringUtils.hasText(userInfoDTO.getEmail())) {

@@ -52,8 +52,8 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
         if (file == null || file.isEmpty()) {
             throw new ClientException("上传简历不能为空");
         }
-        String currentUserId = UserContext.getUserId();
-        if (!StringUtils.hasText(currentUserId)) {
+        long currentUserId = UserContext.getUserId();
+        if (currentUserId <= 0) {
             throw new ClientException("请先登录");
         }
 
@@ -68,7 +68,7 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
 
         //检查是否有当前已经生效的简历 - 如果没有把当前上传的简历设置成已经生效
         LambdaQueryWrapper<UserResumeFile> userResumeFileLambdaQueryWrapper = Wrappers.lambdaQuery(UserResumeFile.class)
-                .eq(UserResumeFile::getUserId, Long.parseLong(currentUserId))
+                .eq(UserResumeFile::getUserId, currentUserId)
                 .eq(UserResumeFile::getIsCurrent, 1);
 
         UserResumeFile currentFile = userResumeFileMapper.selectOne(userResumeFileLambdaQueryWrapper);
@@ -93,7 +93,7 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
         }
 
         UserResumeFile userResumeFile = UserResumeFile.builder()
-                .userId(Long.parseLong(currentUserId))
+                .userId(currentUserId)
                 .resumeId(resumeId)
                 .fileName(originalFilename)
                 .fileExt(fileExt)
@@ -124,7 +124,7 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
      */
     @Override
     public UserResumeResponse getResumeMessage() {
-        String userId = UserContext.getUserId();
+        long userId = UserContext.getUserId();
         LambdaQueryWrapper<UserResumeFile> userResumeFileLambdaQueryWrapper = Wrappers.lambdaQuery(UserResumeFile.class)
                 .eq(UserResumeFile::getUserId, userId)
                 .eq(UserResumeFile::getIsCurrent, 1);

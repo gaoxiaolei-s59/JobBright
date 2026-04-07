@@ -154,20 +154,36 @@ public class RecommendServiceImpl implements RecommendService {
 
 
     private Map<String, UserJobAction> getUserJobActionMap(List<JobPost> jobPosts) {
-        String currentUserId = UserContext.getUserId();
-        if (!StringUtils.hasText(currentUserId)) {
+        long currentUserId = UserContext.getUserId();
+        if (currentUserId <= 0) {
             return Collections.emptyMap();
         }
-        List<String> jobIds = jobPosts.stream().map(JobPost::getJobId).filter(StringUtils::hasText).toList();
+        List<Long> jobIds = jobPosts.stream()
+                .map(JobPost::getJobId)
+                .map(this::parseJobId)
+                .filter(Objects::nonNull)
+                .toList();
         if (jobIds.isEmpty()) {
             return Collections.emptyMap();
         }
         return userJobActionMapper.selectList(Wrappers.lambdaQuery(UserJobAction.class)
-                        .eq(UserJobAction::getUserId, Long.parseLong(currentUserId))
+                        .eq(UserJobAction::getUserId, currentUserId)
                         .in(UserJobAction::getJobId, jobIds)
                         .eq(UserJobAction::getDelFlag, 0))
                 .stream()
-                .collect(Collectors.toMap(UserJobAction::getJobId, Function.identity(), (left, right) -> left));
+                .collect(Collectors.toMap(action -> String.valueOf(action.getJobId()), Function.identity(), (left, right) -> left));
+    }
+
+    private Long parseJobId(String jobId) {
+        if (!StringUtils.hasText(jobId)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(jobId);
+        } catch (NumberFormatException ex) {
+            log.warn("jobId格式非法, jobId={}", jobId);
+            return null;
+        }
     }
 
     private RecommendJobResponse toResponse(JobPost jobPost, Company company, UserJobAction action) {

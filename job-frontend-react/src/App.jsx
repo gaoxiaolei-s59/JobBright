@@ -2017,35 +2017,26 @@ function App() {
                   <CompanyBadge job={job} />
 
                   <div className="job-copy">
-                    <span className="posted-chip">{job.postedAt}</span>
+                    <div className="job-card-topline">
+                      <span className="posted-chip">{job.postedAt}</span>
+                      {job.highlightTags?.[0] ? (
+                        <span className="topline-chip">{job.highlightTags[0]}</span>
+                      ) : null}
+                    </div>
                     <h2>{job.title}</h2>
                     <p className="job-meta">{job.meta}</p>
-                    <div className="job-headline-row">
-                      <strong className="salary-chip">{job.salaryRange || "薪资面议"}</strong>
-                      <span className="role-chip">{job.roleCategory || "通用岗位"}</span>
-                    </div>
-                    <p className="job-summary">{job.jobSummary || "该岗位已补充到用户画像友好的职位模型中。"} </p>
-
-                    <div className="job-tags">
+                    <div className="job-key-grid">
                       <span>{job.location}</span>
                       <span>{job.workMode}</span>
                       <span>{job.employmentType}</span>
                       <span>{getExperienceLevelLabel(job.experienceLevel)}</span>
-                      <span>{job.educationRequirement || "学历不限"}</span>
+                      <span>{job.salaryRange || "薪资面议"}</span>
                     </div>
 
                     {job.skillTags?.length ? (
-                      <div className="job-skill-tags">
-                        {job.skillTags.map((tag) => (
+                      <div className="job-inline-skills">
+                        {job.skillTags.slice(0, 3).map((tag) => (
                           <span key={`${job.jobId}-${tag}`}>{tag}</span>
-                        ))}
-                      </div>
-                    ) : null}
-
-                    {job.highlightTags?.length ? (
-                      <div className="job-highlight-row">
-                        {job.highlightTags.map((tag) => (
-                          <span key={`${job.jobId}-highlight-${tag}`}>{tag}</span>
                         ))}
                       </div>
                     ) : null}
@@ -2065,7 +2056,7 @@ function App() {
                       </button>
                     </div>
 
-                    <small>{job.applicantCount} 人已投递</small>
+                    <small className="job-footnote">{job.applicantCount} 人已投递</small>
                   </div>
                 </div>
 

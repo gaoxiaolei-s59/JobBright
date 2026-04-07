@@ -5,11 +5,9 @@ import org.puregxl.site.framework.result.Result;
 import org.puregxl.site.framework.web.Results;
 import org.puregxl.site.jobbacked.dto.req.JobPageRequestV2;
 import org.puregxl.site.jobbacked.dto.resp.RecommendJobListResponse;
+import org.puregxl.site.jobbacked.service.JobService;
 import org.puregxl.site.jobbacked.service.RecommendService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/jobs")
@@ -17,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class JobController {
 
     private final RecommendService recommendService;
+
+    private final JobService jobService;
 
     /**
      * 推荐职位接口
@@ -26,6 +26,53 @@ public class JobController {
     public Result<RecommendJobListResponse> getRecommendJob(@ModelAttribute JobPageRequestV2 requestParam) {
         return Results.success(recommendService.getRecommendJobsV2(requestParam));
     }
+
+
+    /**
+     * 获取喜欢的职位列表
+     * @param requestParam
+     * @return
+     */
+    @GetMapping("/favorites")
+    public Result<RecommendJobListResponse> getFavoritesJob(@ModelAttribute JobPageRequestV2 requestParam) {
+        return Results.success(recommendService.getRecommendJobsV2(requestParam));
+    }
+
+
+    /**
+     * 获取已经投递的职位列表
+     * @param requestParam
+     * @return
+     */
+    @GetMapping("/applied")
+    public Result<RecommendJobListResponse> getAppliedJob(@ModelAttribute JobPageRequestV2 requestParam) {
+        return Results.success(recommendService.getRecommendJobsV2(requestParam));
+    }
+
+    /**
+     * 喜欢职位
+     * @param jobId
+     * @return
+     */
+    @PostMapping("/api/jobs/{jobId}/favorite")
+    public Result<Void> favoritesJob(@PathVariable Long jobId) {
+        jobService.favoritesJob(jobId);
+        return Results.success();
+    }
+
+
+
+    /**
+     * 投递职位
+     * @param jobId
+     * @return
+     */
+    @PostMapping("/api/jobs/{jobId}/apply")
+    public Result<Void> applyJob(@PathVariable Long jobId) {
+        return Results.success();
+    }
+
+
 
 
 }

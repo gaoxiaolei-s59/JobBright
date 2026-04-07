@@ -19,5 +19,5 @@ public class UploadResumeExecuteTaskEvent {
     /**
      * 用户id
      */
-    private String userId;
+    private Long userId;
 }
