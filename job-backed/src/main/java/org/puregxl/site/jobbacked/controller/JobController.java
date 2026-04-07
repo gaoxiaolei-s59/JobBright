@@ -20,6 +20,7 @@ public class JobController {
 
     /**
      * 推荐职位接口
+     *
      * @return
      */
     @GetMapping("/recommended")
@@ -30,27 +31,30 @@ public class JobController {
 
     /**
      * 获取喜欢的职位列表
+     *
      * @param requestParam
      * @return
      */
     @GetMapping("/favorites")
     public Result<RecommendJobListResponse> getFavoritesJob(@ModelAttribute JobPageRequestV2 requestParam) {
-        return Results.success(recommendService.getRecommendJobsV2(requestParam));
+        return Results.success(JobService.getFavoritesJob(requestParam));
     }
 
 
     /**
      * 获取已经投递的职位列表
+     *
      * @param requestParam
      * @return
      */
     @GetMapping("/applied")
     public Result<RecommendJobListResponse> getAppliedJob(@ModelAttribute JobPageRequestV2 requestParam) {
-        return Results.success(recommendService.getRecommendJobsV2(requestParam));
+        return Results.success(JobService.getAppliedJob(requestParam));
     }
 
     /**
      * 喜欢职位
+     *
      * @param jobId
      * @return
      */
@@ -61,18 +65,17 @@ public class JobController {
     }
 
 
-
     /**
      * 投递职位
+     *
      * @param jobId
      * @return
      */
     @PostMapping("/api/jobs/{jobId}/apply")
     public Result<Void> applyJob(@PathVariable Long jobId) {
+        jobService.applyJob(jobId);
         return Results.success();
     }
-
-
 
 
 }
