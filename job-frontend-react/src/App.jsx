@@ -27,14 +27,6 @@ const sidebarItems = [
 
 const savedFilters = ["后端开发 · 上海", "校招岗位 · Java / Go", "AI 平台 · 全职"];
 
-const homeOverviewFallback = {
-  freshJobCount: 1286,
-  averageMatchRate: 82,
-  averageShortlistMinutes: 9,
-  resumeScore: 82,
-  profileCompletionRate: 42
-};
-
 const userDashboardFallback = {
   displayName: "演示用户",
   planName: "免费版",
@@ -103,7 +95,9 @@ const jobFilterInitialState = {
 const experienceLevelOptions = [
   { value: "STUDENT", label: "在校生" },
   { value: "NEW_GRAD", label: "应届生" },
-  { value: "JUNIOR", label: "初级岗位" }
+  { value: "JUNIOR", label: "初级岗位" },
+  { value: "MID_LEVEL", label: "中级岗位" },
+  { value: "SENIOR", label: "高级岗位" }
 ];
 
 const experienceLevelLabelMap = Object.fromEntries(
@@ -338,11 +332,46 @@ function getCompanyBadgeText(job) {
   if (job.brand) {
     return job.brand;
   }
-  return (job.companyName || "U").slice(0, 2).toUpperCase();
+  return (job.companyName || "企业").slice(0, 2).toUpperCase();
 }
 
 function getExperienceLevelLabel(level) {
   return experienceLevelLabelMap[level] || level || "";
+}
+
+function isNonEmptyValue(value) {
+  return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function getJobMetaLine(job) {
+  if (isNonEmptyValue(job.meta)) {
+    return job.meta;
+  }
+  if (isNonEmptyValue(job.companyName)) {
+    return job.companyName;
+  }
+  return "";
+}
+
+function getJobKeyItems(job) {
+  return [
+    job.location,
+    job.workMode,
+    job.employmentType,
+    getExperienceLevelLabel(job.experienceLevel),
+    job.salaryRange || "薪资面议"
+  ].filter(isNonEmptyValue);
+}
+
+function getJobDetailItems(job) {
+  return [
+    { icon: "location", label: job.location },
+    { icon: "calendar", label: job.employmentType },
+    { icon: "desk", label: job.workMode },
+    { icon: "badge", label: getExperienceLevelLabel(job.experienceLevel) },
+    { icon: "salary", label: job.salaryRange || "薪资面议" },
+    { icon: "document", label: job.educationRequirement || "学历不限" }
+  ].filter((item) => isNonEmptyValue(item.label));
 }
 
 function getAuthDisplayName(user) {
@@ -449,6 +478,86 @@ function CompanyBadge({ job }) {
       )}
     </div>
   );
+}
+
+function JobDetailIcon({ type }) {
+  switch (type) {
+    case "location":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 21s6-4.8 6-10a6 6 0 1 0-12 0c0 5.2 6 10 6 10Z" />
+          <path d="M12 13.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+        </svg>
+      );
+    case "calendar":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 4.5V7" />
+          <path d="M17 4.5V7" />
+          <path d="M5 9h14" />
+          <path d="M6 6.5h12a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 18 19H6A1.5 1.5 0 0 1 4.5 17.5V8A1.5 1.5 0 0 1 6 6.5Z" />
+        </svg>
+      );
+    case "desk":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4.5 10.5 12 5l7.5 5.5v8a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 18.5v-8Z" />
+          <path d="M9 19v-4.5a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5V19" />
+        </svg>
+      );
+    case "badge":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7.5 5.5h9l1.5 4.5L12 18l-6-8 1.5-4.5Z" />
+          <path d="M9.5 10.5h5" />
+        </svg>
+      );
+    case "salary":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.5v17" />
+          <path d="M16 7.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 3 4 3 4 1.3 4 3-1.8 3-4 3-4-1.3-4-3" />
+        </svg>
+      );
+    case "document":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M8 4.5h6l4 4v10a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 7 18.5V6A1.5 1.5 0 0 1 8.5 4.5Z" />
+          <path d="M14 4.5V9h4" />
+          <path d="M9.5 12h5" />
+          <path d="M9.5 15h5" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+function JobActionIcon({ type }) {
+  switch (type) {
+    case "skip":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="m8.5 8.5 7 7" />
+        </svg>
+      );
+    case "favorite":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m12 19-1.3-1.18C6.1 13.7 3.5 11.33 3.5 8.4A4.1 4.1 0 0 1 7.7 4.2c1.64 0 3.21.76 4.3 1.95 1.09-1.19 2.66-1.95 4.3-1.95a4.1 4.1 0 0 1 4.2 4.2c0 2.93-2.6 5.3-7.2 9.43L12 19Z" />
+        </svg>
+      );
+    case "spark":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.5 13.7 8 18.2 9.7 13.7 11.4 12 15.9 10.3 11.4 5.8 9.7 10.3 8 12 3.5Z" />
+          <path d="m18.2 14.8.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7.7-1.9Z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
 }
 
 function FilterSelect({ value, options, onChange, placeholder }) {
@@ -564,7 +673,6 @@ function App() {
   const [registerForm, setRegisterForm] = useState(registerInitialState);
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeInfo, setResumeInfo] = useState(null);
-  const [homeOverview, setHomeOverview] = useState(homeOverviewFallback);
   const [userDashboard, setUserDashboard] = useState(userDashboardFallback);
   const [userProfileDraft, setUserProfileDraft] = useState(userProfileDraftInitialState);
   const [settingsDraft, setSettingsDraft] = useState(settingsDraftInitialState);
@@ -578,9 +686,8 @@ function App() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
   const [jobActionOverrides, setJobActionOverrides] = useState({});
-  const loadMoreRef = useRef(null);
+  const mainPanelRef = useRef(null);
   const loadMoreLockRef = useRef(false);
-  const loadMoreReadyRef = useRef(true);
   const [auth, setAuth] = useState(() => ({
     token: localStorage.getItem(TOKEN_KEY),
     user: null
@@ -619,36 +726,34 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!auth.token || !resumeInfo || !loadMoreRef.current || jobLoading || !hasMoreJobs) {
+    const panel = mainPanelRef.current;
+    if (!auth.token || !resumeInfo || !panel || jobLoading || !hasMoreJobs || activeTab !== "推荐职位" || isUserHomeSection) {
       return undefined;
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (!entry) {
-          return;
-        }
-        if (!entry.isIntersecting) {
-          loadMoreReadyRef.current = true;
-          return;
-        }
-        if (entry.isIntersecting && !loadMoreLockRef.current && loadMoreReadyRef.current) {
-          loadMoreLockRef.current = true;
-          loadMoreReadyRef.current = false;
-          observer.unobserve(entry.target);
-          const nextFilters = {
-            ...jobFilters,
-            current: Number(jobFilters.current || 1) + 1
-          };
-          setJobFilters(nextFilters);
-          loadRecommendedJobs(nextFilters, true);
-        }
-      },
-      { rootMargin: "240px 0px" }
-    );
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [auth.token, resumeInfo, jobLoading, hasMoreJobs, jobFilters]);
+
+    const tryLoadMore = () => {
+      if (loadMoreLockRef.current) {
+        return;
+      }
+      const distanceToBottom = panel.scrollHeight - panel.scrollTop - panel.clientHeight;
+      if (distanceToBottom > 240) {
+        return;
+      }
+      loadMoreLockRef.current = true;
+      setJobFilters((current) => {
+        const nextFilters = {
+          ...current,
+          current: Number(current.current || 1) + 1
+        };
+        void loadRecommendedJobs(nextFilters, true);
+        return nextFilters;
+      });
+    };
+
+    tryLoadMore();
+    panel.addEventListener("scroll", tryLoadMore, { passive: true });
+    return () => panel.removeEventListener("scroll", tryLoadMore);
+  }, [auth.token, resumeInfo, jobLoading, hasMoreJobs, activeTab, isUserHomeSection]);
 
   async function request(path, options = {}) {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -699,7 +804,6 @@ function App() {
       loadLocalJobActions(user);
       await loadUserDashboard(user);
       await loadCurrentResume();
-      await loadHomeOverview();
       await Promise.all([
         loadRecommendedJobs(jobFilterInitialState),
         loadFavoriteJobs(jobFilterInitialState),
@@ -769,19 +873,6 @@ function App() {
     setJobActionOverrides(
       readLocalJson(getUserScopedStorageKey(user, "job_actions"), {})
     );
-  }
-
-  async function loadHomeOverview() {
-    try {
-      const overview = await request("/api/home/overview", { method: "GET" });
-      setHomeOverview({ ...homeOverviewFallback, ...overview });
-    } catch (error) {
-      setHomeOverview(homeOverviewFallback);
-      if (!resumeInfo) {
-        return;
-      }
-      setMessage({ type: "error", text: `${error.message || "首页概览加载失败"}，已回退默认展示` });
-    }
   }
 
   function buildRecommendQueryString(params) {
@@ -1046,7 +1137,6 @@ function App() {
     setActiveSection("jobs");
     setActiveTab("推荐职位");
     setResumeInfo(null);
-    setHomeOverview(homeOverviewFallback);
     setUserDashboard(userDashboardFallback);
     setUserProfileDraft(userProfileDraftInitialState);
     setJobActionOverrides({});
@@ -1163,7 +1253,6 @@ function App() {
       });
       await loadCurrentResume();
       await loadUserDashboard();
-      await loadHomeOverview();
       await refreshAllJobLists(jobFilterInitialState);
       setResumeFile(null);
       setMessage({ type: "success", text: "简历上传成功，已进入首页。" });
@@ -1895,7 +1984,7 @@ function App() {
           </div>
         </aside>
 
-        <main className="main-panel">
+        <main className="main-panel" ref={mainPanelRef}>
           {!isUserHomeSection ? (
             <header className="topbar">
               <div className="topbar-title">
@@ -1941,23 +2030,6 @@ function App() {
 
           {!isUserHomeSection ? (
             <>
-          <section className="hero-panel">
-            <div className="hero-stats">
-              <article>
-                <strong>{homeOverview.freshJobCount.toLocaleString("zh-CN")}</strong>
-                <span>本周新增的后端相关岗位</span>
-              </article>
-              <article>
-                <strong>{homeOverview.averageMatchRate}%</strong>
-                <span>当前简历平均岗位匹配度</span>
-              </article>
-              <article>
-                <strong>{homeOverview.averageShortlistMinutes} 分钟</strong>
-                <span>完成首轮职位筛选的典型用时</span>
-              </article>
-            </div>
-          </section>
-
           <section className="filter-panel">
             <div className="filter-toolbar">
               <div>
@@ -2110,49 +2182,70 @@ function App() {
             {visibleJobRecords.length ? visibleJobRecords.map((job) => (
               <article key={job.jobId} className="job-card">
                 <div className="job-card-main">
-                  <CompanyBadge job={job} />
+                  <div className="job-card-header">
+                    <CompanyBadge job={job} />
 
-                  <div className="job-copy">
-                    <div className="job-card-topline">
-                      <span className="posted-chip">{job.postedAt}</span>
-                      {job.highlightTags?.[0] ? (
-                        <span className="topline-chip">{job.highlightTags[0]}</span>
-                      ) : null}
-                    </div>
-                    <h2>{job.title}</h2>
-                    <p className="job-meta">{job.meta}</p>
-                    <div className="job-key-grid">
-                      <span>{job.location}</span>
-                      <span>{job.workMode}</span>
-                      <span>{job.employmentType}</span>
-                      <span>{getExperienceLevelLabel(job.experienceLevel)}</span>
-                      <span>{job.salaryRange || "薪资面议"}</span>
-                    </div>
-
-                    {job.skillTags?.length ? (
-                      <div className="job-inline-skills">
-                        {job.skillTags.slice(0, 3).map((tag) => (
-                          <span key={`${job.jobId}-${tag}`}>{tag}</span>
-                        ))}
+                    <div className="job-copy">
+                      <div className="job-card-topline">
+                        <span className="posted-chip">{job.postedAt || "刚刚发布"}</span>
+                        {job.highlightTags?.[0] ? (
+                          <span className="topline-chip">{job.highlightTags[0]}</span>
+                        ) : null}
                       </div>
-                    ) : null}
-
-                    <div className="job-actions">
-                      <button className="icon-button" onClick={() => handleToggleJobApplied(job)} type="button">
-                        {job.applied ? "取消投递" : "标记投递"}
-                      </button>
-                      <button className="icon-button" onClick={() => handleToggleJobLike(job)} type="button">
-                        {job.liked ? "取消收藏" : "收藏"}
-                      </button>
-                      <button className="secondary-action" type="button">
-                        问求职助手
-                      </button>
-                      <button className="primary-action" type="button">
-                        {job.applyUrl ? "立即申请" : "查看岗位"}
-                      </button>
+                      <h2>{job.title}</h2>
+                      {getJobMetaLine(job) ? <p className="job-meta">{getJobMetaLine(job)}</p> : null}
                     </div>
 
-                    <small className="job-footnote">{job.applicantCount} 人已投递</small>
+                    <button className="job-card-menu" type="button" aria-label="更多操作">
+                      <span />
+                      <span />
+                      <span />
+                    </button>
+                  </div>
+
+                  <div className="job-detail-grid">
+                    {getJobDetailItems(job).slice(0, 6).map((item) => (
+                      <div key={`${job.jobId}-${item.icon}-${item.label}`} className="job-detail-item">
+                        <span className="job-detail-icon">
+                          <JobDetailIcon type={item.icon} />
+                        </span>
+                        <span>{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="job-card-divider" />
+
+                  <div className="job-footer">
+                    <div className="job-footnote">
+                      {job.applicantCount > 0 ? `${job.applicantCount} 人已投递` : "少于 25 人已投递"}
+                    </div>
+
+                    <div className="job-footer-actions">
+                      <button
+                        className="job-action-icon-button"
+                        onClick={() => handleToggleJobApplied(job)}
+                        type="button"
+                        aria-label={job.applied ? "取消投递" : "标记投递"}
+                      >
+                        <JobActionIcon type="skip" />
+                      </button>
+                      <button
+                        className="job-action-icon-button"
+                        onClick={() => handleToggleJobLike(job)}
+                        type="button"
+                        aria-label={job.liked ? "取消收藏" : "收藏"}
+                      >
+                        <JobActionIcon type="favorite" />
+                      </button>
+                      <button className="job-assistant-button" type="button">
+                        <JobActionIcon type="spark" />
+                        <span>ASK ORION</span>
+                      </button>
+                      <button className="job-apply-button" type="button">
+                        APPLY NOW
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -2161,6 +2254,7 @@ function App() {
                     <span>{job.matchScore}%</span>
                   </div>
                   <strong>{job.matchLabel}</strong>
+                  <div className="job-match-divider" />
                   <p>{job.matchReason}</p>
                 </aside>
               </article>
@@ -2173,7 +2267,7 @@ function App() {
           </section>
 
           {activeTab === "推荐职位" && visibleJobRecords.length ? (
-            <div className="load-more-anchor" ref={loadMoreRef}>
+            <div className="load-more-anchor">
               {jobLoading ? "正在加载更多职位..." : hasMoreJobs ? "继续下滑加载更多" : "已经到底了"}
             </div>
           ) : null}

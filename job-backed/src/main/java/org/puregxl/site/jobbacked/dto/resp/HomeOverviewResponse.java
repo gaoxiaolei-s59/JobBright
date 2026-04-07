@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -35,4 +37,6 @@ public class HomeOverviewResponse {
      * 用户资料完整度
      */
     private Integer profileCompletionRate;
+
+
 }
