@@ -1,23 +1,17 @@
 package org.puregxl.site.rag.task;
 
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import io.grpc.internal.JsonUtil;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.ss.formula.functions.T;
-import org.puregxl.site.rag.config.LLMConfiguration;
 import org.puregxl.site.rag.dao.entity.JobPost;
 import org.puregxl.site.rag.dao.entity.JobPostingDO;
-import org.puregxl.site.rag.dao.mapper.CompanyMapper;
-import org.puregxl.site.rag.dao.mapper.JobPostMapper;
 import org.puregxl.site.rag.dao.mapper.JobPostingMapper;
 import org.puregxl.site.rag.llm.job.client.JobPostCleanLlmClient;
 import org.puregxl.site.rag.llm.job.prompt.JobPostCleanPromptBuilder;
+import org.puregxl.site.rag.service.JobPostCleanPersistenceService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -26,6 +20,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -37,11 +32,9 @@ import java.util.concurrent.Future;
 @RequiredArgsConstructor
 public class JobPostCleanTask {
 
-    private final CompanyMapper companyMapper;
     private final JobPostingMapper jobPostingMapper;
-    private final JobPostMapper jobPostMapper;
-    private final LLMConfiguration llmConfiguration;
     private final JobPostCleanLlmClient jobPostCleanLlmClient;
+    private final JobPostCleanPersistenceService jobPostCleanPersistenceService;
 
     /**
      * 最大线程数
@@ -60,10 +53,9 @@ public class JobPostCleanTask {
     @Scheduled(fixedRate = 500000)
     public void run() throws Exception {
         //1.先批量拉取一批职位(按照发布时间排序 - 优先拉取最新数据)
-        LambdaQueryWrapper<JobPostingDO> queryWrapper = Wrappers.lambdaQuery(JobPostingDO.class)
+        List<JobPostingDO> jobPostingDOS = jobPostingMapper.selectList(Wrappers.lambdaQuery(JobPostingDO.class)
                 .orderByDesc(JobPostingDO::getUpdatedAt)
-                .last("limit " + BATCH_SIZE);
-        List<JobPostingDO> jobPostingDOS = jobPostingMapper.selectList(queryWrapper);
+                .last("limit " + BATCH_SIZE));
 
         List<Future<CleanJobResult>> futures = jobPostingDOS.stream()
                 .map(rawJob -> executorService.submit(buildCleanTask(rawJob)))
@@ -72,14 +64,18 @@ public class JobPostCleanTask {
          * 获取结果
          */
         for (Future<CleanJobResult> future : futures) {
-            CleanJobResult result = future.get();
-            JobPost jobPost = result.getJobPost();
-            upsertJobPost(jobPost);
-
-            System.out.println("已清洗入库: " + jobPost.getJobId() + " -> " + result.getJobPost().getTitle());
-            System.out.println(jobPost);
-            //删除职位表
-            jobPostingMapper.deleteById(result.getRawJobId());
+            try {
+                CleanJobResult result = future.get();
+                JobPost jobPost = result.getJobPost();
+                jobPostCleanPersistenceService.persistAndDelete(jobPost, result.getRawJobId());
+                System.out.println("已清洗入库: " + jobPost.getJobId() + " -> " + jobPost.getTitle());
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+                throw interruptedException;
+            } catch (ExecutionException executionException) {
+                Throwable cause = executionException.getCause() == null ? executionException : executionException.getCause();
+                System.err.println("职位清洗失败，已跳过当前记录: " + cause.getMessage());
+            }
         }
 
     }
@@ -89,7 +85,6 @@ public class JobPostCleanTask {
      *
      * @return
      */
-    @Transactional(rollbackFor = Exception.class)
     private Callable<CleanJobResult> buildCleanTask(JobPostingDO jobPostingDO) {
         return () -> {
             // 1.llm清洗
@@ -97,26 +92,6 @@ public class JobPostCleanTask {
             JobPost jobPost = buildJobPost(jobPostingDO, jobPostCleanResult);
             return new CleanJobResult(jobPostingDO.getId(), jobPost);
         };
-    }
-
-    /**
-     * 插入到最终的职位表
-     *
-     * @param jobPost
-     */
-    private void upsertJobPost(JobPost jobPost) {
-        LambdaQueryWrapper<JobPost> queryWrapper = Wrappers.lambdaQuery(JobPost.class)
-                .eq(JobPost::getJobId, jobPost.getJobId())
-                .last("limit 1");
-        JobPost existing = jobPostMapper.selectOne(queryWrapper);
-        if (existing == null) {
-            jobPostMapper.insert(jobPost);
-            return;
-        }
-
-        jobPost.setId(existing.getId());
-        jobPost.setCreateTime(existing.getCreateTime());
-        jobPostMapper.updateById(jobPost);
     }
 
     /**
@@ -130,7 +105,7 @@ public class JobPostCleanTask {
         String userPrompt = JobPostCleanPromptBuilder.buildRefineJobUserPrompt(jobPostingDO);
         String systemPrompt = JobPostCleanPromptBuilder.buildCleanSystemPrompt();
         // 2.执行清洗操作
-        String cleanJob = jobPostCleanLlmClient.cleanJob(userPrompt, systemPrompt);
+        String cleanJob = jobPostCleanLlmClient.cleanJob(systemPrompt, userPrompt);
         // 3.转换成第一版 job
         JobPostCleanResult bean = JSONUtil.toBean(cleanJob, JobPostCleanResult.class);
         return bean;
@@ -161,7 +136,7 @@ public class JobPostCleanTask {
                 .benefitTags(toJsonArray(cleanResult.getBenefitTags()))
                 .highlightTags(toJsonArray(cleanResult.getHighlightTags()))
                 .location(firstNonBlank(rawJob.getLocation(), buildLocation(cleanResult)))
-                .city(firstNonBlank(cleanResult.getCity(), rawJob.getLocation()))
+                .city(cleanResult.getCity())
                 .district(cleanResult.getDistrict())
                 .workMode(cleanResult.getWorkMode())
                 .employmentType(cleanResult.getEmploymentType())
