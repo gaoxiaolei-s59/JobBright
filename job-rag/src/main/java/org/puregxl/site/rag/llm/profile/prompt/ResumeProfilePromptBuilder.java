@@ -1,4 +1,4 @@
-package org.puregxl.site.rag.profile.prompt;
+package org.puregxl.site.rag.llm.profile.prompt;
 
 public final class ResumeProfilePromptBuilder {
 

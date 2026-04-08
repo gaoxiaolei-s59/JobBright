@@ -374,6 +374,33 @@ function getJobDetailItems(job) {
   ].filter((item) => isNonEmptyValue(item.label));
 }
 
+function findJobById(jobId, dataSources, overrides = {}) {
+  if (!jobId) {
+    return null;
+  }
+  for (const source of dataSources) {
+    const records = Array.isArray(source?.records) ? source.records : [];
+    const matched = records.find((item) => item.jobId === jobId);
+    if (matched) {
+      const override = overrides[jobId] || {};
+      return {
+        ...matched,
+        liked: override.liked ?? matched.liked,
+        applied: override.applied ?? matched.applied
+      };
+    }
+  }
+  return null;
+}
+
+function getJobTagGroups(job) {
+  return [
+    { title: "技能标签", values: job.skillTags || [] },
+    { title: "岗位亮点", values: job.highlightTags || [] },
+    { title: "优先专业", values: job.preferredMajor ? String(job.preferredMajor).split(/[、,，/]/).filter(Boolean) : [] }
+  ].filter((group) => group.values.length);
+}
+
 function getAuthDisplayName(user) {
   return user?.displayName || user?.username || "U";
 }
@@ -721,6 +748,10 @@ function App() {
   const [favoriteJobsData, setFavoriteJobsData] = useState(createJobListState());
   const [appliedJobsData, setAppliedJobsData] = useState(createJobListState());
   const [jobLoading, setJobLoading] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [pendingApplyFollowUpJobId, setPendingApplyFollowUpJobId] = useState(null);
+  const [applyFollowUpLeftPage, setApplyFollowUpLeftPage] = useState(false);
+  const [showApplyFollowUpModal, setShowApplyFollowUpModal] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
   const [jobActionOverrides, setJobActionOverrides] = useState({});
@@ -754,6 +785,16 @@ function App() {
     };
   });
   const visibleJobRecords = mergedJobRecords;
+  const selectedJob = findJobById(
+    selectedJobId,
+    [recommendedJobsData, favoriteJobsData, appliedJobsData],
+    jobActionOverrides
+  );
+  const pendingApplyFollowUpJob = findJobById(
+    pendingApplyFollowUpJobId,
+    [recommendedJobsData, favoriteJobsData, appliedJobsData],
+    jobActionOverrides
+  );
   const visibleJobTotal = currentJobsData.total;
   const favoriteCount = favoriteJobsData.total;
   const appliedCount = appliedJobsData.total;
@@ -763,6 +804,57 @@ function App() {
       loadCurrentUser();
     }
   }, []);
+
+  useEffect(() => {
+    if (!selectedJobId) {
+      return undefined;
+    }
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setSelectedJobId(null);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedJobId]);
+
+  useEffect(() => {
+    if (!pendingApplyFollowUpJobId || showApplyFollowUpModal) {
+      return undefined;
+    }
+
+    const markLeftPage = () => {
+      if (document.visibilityState === "hidden") {
+        setApplyFollowUpLeftPage(true);
+      }
+    };
+
+    const maybeOpenModal = () => {
+      if (document.visibilityState === "visible" && applyFollowUpLeftPage) {
+        setShowApplyFollowUpModal(true);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        setApplyFollowUpLeftPage(true);
+        return;
+      }
+      if (document.visibilityState === "visible" && applyFollowUpLeftPage) {
+        setShowApplyFollowUpModal(true);
+      }
+    };
+
+    window.addEventListener("blur", markLeftPage);
+    window.addEventListener("focus", maybeOpenModal);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("blur", markLeftPage);
+      window.removeEventListener("focus", maybeOpenModal);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pendingApplyFollowUpJobId, applyFollowUpLeftPage, showApplyFollowUpModal]);
 
   useEffect(() => {
     const panel = mainPanelRef.current;
@@ -1178,6 +1270,7 @@ function App() {
     setActiveSection("jobs");
     setActiveTab("推荐职位");
     setResumeInfo(null);
+    setSelectedJobId(null);
     setUserDashboard(userDashboardFallback);
     setUserProfileDraft(userProfileDraftInitialState);
     setJobActionOverrides({});
@@ -1265,6 +1358,88 @@ function App() {
     } finally {
       setJobLoading(false);
     }
+  }
+
+  async function handleApplyNow(job) {
+    if (!job?.applyUrl) {
+      setMessage({ type: "error", text: "这个职位暂时没有原始投递链接，后续可以等后端补齐 applyUrl 字段。" });
+      return;
+    }
+
+    const openedWindow = window.open("about:blank", "_blank");
+    try {
+      if (openedWindow) {
+        openedWindow.opener = null;
+        openedWindow.location.replace(job.applyUrl);
+      } else {
+        window.open(job.applyUrl, "_blank", "noopener,noreferrer");
+      }
+
+      setPendingApplyFollowUpJobId(job.jobId);
+      setApplyFollowUpLeftPage(false);
+      setShowApplyFollowUpModal(false);
+      setMessage({
+        type: "success",
+        text: "已为你打开职位原始链接。完成投递后，回到页面我们会继续帮你确认。"
+      });
+    } catch (error) {
+      if (openedWindow && !openedWindow.closed) {
+        openedWindow.close();
+      }
+      setMessage({ type: "error", text: error.message || "跳转职位原始链接失败" });
+    }
+  }
+
+  async function confirmAppliedAfterReturn() {
+    if (!pendingApplyFollowUpJob) {
+      setShowApplyFollowUpModal(false);
+      setPendingApplyFollowUpJobId(null);
+      setApplyFollowUpLeftPage(false);
+      return;
+    }
+
+    const currentApplied = normalizeBoolean(
+      jobActionOverrides[pendingApplyFollowUpJob.jobId]?.applied ?? pendingApplyFollowUpJob.applied
+    );
+    try {
+      setJobLoading(true);
+      if (!currentApplied) {
+        await request(`/api/jobs/${pendingApplyFollowUpJob.jobId}/apply`, { method: "POST" });
+        const nextOverrides = {
+          ...jobActionOverrides,
+          [pendingApplyFollowUpJob.jobId]: {
+            liked:
+              jobActionOverrides[pendingApplyFollowUpJob.jobId]?.liked ?? pendingApplyFollowUpJob.liked,
+            applied: true
+          }
+        };
+        saveJobActionOverrides(nextOverrides);
+        await refreshAllJobLists(jobFilters);
+      }
+      setMessage({ type: "success", text: "已帮你标记为已投递，后续可以在已投递列表中继续跟进。" });
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "标记投递失败" });
+    } finally {
+      setJobLoading(false);
+      setShowApplyFollowUpModal(false);
+      setPendingApplyFollowUpJobId(null);
+      setApplyFollowUpLeftPage(false);
+    }
+  }
+
+  function dismissApplyFollowUp() {
+    setShowApplyFollowUpModal(false);
+    setPendingApplyFollowUpJobId(null);
+    setApplyFollowUpLeftPage(false);
+    setMessage({ type: "success", text: "好的，当前不会把这个职位标记为已投递。" });
+  }
+
+  function openJobDetail(job) {
+    setSelectedJobId(job.jobId);
+  }
+
+  function closeJobDetail() {
+    setSelectedJobId(null);
   }
 
   async function handleJobSearch(event) {
@@ -1794,30 +1969,72 @@ function App() {
 
         <main className="auth-layout">
           <section className="auth-hero">
-            <span className="eyebrow">JobBright 求职工作台</span>
-            <h1>登录后进入首页，围绕简历、职位和投递建立你的求职节奏。</h1>
-            <p className="auth-copy">
-              这是一个中文化的职位平台首页原型，风格参考 Jobright，但会更贴近中文求职场景。
-              你可以在这里集中管理简历、筛选岗位、跟踪投递、查看匹配分析。
-            </p>
+            <div className="auth-brand-row">
+              <div className="auth-brand-mark">J</div>
+              <div>
+                <span className="eyebrow">JobBright 求职工作台</span>
+                <strong className="auth-brand-name">让简历、岗位和投递节奏真正连起来</strong>
+              </div>
+            </div>
 
-            <div className="auth-feature-grid">
+            <div className="auth-hero-copy">
+              <h1>把推荐、简历和投递放进同一个工作台。</h1>
+              <p className="auth-copy">
+                用更短的路径完成筛选、判断和跟进，让职位推荐真正围绕你的简历画像和求职偏好工作。
+              </p>
+            </div>
+
+            <div className="auth-preview-card">
+              <div className="auth-preview-head">
+                <strong>今日工作台</strong>
+                <span>推荐优先</span>
+              </div>
+              <div className="auth-preview-stats">
+                <article>
+                  <strong>86%</strong>
+                  <span>平均匹配度</span>
+                </article>
+                <article>
+                  <strong>24</strong>
+                  <span>待筛选岗位</span>
+                </article>
+                <article>
+                  <strong>6</strong>
+                  <span>已收藏机会</span>
+                </article>
+              </div>
+              <div className="auth-preview-flow">
+                <span>推荐职位</span>
+                <span>简历画像</span>
+                <span>投递跟进</span>
+              </div>
+            </div>
+
+            <div className="auth-feature-grid compact">
               <article>
-                <strong>推荐职位</strong>
-                <span>从首页直接进入推荐流，快速筛掉不合适的岗位。</span>
+                <strong>推荐优先</strong>
+                <span>先看关键字段和高匹配岗位。</span>
               </article>
               <article>
-                <strong>简历中心</strong>
-                <span>上传当前简历，持续优化匹配分数与投递效率。</span>
+                <strong>画像参与</strong>
+                <span>推荐结果可以解释，不只给分数。</span>
               </article>
               <article>
-                <strong>求职助手</strong>
-                <span>后续可以扩展成投递建议、问答辅助和个性化提醒。</span>
+                <strong>投递闭环</strong>
+                <span>收藏、已投递和助手统一串联。</span>
               </article>
             </div>
           </section>
 
           <section className="auth-panel">
+            <div className="auth-panel-head">
+              <div>
+                <span className="eyebrow">欢迎回来</span>
+                <strong>进入你的求职工作台</strong>
+              </div>
+              <span className="auth-panel-pill">推荐优先</span>
+            </div>
+
             <div className="auth-tabs">
               <button
                 className={authView === "login" ? "auth-tab active" : "auth-tab"}
@@ -1843,8 +2060,8 @@ function App() {
 
             {authView === "login" ? (
               <form className="auth-form" onSubmit={handleLogin}>
-                <h2>欢迎回来</h2>
-                <p>登录后进入职位首页，查看推荐岗位与简历匹配信息。</p>
+                <h2>登录</h2>
+                <p>登录后直接进入推荐职位流，继续你的筛选和投递节奏。</p>
 
                 <label>
                   用户名或邮箱
@@ -1869,12 +2086,12 @@ function App() {
                   {loading ? "登录中..." : "立即登录"}
                 </button>
 
-                <div className="helper-text">演示账号：demo / JobBacked123</div>
+                <div className="helper-text">演示账号：`demo / JobBacked123`</div>
               </form>
             ) : (
               <form className="auth-form" onSubmit={handleRegister}>
                 <h2>创建账号</h2>
-                <p>先完成注册，后续你可以继续接简历上传、职位推荐和投递记录。</p>
+                <p>注册后就能保存简历、生成画像并建立自己的推荐与投递轨迹。</p>
 
                 <label>
                   用户名
@@ -2257,7 +2474,19 @@ function App() {
 
           <section className="job-feed">
             {visibleJobRecords.length ? visibleJobRecords.map((job) => (
-              <article key={job.jobId} className="job-card">
+              <article
+                key={job.jobId}
+                className="job-card"
+                onClick={() => openJobDetail(job)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openJobDetail(job);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
                 <div className="job-card-main">
                   <div className="job-card-header">
                     <CompanyBadge job={job} />
@@ -2273,7 +2502,15 @@ function App() {
                       {getJobMetaLine(job) ? <p className="job-meta">{getJobMetaLine(job)}</p> : null}
                     </div>
 
-                    <button className="job-card-menu" type="button" aria-label="更多操作">
+                    <button
+                      className="job-card-menu"
+                      type="button"
+                      aria-label="查看职位详情"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openJobDetail(job);
+                      }}
+                    >
                       <span />
                       <span />
                       <span />
@@ -2301,7 +2538,10 @@ function App() {
                     <div className="job-footer-actions">
                       <button
                         className="job-action-icon-button"
-                        onClick={() => handleToggleJobApplied(job)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleToggleJobApplied(job);
+                        }}
                         type="button"
                         aria-label={job.applied ? "取消投递" : "标记投递"}
                       >
@@ -2309,17 +2549,33 @@ function App() {
                       </button>
                       <button
                         className="job-action-icon-button"
-                        onClick={() => handleToggleJobLike(job)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleToggleJobLike(job);
+                        }}
                         type="button"
                         aria-label={job.liked ? "取消收藏" : "收藏"}
                       >
                         <JobActionIcon type="favorite" />
                       </button>
-                      <button className="job-assistant-button" type="button">
+                      <button
+                        className="job-assistant-button"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                        }}
+                      >
                         <JobActionIcon type="spark" />
                         <span>问求职助手</span>
                       </button>
-                      <button className="job-apply-button" type="button">
+                      <button
+                        className="job-apply-button"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleApplyNow(job);
+                        }}
+                      >
                         立即申请
                       </button>
                     </div>
@@ -2442,6 +2698,172 @@ function App() {
         </aside>
         ) : null}
       </div>
+
+      {selectedJob ? (
+        <div className="job-detail-overlay" onClick={closeJobDetail} role="presentation">
+          <section
+            className="job-detail-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="职位详情"
+          >
+            <header className="job-detail-modal-header">
+              <div className="job-detail-modal-identity">
+                <CompanyBadge job={selectedJob} />
+                <div className="job-detail-modal-copy">
+                  <span className="job-detail-modal-company">{selectedJob.companyName || "企业"}</span>
+                  <h2>{selectedJob.title}</h2>
+                  {getJobMetaLine(selectedJob) ? <p>{getJobMetaLine(selectedJob)}</p> : null}
+                </div>
+              </div>
+              <button
+                className="job-detail-close-button"
+                onClick={closeJobDetail}
+                type="button"
+                aria-label="关闭职位详情"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="job-detail-modal-body">
+              <section className="job-detail-primary">
+                <div className="job-detail-hero">
+                  <div className="job-detail-hero-main">
+                    <div className="job-detail-chip-row">
+                      {getJobKeyItems(selectedJob).map((item) => (
+                        <span key={`${selectedJob.jobId}-${item}`} className="job-detail-chip">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="job-detail-summary">
+                      {selectedJob.jobSummary || "后端职位详情接口补齐后，这里会展示完整职位描述、任职要求和公司介绍。"}
+                    </p>
+                  </div>
+
+                  <aside className="job-detail-score-card">
+                    <div className="match-ring">
+                      <span>{selectedJob.matchScore}%</span>
+                    </div>
+                    <strong>{selectedJob.matchLabel}</strong>
+                    <p>{selectedJob.matchReason}</p>
+                  </aside>
+                </div>
+
+                <div className="job-detail-section">
+                  <h3>岗位信息</h3>
+                  <div className="job-detail-info-grid">
+                    {getJobDetailItems(selectedJob).map((item) => (
+                      <div key={`${selectedJob.jobId}-${item.icon}-${item.label}`} className="job-detail-info-item">
+                        <span className="job-detail-icon">
+                          <JobDetailIcon type={item.icon} />
+                        </span>
+                        <span>{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {getJobTagGroups(selectedJob).map((group) => (
+                  <div key={`${selectedJob.jobId}-${group.title}`} className="job-detail-section">
+                    <h3>{group.title}</h3>
+                    <div className="job-detail-chip-row">
+                      {group.values.map((value) => (
+                        <span key={`${group.title}-${value}`} className="job-detail-chip muted">
+                          {value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+
+              <aside className="job-detail-sidebar">
+                <div className="job-detail-side-card">
+                  <strong>投递动作</strong>
+                  <button
+                    className="job-apply-button detail"
+                    onClick={() => void handleApplyNow(selectedJob)}
+                    type="button"
+                  >
+                    申请并跳转原始链接
+                  </button>
+                  <button
+                    className="job-detail-secondary-button"
+                    onClick={() => void handleToggleJobLike(selectedJob)}
+                    type="button"
+                  >
+                    {selectedJob.liked ? "取消收藏职位" : "收藏职位"}
+                  </button>
+                  <button
+                    className="job-detail-secondary-button"
+                    onClick={() => {
+                      if (selectedJob.applyUrl) {
+                        window.open(selectedJob.applyUrl, "_blank", "noopener,noreferrer");
+                      } else {
+                        setMessage({ type: "error", text: "这个职位暂时没有原始链接。" });
+                      }
+                    }}
+                    type="button"
+                  >
+                    查看原始职位链接
+                  </button>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {showApplyFollowUpModal && pendingApplyFollowUpJob ? (
+        <div className="apply-followup-overlay" role="presentation">
+          <section
+            className="apply-followup-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="确认是否已投递"
+          >
+            <button
+              className="apply-followup-close"
+              onClick={dismissApplyFollowUp}
+              type="button"
+              aria-label="关闭"
+            >
+              ×
+            </button>
+            <div className="apply-followup-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none">
+                <path d="M18 23h28a6 6 0 0 1 6 6v18a8 8 0 0 1-8 8H20a8 8 0 0 1-8-8V29a6 6 0 0 1 6-6Z" />
+                <path d="M24 23v-3a8 8 0 0 1 16 0v3" />
+                <path d="M14 31c7 8 29 8 36 0" />
+              </svg>
+            </div>
+            <h2>已经完成投递了吗？</h2>
+            <p>
+              告诉我们这次投递是否完成，我们会帮你更新投递状态，并让后续推荐更准确。
+            </p>
+            <div className="apply-followup-job-title">{pendingApplyFollowUpJob.title}</div>
+            <div className="apply-followup-actions">
+              <button
+                className="apply-followup-primary"
+                onClick={() => void confirmAppliedAfterReturn()}
+                type="button"
+              >
+                是的，已投递
+              </button>
+              <button
+                className="apply-followup-secondary"
+                onClick={dismissApplyFollowUp}
+                type="button"
+              >
+                还没有投递
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

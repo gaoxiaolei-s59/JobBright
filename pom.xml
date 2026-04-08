@@ -25,6 +25,7 @@
         <module>job-backed</module>
         <module>job-framework</module>
         <module>job-rag</module>
+        <module>clawler</module>
     </modules>
     <scm>
         <connection/>

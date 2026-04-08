@@ -1,9 +1,10 @@
-package org.puregxl.site.rag.profile.client;
+package org.puregxl.site.rag.llm.job.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.exception.ClientException;
+import org.puregxl.site.framework.exception.ServiceException;
 import org.puregxl.site.rag.config.LLMConfiguration;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +23,7 @@ import java.util.Map;
  */
 @Service
 @RequiredArgsConstructor
-public class ResumeProfileLlmClient {
+public class JobPostCleanLlmClient {
 
     private final LLMConfiguration llmConfiguration;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -102,11 +103,7 @@ public class ResumeProfileLlmClient {
 
     private List<String> resolveModels() {
         if (llmConfiguration.getModels() == null || llmConfiguration.getModels().isEmpty()) {
-            return List.of(
-                    "Qwen/Qwen2.5-32B-Instruct",
-                    "deepseek-ai/DeepSeek-V3.2",
-                    "Pro/MiniMaxAI/MiniMax-M2.5"
-            );
+            throw new ServiceException("模型没有配置 - 检查配置项");
         }
         return llmConfiguration.getModels();
     }

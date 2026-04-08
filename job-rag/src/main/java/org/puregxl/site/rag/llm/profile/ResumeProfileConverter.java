@@ -1,4 +1,4 @@
-package org.puregxl.site.rag.profile;
+package org.puregxl.site.rag.llm.profile;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;

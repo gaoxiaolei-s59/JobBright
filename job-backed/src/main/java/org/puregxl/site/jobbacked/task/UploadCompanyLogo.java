@@ -15,7 +15,7 @@ public class UploadCompanyLogo {
     private final CompanyMapper companyMapper;
 
     /**
-     * 定时任务测试
+     * 开发定时任务 - 定期执行来自爬虫端的job职位的清洗
      */
     @Scheduled(fixedRate = 5000)
     public void run() {

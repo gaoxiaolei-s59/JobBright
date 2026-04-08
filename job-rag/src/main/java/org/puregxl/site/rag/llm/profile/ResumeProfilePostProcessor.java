@@ -1,4 +1,4 @@
-package org.puregxl.site.rag.profile;
+package org.puregxl.site.rag.llm.profile;
 
 import org.puregxl.site.rag.dto.profile.ResumeProfileDTO;
 import org.springframework.util.StringUtils;
