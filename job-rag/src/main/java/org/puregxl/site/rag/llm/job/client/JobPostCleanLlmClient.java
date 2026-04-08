@@ -28,7 +28,7 @@ public class JobPostCleanLlmClient {
     private final LLMConfiguration llmConfiguration;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public String generateProfileJson(String systemPrompt, String userPrompt) throws Exception {
+    public String cleanJob(String systemPrompt, String userPrompt) throws Exception {
         if (llmConfiguration.getApiKey() == null || llmConfiguration.getApiKey().isBlank()) {
             throw new ClientException("LLM API Key 未配置");
         }
@@ -40,7 +40,7 @@ public class JobPostCleanLlmClient {
             Exception lastException = null;
             for (int attempt = 1; attempt <= llmConfiguration.getMaxRetries(); attempt++) {
                 try {
-                    return doGenerateProfileJson(model, systemPrompt, userPrompt);
+                    return cleanJobByModel(model, systemPrompt, userPrompt);
                 } catch (HttpTimeoutException timeoutException) {
                     lastException = timeoutException;
                     System.err.println("LLM 调用超时，模型=" + model + "，第 " + attempt + " 次尝试失败: " + timeoutException.getMessage());
@@ -61,7 +61,7 @@ public class JobPostCleanLlmClient {
         throw new RuntimeException("所有 LLM 模型调用均失败: " + String.join(" | ", errors));
     }
 
-    private String doGenerateProfileJson(String model, String systemPrompt, String userPrompt) throws Exception {
+    private String cleanJobByModel(String model, String systemPrompt, String userPrompt) throws Exception {
         Map<String, Object> requestBody = Map.of(
                 "model", model,
                 "temperature", llmConfiguration.getTemperature(),

@@ -37,10 +37,15 @@ const userDashboardFallback = {
 
 const userProfileDraftInitialState = {
   expectedCity: "",
-  targetRole: "后端开发",
+  targetRole: "",
+  jobTypes: [],
+  openToRemote: true,
+  requireVisaSupport: false,
   keywordTags: "",
   personalSummary: ""
 };
+
+const onboardingJobTypeOptions = ["全职", "合同工", "兼职", "实习"];
 
 const settingsDraftInitialState = {
   emailNotifications: true,
@@ -403,6 +408,15 @@ function getJobTagGroups(job) {
 
 function getAuthDisplayName(user) {
   return user?.displayName || user?.username || "U";
+}
+
+function hasCompletedProfileOnboarding(profileDraft) {
+  return Boolean(
+    profileDraft?.targetRole?.trim()
+    && Array.isArray(profileDraft?.jobTypes)
+    && profileDraft.jobTypes.length > 0
+    && ((profileDraft?.expectedCity && profileDraft.expectedCity.trim()) || profileDraft?.openToRemote)
+  );
 }
 
 function formatResumeRelativeTime(value) {
@@ -1498,9 +1512,37 @@ function App() {
     setUserProfileDraft((current) => ({ ...current, [field]: value }));
   }
 
+  function handleProfileJobTypeToggle(jobType) {
+    setUserProfileDraft((current) => {
+      const currentTypes = Array.isArray(current.jobTypes) ? current.jobTypes : [];
+      const nextTypes = currentTypes.includes(jobType)
+        ? currentTypes.filter((item) => item !== jobType)
+        : [...currentTypes, jobType];
+      return { ...current, jobTypes: nextTypes };
+    });
+  }
+
   function handleSaveUserProfileDraft() {
     writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), userProfileDraft);
     setMessage({ type: "success", text: "个人主页设置已保存，后续可直接在这里继续完善资料。" });
+  }
+
+  function handleCompleteProfileOnboarding(event) {
+    event.preventDefault();
+    if (!userProfileDraft.targetRole.trim()) {
+      setMessage({ type: "error", text: "请先填写目标岗位方向。" });
+      return;
+    }
+    if (!Array.isArray(userProfileDraft.jobTypes) || userProfileDraft.jobTypes.length === 0) {
+      setMessage({ type: "error", text: "请至少选择一种求职类型。" });
+      return;
+    }
+    if (!userProfileDraft.expectedCity.trim() && !userProfileDraft.openToRemote) {
+      setMessage({ type: "error", text: "请填写期望地点，或开启接受远程办公。" });
+      return;
+    }
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), userProfileDraft);
+    setMessage({ type: "success", text: "求职偏好已保存，下一步继续上传简历。" });
   }
 
   function handleSettingsDraftChange(field, value) {
@@ -2147,40 +2189,49 @@ function App() {
     );
   }
 
-  if (!resumeInfo) {
+  if (!hasCompletedProfileOnboarding(userProfileDraft)) {
     return (
       <div className="auth-shell">
         <div className="auth-backdrop auth-left" />
         <div className="auth-backdrop auth-right" />
 
-        <main className="auth-layout resume-gate-layout">
-          <section className="auth-hero">
-            <span className="eyebrow">先上传一份简历</span>
-            <h1>登录成功后，需要先上传当前简历，才能进入职位首页。</h1>
-            <p className="auth-copy">
-              首页的匹配分数、推荐职位、筛选建议都会基于当前简历生成。建议先上传 PDF、
-              DOC 或 DOCX 格式的最新简历，再进入首页开始筛选岗位。
-            </p>
+        <main className="auth-layout onboarding-layout">
+          <section className="auth-hero onboarding-hero">
+            <div className="auth-brand-row">
+              <div className="auth-brand-mark">O</div>
+              <div>
+                <span className="eyebrow">JobBright 求职偏好引导</span>
+                <strong className="auth-brand-name">先告诉我们，你想找什么样的工作</strong>
+              </div>
+            </div>
 
-            <div className="auth-feature-grid">
-              <article>
-                <strong>匹配推荐</strong>
-                <span>后续职位列表将围绕你的简历关键词和方向生成推荐结果。</span>
-              </article>
-              <article>
-                <strong>简历中心</strong>
-                <span>上传后可以持续替换当前版本，用最新简历保持推荐质量。</span>
-              </article>
-              <article>
-                <strong>投递提效</strong>
-                <span>简历会成为后续一键投递、简历分析和求职助手的基础输入。</span>
-              </article>
+            <div className="auth-hero-copy onboarding-copy">
+              <h1>先确定角色方向、求职类型和地点偏好。</h1>
+              <p className="auth-copy">
+                这一步会直接影响首页推荐、筛选默认值和后续的职位匹配解释。先把最关键的偏好收集起来，后面再继续上传简历。
+              </p>
+            </div>
+
+            <div className="auth-preview-card onboarding-preview">
+              <div className="auth-preview-head">
+                <strong>接下来会影响什么</strong>
+                <span>Onboarding</span>
+              </div>
+              <div className="auth-preview-flow">
+                <span>推荐职位排序</span>
+                <span>默认筛选条件</span>
+                <span>岗位匹配解释</span>
+              </div>
             </div>
           </section>
 
-          <section className="auth-panel resume-upload-panel">
-            <h2>上传当前简历</h2>
-            <p>支持 PDF、DOC、DOCX。上传成功后自动进入首页。</p>
+          <section className="auth-panel onboarding-panel">
+            <div className="onboarding-topbar">
+              <span className="auth-panel-pill">第 1 步 / 2</span>
+              <button className="ghost-button compact-button" onClick={() => logout()} type="button">
+                退出登录
+              </button>
+            </div>
 
             {message.text ? (
               <div className={message.type === "error" ? "notice error" : "notice success"}>
@@ -2188,9 +2239,125 @@ function App() {
               </div>
             ) : null}
 
-            <form className="auth-form" onSubmit={handleResumeUpload}>
-              <label className="file-upload-box">
-                <span>选择简历文件</span>
+            <form className="auth-form onboarding-form" onSubmit={handleCompleteProfileOnboarding}>
+              <label>
+                目标岗位方向
+                <input
+                  value={userProfileDraft.targetRole}
+                  onChange={(event) => handleProfileDraftChange("targetRole", event.target.value)}
+                  placeholder="如 Java 后端开发、推荐系统、平台研发"
+                />
+              </label>
+
+              <div className="onboarding-field-group">
+                <strong>求职类型</strong>
+                <div className="onboarding-choice-grid">
+                  {onboardingJobTypeOptions.map((option) => {
+                    const active = userProfileDraft.jobTypes.includes(option);
+                    return (
+                      <button
+                        key={option}
+                        className={active ? "onboarding-choice-card active" : "onboarding-choice-card"}
+                        onClick={() => handleProfileJobTypeToggle(option)}
+                        type="button"
+                      >
+                        <span className={active ? "choice-check active" : "choice-check"}>{active ? "✓" : ""}</span>
+                        <span>{option}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="onboarding-field-group">
+                <strong>工作地点</strong>
+                <div className="onboarding-location-row">
+                  <input
+                    value={userProfileDraft.expectedCity}
+                    onChange={(event) => handleProfileDraftChange("expectedCity", event.target.value)}
+                    placeholder="如 上海、北京、杭州、全国"
+                  />
+                  <button
+                    className={userProfileDraft.openToRemote ? "onboarding-toggle active" : "onboarding-toggle"}
+                    onClick={() => handleProfileDraftChange("openToRemote", !userProfileDraft.openToRemote)}
+                    type="button"
+                  >
+                    <span className={userProfileDraft.openToRemote ? "choice-check active" : "choice-check"}>
+                      {userProfileDraft.openToRemote ? "✓" : ""}
+                    </span>
+                    <span>接受远程办公</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="onboarding-field-group">
+                <strong>其他偏好</strong>
+                <button
+                  className={userProfileDraft.requireVisaSupport ? "onboarding-toggle active single" : "onboarding-toggle single"}
+                  onClick={() => handleProfileDraftChange("requireVisaSupport", !userProfileDraft.requireVisaSupport)}
+                  type="button"
+                >
+                  <span className={userProfileDraft.requireVisaSupport ? "choice-check active" : "choice-check"}>
+                    {userProfileDraft.requireVisaSupport ? "✓" : ""}
+                  </span>
+                  <span>需要签证 / 工作授权支持</span>
+                </button>
+              </div>
+
+              <button className="primary-button onboarding-next-button" type="submit">
+                下一步：上传简历
+              </button>
+            </form>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  if (!resumeInfo) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-backdrop auth-left" />
+        <div className="auth-backdrop auth-right" />
+
+        <main className="auth-layout onboarding-layout resume-gate-layout">
+          <section className="auth-hero onboarding-hero resume-gate-hero">
+            <div className="auth-brand-row">
+              <div className="auth-brand-mark">O</div>
+              <div>
+                <span className="eyebrow">JobBright 简历引导</span>
+                <strong className="auth-brand-name">最后一步，让推荐真正围绕你的简历工作</strong>
+              </div>
+            </div>
+
+            <div className="auth-hero-copy onboarding-copy">
+              <h1>上传当前简历，开始生成更准确的职位匹配。</h1>
+              <p className="auth-copy">
+                你的首页匹配分、推荐解释和筛选建议都会基于当前简历生成。上传完成后会自动进入职位首页。
+              </p>
+            </div>
+          </section>
+
+          <section className="auth-panel resume-upload-panel polished">
+            <div className="onboarding-topbar">
+              <span className="auth-panel-pill">第 2 步 / 2</span>
+              <button className="ghost-button compact-button" onClick={() => logout()} type="button">
+                退出登录
+              </button>
+            </div>
+
+            <h2>上传当前简历</h2>
+            <p>支持 PDF、DOC、DOCX，建议上传最新版本并控制在 10MB 以内。</p>
+
+            {message.text ? (
+              <div className={message.type === "error" ? "notice error" : "notice success"}>
+                {message.text}
+              </div>
+            ) : null}
+
+            <form className="auth-form resume-upload-form" onSubmit={handleResumeUpload}>
+              <label className="file-upload-box polished">
+                <span>上传你的简历</span>
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"
@@ -2210,12 +2377,12 @@ function App() {
                 </div>
               )}
 
-              <button className="primary-button" disabled={loading} type="submit">
-                {loading ? "上传中..." : "上传简历并进入首页"}
-              </button>
+              <div className="resume-upload-privacy">
+                简历仅用于职位匹配、简历解析和推荐解释，不会在未授权情况下用于公开展示。
+              </div>
 
-              <button className="ghost-button" onClick={() => logout()} type="button">
-                退出登录
+              <button className="primary-button onboarding-next-button" disabled={loading} type="submit">
+                {loading ? "上传中..." : "开始匹配职位"}
               </button>
             </form>
           </section>

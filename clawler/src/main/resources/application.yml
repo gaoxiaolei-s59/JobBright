@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/job_backed?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  jackson:
+    time-zone: Asia/Shanghai
+
+server:
+  port: 10030
+
+logging:
+  level:
+    org.hibernate.SQL: info
+
+zhaopin:
+  enabled: true
+  search-page-url: https://sou.zhaopin.com/
+  search-base-url: https://fe-api.zhaopin.com/c/i/sou
+  detail-base-url: https://jobs.zhaopin.com
+  default-page-size: 20
+  min-interval-millis: 1500
