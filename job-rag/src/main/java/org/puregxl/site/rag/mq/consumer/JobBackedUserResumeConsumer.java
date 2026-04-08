@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.puregxl.site.framework.mq.UploadResumeExecuteTaskEvent;
+import org.puregxl.site.framework.independence.NoMQDuplicateConsume;
 import org.puregxl.site.rag.config.RustfsProperties;
 import org.puregxl.site.rag.dao.entity.UserResumeFile;
 import org.puregxl.site.rag.dao.entity.UserResumeProfile;
@@ -53,6 +54,11 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
     private final RustfsProperties rustfsProperties;
 
     @Override
+    @NoMQDuplicateConsume(
+            keyPrefix = "mq:resume:profile",
+            key = "#messageWrapper.message.resumeId",
+            keyTimeout = 3600L
+    )
     public void onMessage(MessageWrapper<UploadResumeExecuteTaskEvent> messageWrapper) {
         log.info("[消费者] - 用户简历画像处理 - 执行消费逻辑，消息体:{}", JSON.toJSONString(messageWrapper));
         UploadResumeExecuteTaskEvent message = messageWrapper.getMessage();

@@ -105,8 +105,4 @@ public class JobController {
         return Results.success();
     }
 
-
-
-
-
 }

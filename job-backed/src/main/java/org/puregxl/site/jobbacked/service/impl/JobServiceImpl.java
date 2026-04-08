@@ -138,8 +138,8 @@ public class JobServiceImpl implements JobService {
             userJobActionMapper.insert(userJobActionBuild);
         } else {
             /**如果已经喜欢**/
-            if (userJobAction.getLiked() == 1) {
-                throw new ClientException("已经在喜爱列表中 - 请勿重复点击");
+            if (userJobAction.getApplied() == 1) {
+                throw new ClientException("已经在投递列表中 - 请勿重复点击");
             }
             //执行插入操作
             userJobAction.setApplied(1);

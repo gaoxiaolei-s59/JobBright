@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class HomeController {
 
     private final HomeService homeService;
-
     /**
      * 首页概览信息
      * @return
@@ -24,7 +23,5 @@ public class HomeController {
     public Result<HomeOverviewResponse> getOverview() {
         return Results.success(homeService.getOverview());
     }
-
-
 
 }

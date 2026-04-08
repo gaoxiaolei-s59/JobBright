@@ -1,2 +1,3 @@
 org.puregxl.site.framework.autoconfigure.WebAutoConfiguration
 org.puregxl.site.framework.autoconfigure.DataBaseAutoConfiguration
+org.puregxl.site.framework.autoconfigure.IdempotentConfiguration
