@@ -378,6 +378,44 @@ function getAuthDisplayName(user) {
   return user?.displayName || user?.username || "U";
 }
 
+function formatResumeRelativeTime(value) {
+  if (!value) {
+    return "-";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.max(Math.floor(diffMs / 60000), 0);
+  if (diffMinutes < 1) {
+    return "刚刚";
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes} 分钟前`;
+  }
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} 小时前`;
+  }
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) {
+    return `${diffDays} 天前`;
+  }
+  return date.toLocaleDateString("zh-CN");
+}
+
+function formatResumeAbsoluteTime(value) {
+  if (!value) {
+    return "-";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return date.toLocaleDateString("zh-CN");
+}
+
 function SidebarIcon({ type }) {
   switch (type) {
     case "briefcase":
@@ -687,6 +725,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [jobActionOverrides, setJobActionOverrides] = useState({});
   const mainPanelRef = useRef(null);
+  const resumeUploadInputRef = useRef(null);
   const loadMoreLockRef = useRef(false);
   const [auth, setAuth] = useState(() => ({
     token: localStorage.getItem(TOKEN_KEY),
@@ -945,10 +984,11 @@ function App() {
   }
 
   function getFallbackJobData(tab, filters) {
+    const normalizedFilters = tab === "推荐职位" ? filters : { ...filters, current: 1 };
     if (tab === "推荐职位") {
-      return filterMockJobs(filters);
+      return filterMockJobs(normalizedFilters);
     }
-    const base = filterMockJobs(filters);
+    const base = filterMockJobs(normalizedFilters);
     if (tab === "收藏职位") {
       const records = base.records.filter((job) => normalizeBoolean(job.liked));
       return { total: records.length, hasMore: false, records };
@@ -962,7 +1002,8 @@ function App() {
       setJobLoading(true);
     }
     try {
-      const queryString = buildRecommendQueryString(nextFilters);
+      const normalizedFilters = tab === "推荐职位" ? nextFilters : { ...nextFilters, current: 1 };
+      const queryString = buildRecommendQueryString(normalizedFilters);
       const endpoint = jobTabEndpointMap[tab] || jobTabEndpointMap["推荐职位"];
       const data = await request(`${endpoint}?${queryString}`, { method: "GET" });
       const nextRecords = Array.isArray(data?.records) ? data.records : [];
@@ -1263,13 +1304,19 @@ function App() {
     }
   }
 
+  function handleResumeFilePick(event) {
+    setResumeFile(event.target.files?.[0] || null);
+  }
+
   function handleSidebarSwitch(sectionKey) {
     setActiveSection(sectionKey);
   }
 
   async function handleJobTabChange(tab) {
+    const nextFilters = { ...jobFilters, current: 1 };
     setActiveTab(tab);
-    await loadJobList(tab, jobFilters);
+    setJobFilters(nextFilters);
+    await loadJobList(tab, nextFilters);
   }
 
   function handleProfileDraftChange(field, value) {
@@ -1319,89 +1366,118 @@ function App() {
     if (activeSection === "resume") {
       return (
         <section className="user-home-shell">
-          <article className="user-home-hero">
-            <div>
-              <span className="eyebrow">简历中心</span>
-              <h1>把当前简历版本、评分和上传动作集中管理，保持推荐结果始终基于最新材料。</h1>
-              <p>
-                这里专门处理简历本身，不再混入个人偏好字段，方便你持续替换和优化版本。
-              </p>
-            </div>
-            <div className="user-home-kpis">
-              <article>
-                <strong>{dashboardView.resumeScore}</strong>
-                <span>当前简历评分</span>
-              </article>
-              <article>
-                <strong>{resumeInfo?.status || "ACTIVE"}</strong>
-                <span>当前简历状态</span>
-              </article>
-              <article>
-                <strong>{resumeInfo?.fileName || "未上传"}</strong>
-                <span>当前生效版本</span>
-              </article>
-            </div>
-          </article>
+          <article className="resume-page-shell">
+            <input
+              ref={resumeUploadInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleResumeFilePick}
+              hidden
+            />
+            <header className="resume-page-header">
+              <div className="resume-title-block">
+                <span className="eyebrow">简历中心</span>
+              </div>
+            </header>
 
-          <div className="user-home-grid user-home-grid-single">
-            <section className="user-home-card resume-workbench">
-              <div className="rail-title">
-                <strong>上传与替换简历</strong>
-                <button type="button" onClick={() => setActiveSection("profile")}>
-                  去个人资料
+            <div className="resume-toolbar">
+              <div className="resume-status-bar">
+                <span className="resume-status-dot" />
+                <strong>你当前已保存 1 份简历，最多可维护 5 个简历槽位。</strong>
+              </div>
+              <div className="resume-toolbar-actions">
+                <span className="resume-toolbar-tip">上传新版本后会自动刷新职位推荐、匹配分和工作台提示。</span>
+                <button
+                  className="resume-add-button"
+                  type="button"
+                  onClick={() => resumeUploadInputRef.current?.click()}
+                >
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M10 4.5v11" />
+                    <path d="M4.5 10h11" />
+                  </svg>
+                  <span>{resumeInfo ? "替换简历" : "Add Resume"}</span>
                 </button>
               </div>
+            </div>
 
-              <div className="resume-current-card">
-                <strong>{resumeInfo?.fileName || "当前还没有简历"}</strong>
-                <span>
-                  {resumeInfo
-                    ? `评分 ${resumeInfo.score || dashboardView.resumeScore} · 状态 ${resumeInfo.status || "ACTIVE"}`
-                    : "上传当前简历后，这里会展示最新版本和分数。"}
-                </span>
-              </div>
-
-              <form className="user-home-form" onSubmit={handleResumeUpload}>
-                <label className="file-upload-box compact">
-                  <span>选择新的简历文件</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(event) => setResumeFile(event.target.files?.[0] || null)}
-                  />
-                </label>
-
-                {resumeFile ? (
-                  <div className="selected-file-card">
-                    <strong>{resumeFile.name}</strong>
-                    <span>{Math.max(1, Math.round(resumeFile.size / 1024))} KB</span>
-                  </div>
-                ) : (
-                  <div className="selected-file-card empty">
-                    <strong>还没有选择新文件</strong>
-                    <span>支持 PDF、DOC、DOCX，上传后会替换当前生效简历。</span>
-                  </div>
-                )}
-
-                <div className="tips-grid">
-                  <article className="tip-card">
-                    <strong>建议保持一份最新校招版本</strong>
-                    <span>针对目标岗位更新关键词和项目描述，再上传替换当前版本。</span>
-                  </article>
-                  <article className="tip-card">
-                    <strong>上传后会刷新匹配结果</strong>
-                    <span>岗位推荐、匹配分和工作台提示会根据当前简历重新计算。</span>
-                  </article>
+            <section className="resume-main-card">
+              <section className="resume-table-card">
+                <div className="resume-table-head">
+                  <span>简历</span>
+                  <span>目标岗位</span>
+                  <span>最近更新</span>
+                  <span>创建时间</span>
+                  <span />
                 </div>
 
-                <div className="user-home-actions">
-                  <button className="primary-button" disabled={loading} type="submit">
+                <div className="resume-table-body">
+                  <article className="resume-table-row">
+                    <div className="resume-cell resume-primary-cell">
+                      <span className="resume-avatar">{getAuthDisplayName(auth.user).slice(0, 1).toUpperCase()}</span>
+                      <div className="resume-primary-copy">
+                        <strong>{resumeInfo?.fileName || "当前还没有简历"}</strong>
+                        <div className="resume-primary-tags">
+                          <span className="resume-chip primary">
+                            {resumeInfo ? "当前版本" : "未上传"}
+                          </span>
+                          <span className="resume-chip">{resumeInfo?.status || "ACTIVE"}</span>
+                          <span className="resume-chip">评分 {resumeInfo?.score || dashboardView.resumeScore}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="resume-cell">
+                      <span className="resume-cell-text">{userProfileDraft.targetRole || "后端开发"}</span>
+                    </div>
+                    <div className="resume-cell">
+                      <span className="resume-cell-text">{formatResumeRelativeTime(resumeInfo?.uploadTime)}</span>
+                    </div>
+                    <div className="resume-cell">
+                      <span className="resume-cell-text">{formatResumeAbsoluteTime(resumeInfo?.uploadTime)}</span>
+                    </div>
+                    <div className="resume-cell resume-row-actions">
+                      <button
+                        className="resume-row-icon"
+                        type="button"
+                        onClick={() => resumeUploadInputRef.current?.click()}
+                        aria-label="替换简历"
+                      >
+                        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                          <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
+                          <path d="M11.93 5.99 14.01 8.07" />
+                        </svg>
+                      </button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              {resumeFile ? (
+              <form className="resume-upload-toolbar" onSubmit={handleResumeUpload}>
+                <div className={resumeFile ? "selected-file-card resume-picker-card" : "selected-file-card empty resume-picker-card"}>
+                  <strong>{resumeFile ? resumeFile.name : "还没有选择新文件"}</strong>
+                  <span>
+                    {resumeFile
+                      ? `${Math.max(1, Math.round(resumeFile.size / 1024))} KB`
+                      : "支持 PDF、DOC、DOCX。上传后会直接替换当前生效简历。"}
+                  </span>
+                </div>
+                <div className="resume-upload-actions">
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => setActiveSection("profile")}
+                  >
+                    去个人资料
+                  </button>
+                  <button className="primary-button" disabled={loading || !resumeFile} type="submit">
                     {loading ? "上传中..." : "上传并刷新简历"}
                   </button>
                 </div>
               </form>
+              ) : null}
             </section>
-          </div>
+          </article>
         </section>
       );
     }
@@ -1938,7 +2014,7 @@ function App() {
         <strong>优化简历和筛选条件，可以显著提升岗位匹配度。</strong>
       </div>
 
-      <div className="dashboard-layout">
+      <div className={activeSection === "resume" ? "dashboard-layout resume-layout" : "dashboard-layout"}>
         <aside className="sidebar">
           <div className="brand-block">
             <div className="brand-mark">J</div>
@@ -1981,6 +2057,7 @@ function App() {
             <button type="button">消息中心</button>
             <button type="button">意见反馈</button>
             <button onClick={() => handleSidebarSwitch("settings")} type="button">系统设置</button>
+            <button onClick={() => logout()} type="button">退出登录</button>
           </div>
         </aside>
 
@@ -2240,10 +2317,10 @@ function App() {
                       </button>
                       <button className="job-assistant-button" type="button">
                         <JobActionIcon type="spark" />
-                        <span>ASK ORION</span>
+                        <span>问求职助手</span>
                       </button>
                       <button className="job-apply-button" type="button">
-                        APPLY NOW
+                        立即申请
                       </button>
                     </div>
                   </div>
@@ -2277,6 +2354,7 @@ function App() {
           )}
         </main>
 
+        {activeSection !== "resume" ? (
         <aside className="right-rail">
           <section className="profile-panel">
             <div className="profile-header profile-header-compact">
@@ -2304,7 +2382,12 @@ function App() {
           <section className="rail-card">
             <div className="rail-title">
               <strong>已保存筛选</strong>
-              <button className="rail-round-button" type="button">+</button>
+              <button className="rail-round-button" type="button" aria-label="新增筛选方案">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M10 4.5v11" />
+                  <path d="M4.5 10h11" />
+                </svg>
+              </button>
             </div>
             <div className="saved-filter-list">
               {savedFilters.map((item, index) => (
@@ -2315,8 +2398,8 @@ function App() {
                   </div>
                   <button className="saved-filter-edit" type="button" aria-label={`编辑方案 ${index + 1}`}>
                     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path d="M13.9 3.1a1.6 1.6 0 1 1 2.26 2.26l-8.6 8.6-3.22.95.95-3.22 8.6-8.6Z" />
-                      <path d="M12.55 4.45 14.8 6.7" />
+                      <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
+                      <path d="M11.93 5.99 14.01 8.07" />
                     </svg>
                   </button>
                 </div>
@@ -2357,6 +2440,7 @@ function App() {
           </section>
 
         </aside>
+        ) : null}
       </div>
     </div>
   );
