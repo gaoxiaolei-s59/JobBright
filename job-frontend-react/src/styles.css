@@ -754,11 +754,36 @@ textarea:focus {
 .notice.success {
   background: rgba(4, 217, 151, 0.12);
   color: #0c7357;
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: noticeSuccessLifecycle 2.45s ease forwards;
 }
 
 .notice.error {
   background: rgba(255, 95, 87, 0.12);
   color: #b14039;
+}
+
+@keyframes noticeSuccessLifecycle {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  12% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  78% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .dashboard-shell {
@@ -2016,24 +2041,24 @@ textarea:focus {
 
 .profile-page-shell {
   display: grid;
-  gap: 18px;
+  gap: 12px;
 }
 
 .profile-page-topbar {
-  padding: 2px 2px 0;
+  padding: 2px 4px 0;
 }
 
 .profile-page-topbar h1 {
   margin: 0;
-  font-size: clamp(2.25rem, 4vw, 3.7rem);
-  line-height: 0.96;
-  letter-spacing: -0.06em;
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
 }
 
 .profile-page-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 16px;
   align-items: start;
 }
 
@@ -2041,20 +2066,20 @@ textarea:focus {
 .profile-alert-card,
 .profile-side-links {
   border: 1px solid rgba(16, 35, 49, 0.08);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 10px 26px rgba(18, 38, 53, 0.05);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 6px 18px rgba(18, 38, 53, 0.04);
 }
 
 .profile-main-card {
-  padding: 18px 22px 24px;
+  padding: 14px 18px 18px;
 }
 
 .profile-tab-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 26px;
-  padding: 4px 0 16px;
+  gap: 22px;
+  padding: 2px 0 12px;
   border-bottom: 1px solid rgba(16, 35, 49, 0.08);
 }
 
@@ -2062,7 +2087,7 @@ textarea:focus {
   padding: 0;
   background: transparent;
   color: #8d949a;
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   font-weight: 800;
   box-shadow: none;
 }
@@ -2070,17 +2095,17 @@ textarea:focus {
 .profile-tab.active {
   color: #111;
   text-decoration: underline;
-  text-decoration-thickness: 3px;
-  text-underline-offset: 18px;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 14px;
 }
 
 .profile-section-card {
-  padding: 22px 0;
+  padding: 18px 0;
   border-bottom: 1px solid rgba(16, 35, 49, 0.08);
 }
 
 .profile-section-card.hero {
-  padding-top: 24px;
+  padding-top: 18px;
 }
 
 .profile-main-card .profile-section-card:last-child {
@@ -2093,7 +2118,7 @@ textarea:focus {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .profile-section-head.inline h3,
@@ -2103,31 +2128,31 @@ textarea:focus {
 }
 
 .profile-section-head h2 {
-  font-size: clamp(1.9rem, 3vw, 3rem);
-  line-height: 1.04;
+  font-size: clamp(1.55rem, 2.4vw, 2.3rem);
+  line-height: 1.08;
   letter-spacing: -0.05em;
 }
 
 .profile-section-head h3 {
-  font-size: 1.08rem;
+  font-size: 1rem;
   line-height: 1.1;
 }
 
 .profile-section-head p {
-  margin: 8px 0 0;
-  color: #8b9096;
-  font-size: 0.92rem;
-  line-height: 1.5;
+  margin: 6px 0 0;
+  color: #87929d;
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .profile-location-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 14px;
-  padding: 10px 14px;
+  margin-top: 10px;
+  padding: 8px 12px;
   border-radius: 999px;
-  background: #f3f5f6;
+  background: #f5f7f8;
   color: #1c2530;
   font-weight: 700;
 }
@@ -2143,11 +2168,11 @@ textarea:focus {
 }
 
 .profile-edit-button {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border-radius: 999px;
-  background: transparent;
+  background: #f4f6f7;
   color: #10161c;
   box-shadow: none;
 }
@@ -2155,15 +2180,15 @@ textarea:focus {
 .profile-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 18px;
+  gap: 14px 16px;
 }
 
 .profile-form-grid label,
 .profile-inline-input {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   color: #7f8a95;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
@@ -2176,24 +2201,24 @@ textarea:focus {
 .profile-inline-input input {
   width: 100%;
   border: 1px solid rgba(16, 35, 49, 0.1);
-  border-radius: 14px;
-  background: #fff;
+  border-radius: 12px;
+  background: #fbfcfc;
   color: #142433;
   font: inherit;
-  padding: 12px 14px;
+  padding: 11px 13px;
   box-sizing: border-box;
 }
 
 .profile-form-grid textarea {
   resize: vertical;
-  min-height: 124px;
+  min-height: 104px;
 }
 
 .profile-outline-action {
-  min-width: 180px;
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: 14px;
+  min-width: 168px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
   background: #fff;
   color: #111;
   font-weight: 800;
@@ -2203,7 +2228,7 @@ textarea:focus {
 .profile-timeline-card {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
-  gap: 18px;
+  gap: 14px;
   align-items: start;
 }
 
@@ -2238,79 +2263,80 @@ textarea:focus {
 
 .profile-timeline-content strong {
   display: block;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .profile-timeline-content > span {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   color: #445462;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 
 .profile-bullet-list {
   display: grid;
-  gap: 10px;
-  margin: 16px 0 0;
+  gap: 8px;
+  margin: 12px 0 0;
   padding-left: 20px;
   color: #182c3d;
-  line-height: 1.55;
+  line-height: 1.5;
+  font-size: 0.9rem;
 }
 
 .profile-skill-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .profile-skill-tags span {
   display: inline-flex;
   align-items: center;
-  min-height: 38px;
-  padding: 0 14px;
+  min-height: 32px;
+  padding: 0 12px;
   border-radius: 999px;
   background: #eef4f2;
   color: #173143;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
 .profile-side-column {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .profile-alert-card {
   display: grid;
-  gap: 18px;
-  padding: 18px 18px 20px;
-  background: linear-gradient(180deg, rgba(255, 220, 224, 0.8), rgba(255, 242, 243, 0.94));
+  gap: 14px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(255, 236, 238, 0.92), rgba(255, 247, 248, 0.96));
 }
 
 .profile-alert-icon {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   background: #ff4659;
-  color: #111;
-  font-size: 1.6rem;
+  color: #fff;
+  font-size: 1.35rem;
   font-weight: 900;
 }
 
 .profile-alert-card strong {
-  font-size: 0.98rem;
-  line-height: 1.45;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .profile-alert-button {
-  min-height: 54px;
-  border-radius: 14px;
+  min-height: 46px;
+  border-radius: 12px;
   background: #060606;
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 900;
   box-shadow: none;
 }
@@ -2324,11 +2350,11 @@ textarea:focus {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 64px;
-  padding: 0 18px;
+  min-height: 56px;
+  padding: 0 16px;
   background: #fff;
   color: #111;
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   font-weight: 800;
   box-shadow: none;
 }
@@ -2831,11 +2857,11 @@ textarea:focus {
 
 .resume-page-shell {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   max-width: none;
   width: 100%;
   margin: 0;
-  padding: 10px 6px 22px;
+  padding: 6px 4px 18px;
 }
 
 .resume-page-header {
@@ -2857,18 +2883,19 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 10px;
 }
 
 .resume-add-button {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 14px;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 15px;
+  border-radius: 12px;
   background: linear-gradient(135deg, rgba(217, 255, 111, 0.94), rgba(202, 255, 109, 0.82));
   color: #102331;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 800;
   box-shadow: none;
 }
@@ -2887,12 +2914,13 @@ textarea:focus {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
-  border-radius: 16px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 14px;
   border: 1px solid rgba(16, 35, 49, 0.08);
   background: rgba(250, 253, 252, 0.96);
   color: #556877;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   box-shadow: none;
   flex-wrap: wrap;
   flex: 1 1 auto;
@@ -2921,18 +2949,18 @@ textarea:focus {
 
 .resume-toolbar-tip {
   color: #738696;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   white-space: nowrap;
 }
 
 .resume-main-card {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .resume-table-card {
   border: 1px solid rgba(16, 35, 49, 0.06);
-  border-radius: 20px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: none;
   overflow: hidden;
@@ -2947,9 +2975,9 @@ textarea:focus {
 }
 
 .resume-table-head {
-  padding: 14px 18px 12px;
+  padding: 12px 18px 11px;
   color: #5e7282;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 800;
   border-bottom: 1px solid rgba(16, 35, 49, 0.08);
 }
@@ -2959,8 +2987,8 @@ textarea:focus {
 }
 
 .resume-table-row {
-  min-height: 94px;
-  padding: 14px 0;
+  min-height: 74px;
+  padding: 10px 0;
 }
 
 .resume-table-row.clickable {
@@ -2975,7 +3003,7 @@ textarea:focus {
 .resume-primary-cell {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -2983,12 +3011,12 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   background: linear-gradient(145deg, rgba(4, 217, 151, 0.28), rgba(123, 255, 208, 0.88));
   color: #102331;
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   font-weight: 900;
   flex: 0 0 auto;
 }
@@ -2999,7 +3027,7 @@ textarea:focus {
 
 .resume-primary-copy strong {
   display: block;
-  font-size: 0.96rem;
+  font-size: 0.92rem;
   font-weight: 800;
   line-height: 1.15;
 }
@@ -3007,19 +3035,19 @@ textarea:focus {
 .resume-primary-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .resume-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 0 11px;
+  min-height: 26px;
+  padding: 0 10px;
   border-radius: 999px;
   background: #eef5f1;
   color: #17303f;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 800;
 }
 
@@ -3033,7 +3061,7 @@ textarea:focus {
 
 .resume-cell-text {
   color: #5e7282;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 700;
 }
 
@@ -3044,22 +3072,24 @@ textarea:focus {
 
 .resume-preview-overlay {
   position: fixed;
-  inset: 0;
+  top: 52px;
+  right: 0;
+  bottom: 0;
+  left: 286px;
   z-index: 30;
-  display: flex;
-  justify-content: flex-end;
-  background: rgba(15, 34, 49, 0.18);
-  backdrop-filter: blur(6px);
+  display: block;
+  background: rgba(247, 250, 248, 0.96);
+  backdrop-filter: blur(3px);
 }
 
 .resume-preview-panel {
   display: flex;
   flex-direction: column;
-  width: min(680px, 100vw);
-  height: 100vh;
-  padding: 24px 24px 28px;
+  width: 100%;
+  height: 100%;
+  padding: 20px 24px 28px;
   background: rgba(255, 255, 255, 0.98);
-  box-shadow: -20px 0 48px rgba(18, 38, 53, 0.14);
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -3068,8 +3098,22 @@ textarea:focus {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  padding-bottom: 18px;
+  padding-bottom: 16px;
   border-bottom: 1px solid rgba(16, 35, 49, 0.08);
+}
+
+.resume-preview-head-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex: 1 1 auto;
+}
+
+.resume-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .resume-preview-header small {
@@ -3084,7 +3128,7 @@ textarea:focus {
 .resume-preview-header strong {
   display: block;
   margin-top: 8px;
-  font-size: 1.5rem;
+  font-size: 1.9rem;
   line-height: 1.2;
 }
 
@@ -3110,8 +3154,9 @@ textarea:focus {
 .resume-preview-body {
   display: grid;
   gap: 18px;
-  padding-top: 20px;
+  padding-top: 18px;
   overflow-y: auto;
+  padding-right: 8px;
 }
 
 .resume-preview-loading {
@@ -3144,6 +3189,197 @@ textarea:focus {
   color: #1d3040;
   line-height: 1.72;
   white-space: pre-wrap;
+}
+
+.resume-analysis-hero {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.15fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.resume-grade-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(239, 255, 249, 0.96), rgba(232, 249, 243, 0.94));
+  border: 1px solid rgba(4, 217, 151, 0.14);
+}
+
+.resume-grade-badge {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(4, 217, 151, 0.18), rgba(255, 255, 255, 0.98));
+  color: var(--brand-ink);
+  font-size: 2.8rem;
+  font-weight: 900;
+}
+
+.resume-grade-copy strong {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.resume-grade-copy span {
+  display: block;
+  margin-top: 8px;
+  color: var(--brand-subtle);
+  font-weight: 700;
+}
+
+.resume-fix-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fix-card {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px 12px 14px;
+  border-radius: 20px;
+}
+
+.fix-card strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.fix-card span {
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.fix-card.urgent {
+  background: rgba(255, 239, 242, 0.95);
+}
+
+.fix-card.critical {
+  background: rgba(255, 246, 231, 0.96);
+}
+
+.fix-card.optional {
+  background: rgba(235, 247, 255, 0.96);
+}
+
+.resume-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.resume-profile-grid article {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(244, 247, 248, 0.82);
+}
+
+.resume-profile-grid strong {
+  font-size: 0.82rem;
+  color: var(--brand-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.resume-profile-grid span {
+  font-weight: 800;
+  color: var(--brand-ink);
+}
+
+.resume-skill-groups,
+.resume-project-list,
+.resume-issue-list,
+.resume-highlight-list {
+  display: grid;
+  gap: 14px;
+}
+
+.resume-skill-group-card,
+.resume-project-card,
+.resume-highlight-card,
+.resume-issue-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(248, 250, 249, 0.96);
+  border: 1px solid rgba(16, 35, 49, 0.06);
+}
+
+.resume-skill-group-card strong,
+.resume-project-card strong,
+.resume-issue-card strong {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.resume-skill-chip-row,
+.resume-project-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resume-skill-chip-row span,
+.resume-project-tech span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #eef4f2;
+  color: #173143;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.resume-highlight-card {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.resume-highlight-index {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #111;
+  color: white;
+  font-weight: 800;
+}
+
+.resume-highlight-card strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.resume-highlight-card p,
+.resume-issue-card p {
+  margin: 0;
+  color: var(--brand-subtle);
+  line-height: 1.68;
+}
+
+.resume-issue-card {
+  background: rgba(255, 242, 244, 0.92);
+  border-color: rgba(255, 95, 87, 0.08);
+}
+
+.resume-project-card ul {
+  margin: 14px 0 0;
+  padding-left: 20px;
+  color: #1d3040;
+  line-height: 1.7;
 }
 
 .resume-row-icon {
@@ -3528,6 +3764,20 @@ textarea:focus {
     order: -1;
   }
 
+  .resume-preview-overlay {
+    inset: 0;
+  }
+
+  .resume-preview-panel {
+    width: 100vw;
+    height: 100vh;
+    padding: 18px 18px 24px;
+  }
+
+  .resume-analysis-hero {
+    grid-template-columns: 1fr;
+  }
+
   .job-detail-modal-body,
   .job-detail-hero {
     grid-template-columns: 1fr;
@@ -3543,6 +3793,12 @@ textarea:focus {
 
   .resume-preview-panel {
     width: 100vw;
+  }
+
+  .resume-analysis-hero,
+  .resume-fix-grid,
+  .resume-profile-grid {
+    grid-template-columns: 1fr;
   }
 
   .search-box {
@@ -3584,6 +3840,10 @@ textarea:focus {
   .selected-file-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .resume-preview-head-main {
+    flex-direction: column;
   }
 
   .resume-dropzone {

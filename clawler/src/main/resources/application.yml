@@ -28,3 +28,11 @@ zhaopin:
   detail-base-url: https://jobs.zhaopin.com
   default-page-size: 20
   min-interval-millis: 1500
+
+liepin:
+  enabled: true
+  search-page-url: https://www.liepin.com/zhaopin/
+  search-api-url: https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job
+  logo-base-url: https://image0.lietou-static.com/
+  default-page-size: 20
+  min-interval-millis: 1500

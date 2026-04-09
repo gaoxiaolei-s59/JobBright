@@ -495,34 +495,73 @@ function buildResumePreviewContent(resumeInfo, profileDraft, authUser) {
     .filter(Boolean);
   const summary = profileDraft?.personalSummary?.trim()
     || "具备扎实的后端开发基础，关注 Java、Spring Boot、MySQL 等技术方向，希望参与平台型和业务核心场景建设。";
+  const skillGroups = [
+    {
+      title: "语言与基础",
+      items: keywordTags.length ? keywordTags.slice(0, 4) : ["Java", "SQL", "Linux", "数据结构"]
+    },
+    {
+      title: "后端框架",
+      items: ["Spring Boot", "MyBatis", "Redis", "RESTful API"]
+    },
+    {
+      title: "工具与工程化",
+      items: ["IntelliJ IDEA", "Postman", "Git", "Maven"]
+    }
+  ];
 
   return {
     resumeId: resumeInfo?.resumeId || "",
     fileName: resumeInfo?.fileName || "当前简历",
     updatedAt: resumeInfo?.uploadTime || "",
-    sections: [
+    previewUrl: resumeInfo?.resumeId ? `/api/user/resume/${resumeInfo.resumeId}/file` : "",
+    downloadUrl: resumeInfo?.resumeId ? `/api/user/resume/${resumeInfo.resumeId}/file` : "",
+    contentType: resumeInfo?.fileName?.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream",
+    score: {
+      grade: "A",
+      label: "EXCELLENT",
+      scoreValue: resumeInfo?.score || 88,
+      urgentFixCount: 2,
+      criticalFixCount: 1,
+      optionalFixCount: 3,
+      summary: "技术方向明确，关键词集中在后端开发，但还可以继续强化项目成果和量化表达。"
+    },
+    profile: {
+      name: displayName,
+      title: targetRole,
+      location: city,
+      status: resumeInfo?.status || "ACTIVE"
+    },
+    analysisSummary: summary,
+    analysisHighlights: [
       {
-        title: "基本信息",
-        lines: [
-          `姓名：${displayName}`,
-          `目标岗位：${targetRole}`,
-          `意向城市：${city}`,
-          `当前状态：${resumeInfo?.status || "ACTIVE"}`
-        ]
+        title: "Impact & Achievements",
+        description: "已经有较清晰的后端技术栈表达，下一步重点是让项目经历更量化。"
       },
       {
-        title: "个人摘要",
-        lines: [summary]
+        title: "Role Alignment",
+        description: "关键词和目标岗位一致，适合继续往 Java 后端 / 平台研发方向优化。"
+      }
+    ],
+    urgentIssues: [
+      {
+        title: "项目成果还不够量化",
+        description: "建议把项目中的吞吐量、性能优化比例、接口规模或业务结果写出来。"
       },
       {
-        title: "关键词标签",
-        lines: keywordTags.length ? keywordTags : ["Java", "Spring Boot", "MySQL", "后端开发"]
-      },
+        title: "个人摘要可再聚焦",
+        description: "可以明确写出你最想投递的岗位方向和最有代表性的技术能力。"
+      }
+    ],
+    skillGroups,
+    projects: [
       {
-        title: "系统说明",
-        lines: [
-          "这里先展示前端预览版本，后端接入真实简历解析内容后会自动替换成正文。",
-          "后续可以支持原文预览、结构化简历块和解析高亮。"
+        name: "高并发电商系统",
+        technologies: ["Java", "Spring Boot", "MySQL", "Redis"],
+        bullets: [
+          "设计并实现核心订单与库存接口，支持高并发请求处理。",
+          "使用 Redis 做热点数据缓存，优化接口响应时间。",
+          "补充更明确的性能和业务指标后，会更适合 LLM 做打分和建议。"
         ]
       }
     ]
@@ -1662,7 +1701,7 @@ function App() {
     }
 
     try {
-      const remotePreview = await request(`/api/user/resume/${resumeInfo.resumeId}/content`, { method: "GET" });
+      const remotePreview = await request(`/api/user/resume/${resumeInfo.resumeId}/preview`, { method: "GET" });
       setResumePreviewData({
         ...fallbackPreview,
         ...remotePreview
@@ -1676,6 +1715,14 @@ function App() {
 
   function closeResumePreview() {
     setResumePreviewOpen(false);
+  }
+
+  function handleDownloadResume() {
+    if (!resumePreviewData?.downloadUrl) {
+      setMessage({ type: "error", text: "当前简历还没有可下载地址。" });
+      return;
+    }
+    window.open(`${API_BASE_URL}${resumePreviewData.downloadUrl}`, "_blank", "noopener,noreferrer");
   }
 
   function handleSidebarSwitch(sectionKey) {
@@ -1916,10 +1963,17 @@ function App() {
                   onClick={(event) => event.stopPropagation()}
                 >
                   <div className="resume-preview-header">
-                    <div>
-                      <small>简历预览</small>
-                      <strong>{resumePreviewData?.fileName || "当前简历"}</strong>
-                      <span>{formatResumeAbsoluteTime(resumePreviewData?.updatedAt)}</span>
+                    <div className="resume-preview-head-main">
+                      <div>
+                        <small>Resume Analysis Report</small>
+                        <strong>{resumePreviewData?.fileName || "当前简历"}</strong>
+                        <span>{formatResumeAbsoluteTime(resumePreviewData?.updatedAt)}</span>
+                      </div>
+                      <div className="resume-preview-actions">
+                        <button className="ghost-button" onClick={handleDownloadResume} type="button">
+                          下载简历
+                        </button>
+                      </div>
                     </div>
                     <button className="resume-preview-close" onClick={closeResumePreview} type="button">
                       ×
@@ -1930,16 +1984,113 @@ function App() {
                     {resumePreviewLoading ? (
                       <div className="resume-preview-loading">正在加载简历内容...</div>
                     ) : null}
-                    {(resumePreviewData?.sections || []).map((section) => (
-                      <section key={section.title} className="resume-preview-section">
-                        <h3>{section.title}</h3>
-                        <div className="resume-preview-lines">
-                          {section.lines.map((line) => (
-                            <p key={`${section.title}-${line}`}>{line}</p>
-                          ))}
+
+                    <section className="resume-analysis-hero">
+                      <div className="resume-grade-card">
+                        <div className="resume-grade-badge">{resumePreviewData?.score?.grade || "A"}</div>
+                        <div className="resume-grade-copy">
+                          <strong>{resumePreviewData?.score?.label || "EXCELLENT"}</strong>
+                          <span>评分 {resumePreviewData?.score?.scoreValue || 88}</span>
                         </div>
-                      </section>
-                    ))}
+                      </div>
+
+                      <div className="resume-fix-grid">
+                        <article className="fix-card urgent">
+                          <strong>{resumePreviewData?.score?.urgentFixCount ?? 0}</strong>
+                          <span>Urgent Fix</span>
+                        </article>
+                        <article className="fix-card critical">
+                          <strong>{resumePreviewData?.score?.criticalFixCount ?? 0}</strong>
+                          <span>Critical Fix</span>
+                        </article>
+                        <article className="fix-card optional">
+                          <strong>{resumePreviewData?.score?.optionalFixCount ?? 0}</strong>
+                          <span>Optional Fix</span>
+                        </article>
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <h3>Analysis Summary</h3>
+                      <div className="resume-preview-lines">
+                        <p>{resumePreviewData?.score?.summary}</p>
+                        <p>{resumePreviewData?.analysisSummary}</p>
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <h3>简历基础信息</h3>
+                      <div className="resume-profile-grid">
+                        <article><strong>姓名</strong><span>{resumePreviewData?.profile?.name || getAuthDisplayName(auth.user)}</span></article>
+                        <article><strong>目标岗位</strong><span>{resumePreviewData?.profile?.title || "后端开发"}</span></article>
+                        <article><strong>意向城市</strong><span>{resumePreviewData?.profile?.location || "上海"}</span></article>
+                        <article><strong>当前状态</strong><span>{resumePreviewData?.profile?.status || "ACTIVE"}</span></article>
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <h3>技能要点拆分</h3>
+                      <div className="resume-skill-groups">
+                        {(resumePreviewData?.skillGroups || []).map((group) => (
+                          <article key={group.title} className="resume-skill-group-card">
+                            <strong>{group.title}</strong>
+                            <div className="resume-skill-chip-row">
+                              {(group.items || []).map((item) => (
+                                <span key={`${group.title}-${item}`}>{item}</span>
+                              ))}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <h3>Analysis Highlights</h3>
+                      <div className="resume-highlight-list">
+                        {(resumePreviewData?.analysisHighlights || []).map((item, index) => (
+                          <article key={item.title} className="resume-highlight-card">
+                            <span className="resume-highlight-index">{index + 1}</span>
+                            <div>
+                              <strong>{item.title}</strong>
+                              <p>{item.description}</p>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <h3>Urgent Issues</h3>
+                      <div className="resume-issue-list">
+                        {(resumePreviewData?.urgentIssues || []).map((issue) => (
+                          <article key={issue.title} className="resume-issue-card">
+                            <strong>{issue.title}</strong>
+                            <p>{issue.description}</p>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <h3>Projects</h3>
+                      <div className="resume-project-list">
+                        {(resumePreviewData?.projects || []).map((project) => (
+                          <article key={project.name} className="resume-project-card">
+                            <strong>{project.name}</strong>
+                            <div className="resume-project-tech">
+                              {(project.technologies || []).map((tech) => (
+                                <span key={`${project.name}-${tech}`}>{tech}</span>
+                              ))}
+                            </div>
+                            <ul>
+                              {(project.bullets || []).map((bullet) => (
+                                <li key={`${project.name}-${bullet}`}>{bullet}</li>
+                              ))}
+                            </ul>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
                   </div>
                 </aside>
               </div>
