@@ -39,7 +39,7 @@ public class UploadRateLimitFilter extends OncePerRequestFilter {
         //获取信号量配置
         RPermitExpirableSemaphore permitExpirableSemaphore = redissonClient.getPermitExpirableSemaphore(semaphoreProperties.getName());
         String permit = null;
-
+        log.info("获取信号量配置");
         try {
             permit = permitExpirableSemaphore.tryAcquire(
                     semaphoreProperties.getMaxWaitSeconds(),

@@ -17,14 +17,17 @@ public class UserController {
 
     private final UserService userService;
 
+
     @GetMapping("/dashboard")
     public Result<UserDashboardResponse> getDashboard() {
         return Results.success(userService.getDashboard());
     }
 
+
     @GetMapping("/onboarding/status")
     public Result<UserOnboardingStatusResponse> getOnboardingStatus() {
         return Results.success(userService.getOnboardingStatus());
     }
+
 
 }

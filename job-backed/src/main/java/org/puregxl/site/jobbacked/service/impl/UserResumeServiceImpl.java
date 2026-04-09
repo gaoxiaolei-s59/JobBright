@@ -13,17 +13,30 @@ import org.puregxl.site.jobbacked.config.RustfsProperties;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.jobbacked.dto.file.UploadFileInfo;
+import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.puregxl.site.jobbacked.mq.producer.JobBackedUserResumeProduceTemplate;
 import org.puregxl.site.jobbacked.service.FileStorageService;
 import org.puregxl.site.jobbacked.service.UserResumeService;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import static org.puregxl.site.framework.errorcode.BaseErrorCode.USER_RESUME_NOT_FOUND;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +54,8 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
     private static final String USER_RESUME_BUCKET_NAME = "user-resume";
 
     private final JobBackedUserResumeProduceTemplate jobBackedUserResumeProduceTemplate;
+
+    private final S3Client s3Client;
 
     /**
      * 上传用户简历
@@ -142,6 +157,48 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                 .build();
     }
 
+    @Override
+    public UserResumePreviewResponse getResumePreview(String resumeId) {
+        UserResumeFile userResumeFile = getOwnedResumeByResumeId(resumeId);
+        return UserResumePreviewResponse.builder()
+                .resumeId(userResumeFile.getResumeId())
+                .fileName(userResumeFile.getFileName())
+                .fileExt(userResumeFile.getFileExt())
+                .contentType(resolveContentType(userResumeFile))
+                .previewType(isInlinePreviewable(userResumeFile) ? "INLINE" : "DOWNLOAD")
+                .previewUrl("/api/user/resume/" + userResumeFile.getResumeId() + "/file")
+                .downloadUrl("/api/user/resume/" + userResumeFile.getResumeId() + "/file")
+                .build();
+    }
+
+    @Override
+    public ResponseEntity<Resource> getResumeFile(String resumeId) {
+        UserResumeFile userResumeFile = getOwnedResumeByResumeId(resumeId);
+        try {
+            ResponseBytes<GetObjectResponse> objectBytes = s3Client.getObjectAsBytes(GetObjectRequest.builder()
+                    .bucket(USER_RESUME_BUCKET_NAME)
+                    .key(userResumeFile.getObjectKey())
+                    .build());
+
+            ByteArrayResource resource = new ByteArrayResource(objectBytes.asByteArray());
+            MediaType mediaType = resolveMediaType(userResumeFile);
+
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .contentLength(objectBytes.asByteArray().length)
+                    .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
+                            .filename(userResumeFile.getFileName(), StandardCharsets.UTF_8)
+                            .build()
+                            .toString())
+                    .body(resource);
+        } catch (NoSuchKeyException exception) {
+            throw new ClientException(USER_RESUME_NOT_FOUND);
+        } catch (S3Exception exception) {
+            throw new ClientException("读取简历文件失败");
+        }
+    }
+
 
     private String getFileExt(String originalFilename) {
         int index = originalFilename.lastIndexOf('.');
@@ -160,6 +217,52 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
 
     private String buildObjectUrl(String bucketName, String objectKey) {
         return rustfsProperties.getUrl() + "/" + bucketName + "/" + objectKey;
+    }
+
+    private UserResumeFile getOwnedResumeByResumeId(String resumeId) {
+        if (!StringUtils.hasText(resumeId)) {
+            throw new ClientException("resumeId不能为空");
+        }
+        long userId = UserContext.getUserId();
+        UserResumeFile userResumeFile = userResumeFileMapper.selectOne(Wrappers.lambdaQuery(UserResumeFile.class)
+                .eq(UserResumeFile::getUserId, userId)
+                .eq(UserResumeFile::getResumeId, resumeId)
+                .eq(UserResumeFile::getDelFlag, 0)
+                .last("limit 1"));
+        if (userResumeFile == null) {
+            throw new ClientException(USER_RESUME_NOT_FOUND);
+        }
+        return userResumeFile;
+    }
+
+    private String resolveContentType(UserResumeFile userResumeFile) {
+        if (StringUtils.hasText(userResumeFile.getContentType())) {
+            return userResumeFile.getContentType();
+        }
+        String fileExt = userResumeFile.getFileExt();
+        if ("pdf".equalsIgnoreCase(fileExt)) {
+            return MediaType.APPLICATION_PDF_VALUE;
+        }
+        if ("doc".equalsIgnoreCase(fileExt)) {
+            return "application/msword";
+        }
+        if ("docx".equalsIgnoreCase(fileExt)) {
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        }
+        return MediaType.APPLICATION_OCTET_STREAM_VALUE;
+    }
+
+    private MediaType resolveMediaType(UserResumeFile userResumeFile) {
+        try {
+            return MediaType.parseMediaType(resolveContentType(userResumeFile));
+        } catch (Exception ignored) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+    }
+
+    private boolean isInlinePreviewable(UserResumeFile userResumeFile) {
+        return "pdf".equalsIgnoreCase(userResumeFile.getFileExt())
+                || MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(resolveContentType(userResumeFile));
     }
 
 }
