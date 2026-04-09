@@ -379,27 +379,33 @@ public class ZhaopinClient {
         int page = request.page() == null ? 1 : request.page();
         int pageSize = request.pageSize() == null ? properties.getDefaultPageSize() : request.pageSize();
         int start = Math.max(page - 1, 0) * pageSize;
-        return properties.getSearchBaseUrl()
-                + "?start=" + start
-                + "&pageSize=" + pageSize
-                + "&cityId=" + request.cityId()
-                + "&workExperience=" + defaultFilter(request.workExperience())
-                + "&education=" + defaultFilter(request.education())
-                + "&companyType=" + defaultFilter(request.companyType())
-                + "&employmentType=" + defaultFilter(request.employmentType())
-                + "&jobWelfareTag=-1"
-                + "&kt=3"
-                + "&_v=" + buildVersionNonce()
-                + "&x-zp-page-request-id=" + encode(requestId)
-                + "&kw=" + encode(request.keyword());
+        StringBuilder urlBuilder = new StringBuilder(properties.getSearchBaseUrl())
+                .append("?start=").append(start)
+                .append("&pageSize=").append(pageSize)
+                .append("&workExperience=").append(defaultFilter(request.workExperience()))
+                .append("&education=").append(defaultFilter(request.education()))
+                .append("&companyType=").append(defaultFilter(request.companyType()))
+                .append("&employmentType=").append(defaultFilter(request.employmentType()))
+                .append("&jobWelfareTag=-1")
+                .append("&kt=3")
+                .append("&_v=").append(buildVersionNonce())
+                .append("&x-zp-page-request-id=").append(encode(requestId))
+                .append("&kw=").append(encode(request.keyword()));
+        if (request.cityId() != null) {
+            urlBuilder.append("&cityId=").append(request.cityId());
+        }
+        return urlBuilder.toString();
     }
 
     private String buildSearchPageUrl(ZhaopinSearchRequest request) {
         int page = request.page() == null ? 1 : request.page();
-        return properties.getSearchPageUrl()
-                + "?jl=" + request.cityId()
-                + "&kw=" + encode(request.keyword())
-                + "&p=" + page;
+        StringBuilder urlBuilder = new StringBuilder(properties.getSearchPageUrl()).append("?");
+        if (request.cityId() != null) {
+            urlBuilder.append("jl=").append(request.cityId()).append("&");
+        }
+        urlBuilder.append("kw=").append(encode(request.keyword()))
+                .append("&p=").append(page);
+        return urlBuilder.toString();
     }
 
     private int defaultFilter(Integer value) {

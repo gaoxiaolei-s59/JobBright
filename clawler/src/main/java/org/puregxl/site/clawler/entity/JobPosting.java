@@ -39,6 +39,10 @@ public class JobPosting {
     private String sourceKey;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField("publish_time")
+    private LocalDateTime publishTime;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField("crawled_at")
     private LocalDateTime crawledAt;
 
@@ -136,6 +140,14 @@ public class JobPosting {
 
     public void setSourceKey(String sourceKey) {
         this.sourceKey = sourceKey;
+    }
+
+    public LocalDateTime getPublishTime() {
+        return publishTime;
+    }
+
+    public void setPublishTime(LocalDateTime publishTime) {
+        this.publishTime = publishTime;
     }
 
     public LocalDateTime getCrawledAt() {

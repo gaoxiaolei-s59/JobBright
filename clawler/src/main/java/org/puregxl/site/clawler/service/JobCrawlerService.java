@@ -64,6 +64,7 @@ public class JobCrawlerService {
         target.setSummary(source.getSummary());
         target.setSourceUrl(source.getSourceUrl());
         target.setSourceKey(source.getSourceKey());
+        target.setPublishTime(source.getPublishTime());
         target.setCrawledAt(source.getCrawledAt());
     }
 

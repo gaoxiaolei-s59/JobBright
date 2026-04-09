@@ -68,6 +68,11 @@ public class JobPostingDO {
     private String sourceKey;
 
     /**
+     * 发布时间
+     */
+    private LocalDateTime publishTime;
+
+    /**
      * 抓取时间
      */
     private LocalDateTime crawledAt;

@@ -54,7 +54,7 @@ public class JobPostCleanTask {
     public void run() throws Exception {
         //1.先批量拉取一批职位(按照发布时间排序 - 优先拉取最新数据)
         List<JobPostingDO> jobPostingDOS = jobPostingMapper.selectList(Wrappers.lambdaQuery(JobPostingDO.class)
-                .orderByDesc(JobPostingDO::getUpdatedAt)
+                .orderByDesc(JobPostingDO::getPublishTime)
                 .last("limit " + BATCH_SIZE));
 
         List<Future<CleanJobResult>> futures = jobPostingDOS.stream()
@@ -120,7 +120,7 @@ public class JobPostCleanTask {
      * @return
      */
     private JobPost buildJobPost(JobPostingDO rawJob, JobPostCleanResult cleanResult) {
-        LocalDateTime baseTime = firstNonNull(rawJob.getUpdatedAt(), rawJob.getCreatedAt(), rawJob.getCrawledAt(), LocalDateTime.now());
+        LocalDateTime baseTime = firstNonNull(rawJob.getPublishTime(), rawJob.getUpdatedAt(), rawJob.getCreatedAt(), rawJob.getCrawledAt(), LocalDateTime.now());
         Date now = new Date();
 
         return JobPost.builder()

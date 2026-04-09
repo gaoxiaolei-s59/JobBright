@@ -14,11 +14,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class ZhaopinCrawlerService {
+
+    private static final DateTimeFormatter PUBLISH_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final ZhaopinClient zhaopinClient;
     private final JobPostingMapper jobPostingMapper;
@@ -118,6 +122,7 @@ public class ZhaopinCrawlerService {
 
         for (ZhaopinFetchedJob fetchedJob : fetched) {
             JobPosting fetchedPosting = fetchedJob.posting();
+            fetchedPosting.setPublishTime(parsePublishTime(fetchedJob.publishTimeText()));
             Company company = companyPersistenceService.saveOrUpdate(
                     "zhaopin",
                     fetchedJob.companyId() == null ? null : String.valueOf(fetchedJob.companyId()),
@@ -168,7 +173,19 @@ public class ZhaopinCrawlerService {
         target.setSummary(source.getSummary());
         target.setSourceUrl(source.getSourceUrl());
         target.setSourceKey(source.getSourceKey());
+        target.setPublishTime(source.getPublishTime());
         target.setCrawledAt(source.getCrawledAt());
+    }
+
+    private LocalDateTime parsePublishTime(String publishTime) {
+        if (publishTime == null || publishTime.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(publishTime, PUBLISH_TIME_FORMATTER);
+        } catch (DateTimeParseException exception) {
+            return null;
+        }
     }
 
     private void persist(JobPosting posting) {
