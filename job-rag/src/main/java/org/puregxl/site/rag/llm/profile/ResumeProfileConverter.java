@@ -16,7 +16,7 @@ public final class ResumeProfileConverter {
         return JSONUtil.toBean(profileJson, ResumeProfileDTO.class);
     }
 
-    public static UserResumeProfile toEntity(ResumeProfileDTO dto, String profileJson, String resumeId) {
+    public static UserResumeProfile toEntity(ResumeProfileDTO dto, String profileJson, String resumeId, String model) {
         return UserResumeProfile.builder()
                 .profileId(IdUtil.fastSimpleUUID())
                 .resumeId(resumeId)
@@ -38,14 +38,14 @@ public final class ResumeProfileConverter {
                 .workYears(trimToNull(dto.getWork_years()))
                 .resumeSummary(trimToNull(dto.getResume_summary()))
                 .profileJson(profileJson)
-                .llmModel("Qwen/Qwen2.5-32B-Instruct")
+                .llmModel(model)
                 .promptVersion("resume_profile_v1")
                 .status("SUCCESS")
                 .build();
     }
 
-    public static UserResumeProfile toEntity(String profileJson, String resumeId) {
-        return toEntity(toDto(profileJson), profileJson, resumeId);
+    public static UserResumeProfile toEntity(String profileJson, String resumeId, String model) {
+        return toEntity(toDto(profileJson), profileJson, resumeId, model);
     }
 
     private static String trimToNull(String value) {

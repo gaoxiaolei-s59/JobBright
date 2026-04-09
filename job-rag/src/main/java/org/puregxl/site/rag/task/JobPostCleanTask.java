@@ -50,7 +50,7 @@ public class JobPostCleanTask {
      */
     private static final Integer BATCH_SIZE = 200;
 
-    @Scheduled(fixedRate = 500000)
+//    @Scheduled(fixedDelay = 500000)
     public void run() throws Exception {
         //1.先批量拉取一批职位(按照发布时间排序 - 优先拉取最新数据)
         List<JobPostingDO> jobPostingDOS = jobPostingMapper.selectList(Wrappers.lambdaQuery(JobPostingDO.class)

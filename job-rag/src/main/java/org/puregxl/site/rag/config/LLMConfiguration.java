@@ -19,13 +19,12 @@ public class LLMConfiguration {
     /**
      * API Key
      */
-    private String apiKey;
+    private String apiKey = "sk-rjtfqcpnhpzonswkebygmaqnqvibqcndgqxqfxghizuguthf";
 
     /**
      * 模型兜底列表，按顺序尝试
      */
     private List<String> models = List.of(
-            "Pro/MiniMaxAI/MiniMax-M2.5",
             "Qwen/Qwen2.5-32B-Instruct",
             "deepseek-ai/DeepSeek-V3.2",
             "Pro/MiniMaxAI/MiniMax-M2.5"

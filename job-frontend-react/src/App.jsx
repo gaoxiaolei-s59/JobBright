@@ -768,9 +768,11 @@ function App() {
   const [showApplyFollowUpModal, setShowApplyFollowUpModal] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const [jobActionOverrides, setJobActionOverrides] = useState({});
   const mainPanelRef = useRef(null);
   const resumeUploadInputRef = useRef(null);
+  const onboardingResumeInputRef = useRef(null);
   const loadMoreLockRef = useRef(false);
   const [auth, setAuth] = useState(() => ({
     token: localStorage.getItem(TOKEN_KEY),
@@ -815,8 +817,10 @@ function App() {
 
   useEffect(() => {
     if (auth.token) {
-      loadCurrentUser();
+      void loadCurrentUser();
+      return;
     }
+    setSessionReady(true);
   }, []);
 
   useEffect(() => {
@@ -941,12 +945,14 @@ function App() {
   }
 
   async function loadCurrentUser() {
+    setSessionReady(false);
     try {
       const user = await request("/api/auth/me", { method: "GET" });
       setAuth((current) => ({ ...current, user }));
-      loadLocalUserProfileDraft(user);
+      const localDraft = loadLocalUserProfileDraft(user);
       loadLocalSettingsDraft(user);
       loadLocalJobActions(user);
+      await loadRemoteProfilePreferences(user, localDraft);
       await loadUserDashboard(user);
       await loadCurrentResume();
       await Promise.all([
@@ -957,6 +963,8 @@ function App() {
     } catch (error) {
       logout(false);
       setMessage({ type: "error", text: error.message || "获取当前用户失败" });
+    } finally {
+      setSessionReady(true);
     }
   }
 
@@ -997,10 +1005,33 @@ function App() {
       getUserScopedStorageKey(user, "profile_draft"),
       userProfileDraftInitialState
     );
-    setUserProfileDraft({
+    const nextDraft = {
       ...userProfileDraftInitialState,
       ...storedDraft
-    });
+    };
+    setUserProfileDraft(nextDraft);
+    return nextDraft;
+  }
+
+  async function loadRemoteProfilePreferences(user = auth.user, localDraft = userProfileDraftInitialState) {
+    try {
+      const remoteDraft = await request("/api/user/profile/preferences", { method: "GET" });
+      const nextDraft = {
+        ...userProfileDraftInitialState,
+        ...localDraft,
+        ...remoteDraft,
+        jobTypes: Array.isArray(remoteDraft?.jobTypes) ? remoteDraft.jobTypes : localDraft.jobTypes || []
+      };
+      setUserProfileDraft(nextDraft);
+      writeLocalJson(getUserScopedStorageKey(user, "profile_draft"), nextDraft);
+      return nextDraft;
+    } catch {
+      setUserProfileDraft({
+        ...userProfileDraftInitialState,
+        ...localDraft
+      });
+      return localDraft;
+    }
   }
 
   function loadLocalSettingsDraft(user = auth.user) {
@@ -1294,6 +1325,7 @@ function App() {
     setAppliedJobsData(createJobListState());
     setResumeFile(null);
     setAuthView("login");
+    setSessionReady(true);
     if (clearMessage) {
       setMessage({ type: "", text: "" });
     }
@@ -1523,26 +1555,42 @@ function App() {
   }
 
   function handleSaveUserProfileDraft() {
-    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), userProfileDraft);
-    setMessage({ type: "success", text: "个人主页设置已保存，后续可直接在这里继续完善资料。" });
+    return saveProfilePreferences("个人资料已保存，首页推荐和 onboarding 偏好会保持一致。");
   }
 
-  function handleCompleteProfileOnboarding(event) {
-    event.preventDefault();
+  async function saveProfilePreferences(successText) {
     if (!userProfileDraft.targetRole.trim()) {
       setMessage({ type: "error", text: "请先填写目标岗位方向。" });
-      return;
+      return false;
     }
     if (!Array.isArray(userProfileDraft.jobTypes) || userProfileDraft.jobTypes.length === 0) {
       setMessage({ type: "error", text: "请至少选择一种求职类型。" });
-      return;
+      return false;
     }
     if (!userProfileDraft.expectedCity.trim() && !userProfileDraft.openToRemote) {
       setMessage({ type: "error", text: "请填写期望地点，或开启接受远程办公。" });
-      return;
+      return false;
     }
-    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), userProfileDraft);
-    setMessage({ type: "success", text: "求职偏好已保存，下一步继续上传简历。" });
+    setLoading(true);
+    try {
+      await request("/api/user/profile/preferences", {
+        method: "PUT",
+        body: JSON.stringify(userProfileDraft)
+      });
+      writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), userProfileDraft);
+      setMessage({ type: "success", text: successText || "个人资料已保存。" });
+      return true;
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "保存求职偏好失败" });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCompleteProfileOnboarding(event) {
+    event.preventDefault();
+    await saveProfilePreferences("求职偏好已保存。");
   }
 
   function handleSettingsDraftChange(field, value) {
@@ -2003,6 +2051,32 @@ function App() {
     );
   }
 
+  if (auth.token && !sessionReady) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-backdrop auth-left" />
+        <div className="auth-backdrop auth-right" />
+        <main className="auth-layout">
+          <section className="auth-hero">
+            <div className="auth-brand-row">
+              <div className="auth-brand-mark">J</div>
+              <div>
+                <span className="eyebrow">JobBright 求职工作台</span>
+                <strong className="auth-brand-name">正在同步你的偏好、简历和工作台状态</strong>
+              </div>
+            </div>
+          </section>
+          <section className="auth-panel">
+            <div className="auth-form">
+              <h2>加载中</h2>
+              <p>正在连接账号信息并恢复 onboarding 进度，请稍候。</p>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   if (!auth.token || !auth.user) {
     return (
       <div className="auth-shell">
@@ -2015,299 +2089,162 @@ function App() {
               <div className="auth-brand-mark">J</div>
               <div>
                 <span className="eyebrow">JobBright 求职工作台</span>
-                <strong className="auth-brand-name">让简历、岗位和投递节奏真正连起来</strong>
+                <strong className="auth-brand-name">把求职过程收进一个清爽的工作区</strong>
               </div>
             </div>
 
             <div className="auth-hero-copy">
-              <h1>把推荐、简历和投递放进同一个工作台。</h1>
+              <h1>先看匹配机会，再决定投什么。</h1>
               <p className="auth-copy">
-                用更短的路径完成筛选、判断和跟进，让职位推荐真正围绕你的简历画像和求职偏好工作。
+                登录后会先收集你的岗位方向和地点偏好，再上传当前简历，让首页推荐、筛选条件和投递跟进自然串起来。
               </p>
             </div>
 
-            <div className="auth-preview-card">
-              <div className="auth-preview-head">
-                <strong>今日工作台</strong>
-                <span>推荐优先</span>
-              </div>
-              <div className="auth-preview-stats">
-                <article>
-                  <strong>86%</strong>
-                  <span>平均匹配度</span>
+            <div className="auth-hero-highlights">
+              <article className="auth-highlight-card primary">
+                <small>推荐优先</small>
+                <strong>职位、简历、投递放在同一条链路里。</strong>
+                <span>不用在多个 demo 页面之间来回切换。</span>
+              </article>
+              <div className="auth-highlight-grid">
+                <article className="auth-highlight-card">
+                  <strong>画像参与匹配</strong>
+                  <span>岗位方向、城市和关键词会直接影响推荐。</span>
                 </article>
-                <article>
-                  <strong>24</strong>
-                  <span>待筛选岗位</span>
+                <article className="auth-highlight-card">
+                  <strong>投递状态可跟踪</strong>
+                  <span>收藏、已投递和后续跟进放在一个首页里管理。</span>
                 </article>
-                <article>
-                  <strong>6</strong>
-                  <span>已收藏机会</span>
-                </article>
-              </div>
-              <div className="auth-preview-flow">
-                <span>推荐职位</span>
-                <span>简历画像</span>
-                <span>投递跟进</span>
               </div>
             </div>
 
-            <div className="auth-feature-grid compact">
+            <div className="auth-mini-metrics">
               <article>
-                <strong>推荐优先</strong>
-                <span>先看关键字段和高匹配岗位。</span>
+                <strong>3 步</strong>
+                <span>完成偏好采集和简历接入</span>
               </article>
               <article>
-                <strong>画像参与</strong>
-                <span>推荐结果可以解释，不只给分数。</span>
-              </article>
-              <article>
-                <strong>投递闭环</strong>
-                <span>收藏、已投递和助手统一串联。</span>
+                <strong>关键字段优先</strong>
+                <span>首页先展示地点、类型、薪资和匹配度</span>
               </article>
             </div>
           </section>
 
           <section className="auth-panel">
-            <div className="auth-panel-head">
+              <div className="auth-panel-head">
               <div>
                 <span className="eyebrow">欢迎回来</span>
                 <strong>进入你的求职工作台</strong>
               </div>
               <span className="auth-panel-pill">推荐优先</span>
-            </div>
-
-            <div className="auth-tabs">
-              <button
-                className={authView === "login" ? "auth-tab active" : "auth-tab"}
-                onClick={() => setAuthView("login")}
-                type="button"
-              >
-                登录
-              </button>
-              <button
-                className={authView === "register" ? "auth-tab active" : "auth-tab"}
-                onClick={() => setAuthView("register")}
-                type="button"
-              >
-                注册
-              </button>
-            </div>
-
-            {message.text ? (
-              <div className={message.type === "error" ? "notice error" : "notice success"}>
-                {message.text}
-              </div>
-            ) : null}
-
-            {authView === "login" ? (
-              <form className="auth-form" onSubmit={handleLogin}>
-                <h2>登录</h2>
-                <p>登录后直接进入推荐职位流，继续你的筛选和投递节奏。</p>
-
-                <label>
-                  用户名或邮箱
-                  <input
-                    value={loginForm.account}
-                    onChange={(event) => updateForm(setLoginForm, "account", event.target.value)}
-                    placeholder="请输入用户名或邮箱"
-                  />
-                </label>
-
-                <label>
-                  密码
-                  <input
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(event) => updateForm(setLoginForm, "password", event.target.value)}
-                    placeholder="请输入密码"
-                  />
-                </label>
-
-                <button className="primary-button" disabled={loading} type="submit">
-                  {loading ? "登录中..." : "立即登录"}
-                </button>
-
-                <div className="helper-text">演示账号：`demo / JobBacked123`</div>
-              </form>
-            ) : (
-              <form className="auth-form" onSubmit={handleRegister}>
-                <h2>创建账号</h2>
-                <p>注册后就能保存简历、生成画像并建立自己的推荐与投递轨迹。</p>
-
-                <label>
-                  用户名
-                  <input
-                  value={registerForm.username}
-                  onChange={(event) =>
-                      updateForm(setRegisterForm, "username", event.target.value)
-                    }
-                    placeholder="请输入用户名"
-                  />
-                </label>
-
-                <label>
-                  邮箱
-                  <input
-                    value={registerForm.email}
-                    onChange={(event) => updateForm(setRegisterForm, "email", event.target.value)}
-                    placeholder="请输入邮箱"
-                  />
-                </label>
-
-                <label>
-                  显示名称
-                  <input
-                    value={registerForm.displayName}
-                    onChange={(event) =>
-                      updateForm(setRegisterForm, "displayName", event.target.value)
-                    }
-                    placeholder="请输入显示名称"
-                  />
-                </label>
-
-                <label>
-                  密码
-                  <input
-                    type="password"
-                    value={registerForm.password}
-                    onChange={(event) =>
-                      updateForm(setRegisterForm, "password", event.target.value)
-                    }
-                    placeholder="请输入密码"
-                  />
-                </label>
-
-                <button className="primary-button" disabled={loading} type="submit">
-                  {loading ? "注册中..." : "创建账号"}
-                </button>
-              </form>
-            )}
-          </section>
-        </main>
-      </div>
-    );
-  }
-
-  if (!hasCompletedProfileOnboarding(userProfileDraft)) {
-    return (
-      <div className="auth-shell">
-        <div className="auth-backdrop auth-left" />
-        <div className="auth-backdrop auth-right" />
-
-        <main className="auth-layout onboarding-layout">
-          <section className="auth-hero onboarding-hero">
-            <div className="auth-brand-row">
-              <div className="auth-brand-mark">O</div>
-              <div>
-                <span className="eyebrow">JobBright 求职偏好引导</span>
-                <strong className="auth-brand-name">先告诉我们，你想找什么样的工作</strong>
-              </div>
-            </div>
-
-            <div className="auth-hero-copy onboarding-copy">
-              <h1>先确定角色方向、求职类型和地点偏好。</h1>
-              <p className="auth-copy">
-                这一步会直接影响首页推荐、筛选默认值和后续的职位匹配解释。先把最关键的偏好收集起来，后面再继续上传简历。
-              </p>
-            </div>
-
-            <div className="auth-preview-card onboarding-preview">
-              <div className="auth-preview-head">
-                <strong>接下来会影响什么</strong>
-                <span>Onboarding</span>
-              </div>
-              <div className="auth-preview-flow">
-                <span>推荐职位排序</span>
-                <span>默认筛选条件</span>
-                <span>岗位匹配解释</span>
-              </div>
-            </div>
-          </section>
-
-          <section className="auth-panel onboarding-panel">
-            <div className="onboarding-topbar">
-              <span className="auth-panel-pill">第 1 步 / 2</span>
-              <button className="ghost-button compact-button" onClick={() => logout()} type="button">
-                退出登录
-              </button>
-            </div>
-
-            {message.text ? (
-              <div className={message.type === "error" ? "notice error" : "notice success"}>
-                {message.text}
-              </div>
-            ) : null}
-
-            <form className="auth-form onboarding-form" onSubmit={handleCompleteProfileOnboarding}>
-              <label>
-                目标岗位方向
-                <input
-                  value={userProfileDraft.targetRole}
-                  onChange={(event) => handleProfileDraftChange("targetRole", event.target.value)}
-                  placeholder="如 Java 后端开发、推荐系统、平台研发"
-                />
-              </label>
-
-              <div className="onboarding-field-group">
-                <strong>求职类型</strong>
-                <div className="onboarding-choice-grid">
-                  {onboardingJobTypeOptions.map((option) => {
-                    const active = userProfileDraft.jobTypes.includes(option);
-                    return (
-                      <button
-                        key={option}
-                        className={active ? "onboarding-choice-card active" : "onboarding-choice-card"}
-                        onClick={() => handleProfileJobTypeToggle(option)}
-                        type="button"
-                      >
-                        <span className={active ? "choice-check active" : "choice-check"}>{active ? "✓" : ""}</span>
-                        <span>{option}</span>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
-              <div className="onboarding-field-group">
-                <strong>工作地点</strong>
-                <div className="onboarding-location-row">
-                  <input
-                    value={userProfileDraft.expectedCity}
-                    onChange={(event) => handleProfileDraftChange("expectedCity", event.target.value)}
-                    placeholder="如 上海、北京、杭州、全国"
-                  />
-                  <button
-                    className={userProfileDraft.openToRemote ? "onboarding-toggle active" : "onboarding-toggle"}
-                    onClick={() => handleProfileDraftChange("openToRemote", !userProfileDraft.openToRemote)}
-                    type="button"
-                  >
-                    <span className={userProfileDraft.openToRemote ? "choice-check active" : "choice-check"}>
-                      {userProfileDraft.openToRemote ? "✓" : ""}
-                    </span>
-                    <span>接受远程办公</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="onboarding-field-group">
-                <strong>其他偏好</strong>
+              <div className="auth-tabs">
                 <button
-                  className={userProfileDraft.requireVisaSupport ? "onboarding-toggle active single" : "onboarding-toggle single"}
-                  onClick={() => handleProfileDraftChange("requireVisaSupport", !userProfileDraft.requireVisaSupport)}
+                  className={authView === "login" ? "auth-tab active" : "auth-tab"}
+                  onClick={() => setAuthView("login")}
                   type="button"
                 >
-                  <span className={userProfileDraft.requireVisaSupport ? "choice-check active" : "choice-check"}>
-                    {userProfileDraft.requireVisaSupport ? "✓" : ""}
-                  </span>
-                  <span>需要签证 / 工作授权支持</span>
+                  登录
+                </button>
+                <button
+                  className={authView === "register" ? "auth-tab active" : "auth-tab"}
+                  onClick={() => setAuthView("register")}
+                  type="button"
+                >
+                  注册
                 </button>
               </div>
 
-              <button className="primary-button onboarding-next-button" type="submit">
-                下一步：上传简历
-              </button>
-            </form>
+              {message.text ? (
+                <div className={message.type === "error" ? "notice error" : "notice success"}>
+                  {message.text}
+                </div>
+              ) : null}
+
+              {authView === "login" ? (
+                <form className="auth-form" onSubmit={handleLogin}>
+                  <h2>登录</h2>
+                  <p>登录后直接进入推荐职位流，继续你的筛选和投递节奏。</p>
+
+                  <label>
+                    用户名或邮箱
+                    <input
+                      value={loginForm.account}
+                      onChange={(event) => updateForm(setLoginForm, "account", event.target.value)}
+                      placeholder="请输入用户名或邮箱"
+                    />
+                  </label>
+
+                  <label>
+                    密码
+                    <input
+                      type="password"
+                      value={loginForm.password}
+                      onChange={(event) => updateForm(setLoginForm, "password", event.target.value)}
+                      placeholder="请输入密码"
+                    />
+                  </label>
+
+                  <button className="primary-button" disabled={loading} type="submit">
+                    {loading ? "登录中..." : "立即登录"}
+                  </button>
+
+                  <div className="helper-text">演示账号：`demo / JobBacked123`</div>
+                </form>
+              ) : (
+                <form className="auth-form" onSubmit={handleRegister}>
+                  <h2>创建账号</h2>
+                  <p>注册后就能保存简历、生成画像并建立自己的推荐与投递轨迹。</p>
+
+                  <label>
+                    用户名
+                    <input
+                    value={registerForm.username}
+                    onChange={(event) =>
+                        updateForm(setRegisterForm, "username", event.target.value)
+                      }
+                      placeholder="请输入用户名"
+                    />
+                  </label>
+
+                  <label>
+                    邮箱
+                    <input
+                      value={registerForm.email}
+                      onChange={(event) => updateForm(setRegisterForm, "email", event.target.value)}
+                      placeholder="请输入邮箱"
+                    />
+                  </label>
+
+                  <label>
+                    显示名称
+                    <input
+                      value={registerForm.displayName}
+                      onChange={(event) =>
+                        updateForm(setRegisterForm, "displayName", event.target.value)
+                      }
+                      placeholder="请输入显示名称"
+                    />
+                  </label>
+
+                  <label>
+                    密码
+                    <input
+                      type="password"
+                      value={registerForm.password}
+                      onChange={(event) =>
+                        updateForm(setRegisterForm, "password", event.target.value)
+                      }
+                      placeholder="请输入密码"
+                    />
+                  </label>
+
+                  <button className="primary-button" disabled={loading} type="submit">
+                    {loading ? "注册中..." : "创建账号"}
+                  </button>
+                </form>
+              )}
           </section>
         </main>
       </div>
@@ -2325,22 +2262,33 @@ function App() {
             <div className="auth-brand-row">
               <div className="auth-brand-mark">O</div>
               <div>
-                <span className="eyebrow">JobBright 简历引导</span>
-                <strong className="auth-brand-name">最后一步，让推荐真正围绕你的简历工作</strong>
+                <span className="eyebrow">JobBright 简历上传</span>
+                <strong className="auth-brand-name">上传当前简历后，就可以开始浏览首页推荐</strong>
               </div>
             </div>
 
             <div className="auth-hero-copy onboarding-copy">
-              <h1>上传当前简历，开始生成更准确的职位匹配。</h1>
+              <h1>先上传简历，再进入职位首页。</h1>
               <p className="auth-copy">
-                你的首页匹配分、推荐解释和筛选建议都会基于当前简历生成。上传完成后会自动进入职位首页。
+                当前版本登录后不再强制收集偏好信息，上传一份最新简历后就能直接进入推荐职位流。
               </p>
+            </div>
+
+            <div className="resume-gate-benefits">
+              <article>
+                <strong>上传后会发生什么</strong>
+                <span>系统会用简历参与职位匹配、筛选默认值和推荐解释生成。</span>
+              </article>
+              <article>
+                <strong>建议上传最新版本</strong>
+                <span>优先使用最近投递的简历版本，首页结果会更贴近当前求职方向。</span>
+              </article>
             </div>
           </section>
 
           <section className="auth-panel resume-upload-panel polished">
             <div className="onboarding-topbar">
-              <span className="auth-panel-pill">第 2 步 / 2</span>
+              <span className="auth-panel-pill">上传后开始匹配</span>
               <button className="ghost-button compact-button" onClick={() => logout()} type="button">
                 退出登录
               </button>
@@ -2356,19 +2304,44 @@ function App() {
             ) : null}
 
             <form className="auth-form resume-upload-form" onSubmit={handleResumeUpload}>
-              <label className="file-upload-box polished">
-                <span>上传你的简历</span>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(event) => setResumeFile(event.target.files?.[0] || null)}
-                />
-              </label>
+              <input
+                ref={onboardingResumeInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={handleResumeFilePick}
+                hidden
+              />
+
+              <button
+                className="resume-dropzone"
+                onClick={() => onboardingResumeInputRef.current?.click()}
+                type="button"
+              >
+                <div className="resume-dropzone-icon">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 16V7.5" />
+                    <path d="m8.5 11 3.5-3.5 3.5 3.5" />
+                    <path d="M6 18.5h12" />
+                    <path d="M7 20h10a2.5 2.5 0 0 0 2.5-2.5V8.7a2.5 2.5 0 0 0-.84-1.87l-4.4-3.95A2.5 2.5 0 0 0 12.6 2H7A2.5 2.5 0 0 0 4.5 4.5v13A2.5 2.5 0 0 0 7 20Z" />
+                  </svg>
+                </div>
+                <strong>{resumeFile ? "重新选择简历文件" : "上传你的简历"}</strong>
+                <span>支持 PDF、DOC、DOCX，拖放体验后续也可以继续补。</span>
+                <em>点击选择文件</em>
+              </button>
+
+              <div className="resume-upload-specs">
+                <span>支持格式：PDF / DOC / DOCX</span>
+                <span>文件大小：建议不超过 10MB</span>
+              </div>
 
               {resumeFile ? (
                 <div className="selected-file-card">
-                  <strong>{resumeFile.name}</strong>
-                  <span>{Math.max(1, Math.round(resumeFile.size / 1024))} KB</span>
+                  <div className="selected-file-head">
+                    <strong>{resumeFile.name}</strong>
+                    <span>{Math.max(1, Math.round(resumeFile.size / 1024))} KB</span>
+                  </div>
+                  <small>已选中，将作为当前生效简历参与职位匹配。</small>
                 </div>
               ) : (
                 <div className="selected-file-card empty">

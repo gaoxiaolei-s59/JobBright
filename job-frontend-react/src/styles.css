@@ -85,8 +85,8 @@ button {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.14fr) minmax(430px, 0.86fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.02fr) minmax(430px, 0.98fr);
+  gap: 20px;
   min-height: 100vh;
   padding: 28px;
 }
@@ -111,7 +111,7 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 34px;
+  padding: 32px;
   background:
     radial-gradient(circle at top right, rgba(217, 255, 111, 0.22), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 251, 248, 0.88));
@@ -168,15 +168,15 @@ button {
 
 .auth-hero-copy {
   display: grid;
-  gap: 14px;
-  margin-top: 28px;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .auth-hero-copy h1 {
   margin: 0;
-  max-width: 10ch;
-  font-size: clamp(2.2rem, 4vw, 3.7rem);
-  line-height: 1.02;
+  max-width: 8.6ch;
+  font-size: clamp(2rem, 3.1vw, 3.15rem);
+  line-height: 1.04;
   letter-spacing: -0.04em;
 }
 
@@ -191,11 +191,86 @@ button {
 }
 
 .auth-copy {
-  max-width: 52ch;
+  max-width: 44ch;
   margin-top: 0;
   color: var(--brand-subtle);
-  font-size: 0.98rem;
-  line-height: 1.7;
+  font-size: 0.95rem;
+  line-height: 1.72;
+}
+
+.auth-hero-highlights {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.auth-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.auth-highlight-card {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(16, 35, 49, 0.06);
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 12px 24px rgba(18, 38, 53, 0.04);
+}
+
+.auth-highlight-card.primary {
+  background: linear-gradient(135deg, rgba(15, 34, 49, 0.96), rgba(24, 72, 62, 0.94));
+  color: white;
+}
+
+.auth-highlight-card small {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-highlight-card strong {
+  font-size: 1.02rem;
+  line-height: 1.4;
+}
+
+.auth-highlight-card.primary span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.auth-highlight-card span {
+  color: var(--brand-subtle);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.auth-mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.auth-mini-metrics article {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(244, 247, 248, 0.8);
+  border: 1px solid rgba(16, 35, 49, 0.05);
+}
+
+.auth-mini-metrics strong {
+  font-size: 0.95rem;
+}
+
+.auth-mini-metrics span {
+  color: var(--brand-subtle);
+  font-size: 0.86rem;
 }
 
 .auth-preview-card {
@@ -432,12 +507,114 @@ button {
   justify-content: center;
 }
 
+.resume-gate-benefits {
+  display: grid;
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.resume-gate-benefits article {
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(16, 35, 49, 0.06);
+}
+
+.resume-gate-benefits strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.98rem;
+}
+
+.resume-gate-benefits span {
+  color: var(--brand-subtle);
+  line-height: 1.65;
+}
+
 .resume-upload-panel.polished {
   justify-content: center;
 }
 
 .resume-upload-form {
   gap: 18px;
+}
+
+.resume-dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  min-height: 220px;
+  padding: 28px 24px;
+  border: 1px dashed rgba(4, 217, 151, 0.55);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.96), rgba(244, 249, 247, 0.94));
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.resume-dropzone:hover {
+  transform: translateY(-1px);
+  border-color: rgba(4, 217, 151, 0.82);
+  box-shadow: 0 18px 36px rgba(4, 217, 151, 0.08);
+}
+
+.resume-dropzone strong {
+  font-size: 1rem;
+}
+
+.resume-dropzone span {
+  max-width: 28ch;
+  color: var(--brand-subtle);
+  line-height: 1.6;
+}
+
+.resume-dropzone em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(15, 34, 49, 0.06);
+  color: var(--brand-ink);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.resume-dropzone-icon {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 24px;
+  background: rgba(4, 217, 151, 0.12);
+  color: var(--brand-primary-deep);
+}
+
+.resume-dropzone-icon svg {
+  width: 34px;
+  height: 34px;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.resume-upload-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resume-upload-specs span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(244, 247, 248, 0.9);
+  color: var(--brand-subtle);
+  font-size: 0.86rem;
+  font-weight: 700;
 }
 
 .auth-form h2 {
@@ -536,6 +713,18 @@ textarea:focus {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid var(--brand-line);
+}
+
+.selected-file-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selected-file-card small {
+  color: var(--brand-subtle);
+  font-size: 0.86rem;
 }
 
 .selected-file-card.empty {
@@ -2825,9 +3014,15 @@ textarea:focus {
     height: auto;
   }
 
+  .auth-highlight-grid,
+  .auth-mini-metrics,
   .auth-feature-grid,
   .sidebar {
     display: none;
+  }
+
+  .resume-gate-benefits {
+    grid-template-columns: 1fr;
   }
 
   .topbar,
@@ -2905,6 +3100,21 @@ textarea:focus {
   .auth-panel {
     border-radius: 24px;
     padding: 20px;
+  }
+
+  .auth-hero-copy h1 {
+    max-width: none;
+    font-size: 2.2rem;
+  }
+
+  .resume-dropzone {
+    min-height: 190px;
+    padding: 24px 18px;
+  }
+
+  .selected-file-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .promo-bar {

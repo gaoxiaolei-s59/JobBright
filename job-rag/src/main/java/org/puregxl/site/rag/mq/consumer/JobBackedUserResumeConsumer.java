@@ -14,6 +14,7 @@ import org.puregxl.site.rag.dao.entity.UserResumeProfile;
 import org.puregxl.site.rag.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.rag.dao.mapper.UserResumeProfileMapper;
 import org.puregxl.site.rag.dto.profile.ResumeProfileDTO;
+import org.puregxl.site.rag.llm.profile.ProfileGenerateResult;
 import org.puregxl.site.rag.mq.base.MessageWrapper;
 import org.puregxl.site.rag.parse.ParseResult;
 import org.puregxl.site.rag.parse.TikaParseService;
@@ -118,7 +119,8 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
 
         //两次重试
         for (int round = 1; round <= 2; round++) {
-            String userProfileJson = resumeProfileLlmClient.generateProfileJson(systemPrompt, userPrompt);
+            ProfileGenerateResult userProfileResult = resumeProfileLlmClient.generateProfile(systemPrompt, userPrompt);
+            String userProfileJson = userProfileResult.getParseResult();
             ResumeProfileDTO rawDto = ResumeProfileConverter.toDto(userProfileJson);
             ResumeProfilePostProcessor.PostProcessResult postProcessResult = ResumeProfilePostProcessor.clean(rawDto, userPrompt);
             ResumeProfileDTO dto = postProcessResult.dto();
@@ -131,7 +133,7 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
 
             List<String> validationErrors = validateProfile(dto);
             if (validationErrors.isEmpty()) {
-                UserResumeProfile profile = ResumeProfileConverter.toEntity(dto, userProfileJson, userResumeFile.getResumeId());
+                UserResumeProfile profile = ResumeProfileConverter.toEntity(dto, userProfileJson, userResumeFile.getResumeId(), userProfileResult.getModel());
                 return new ProfileBuildResult(true, profile, dto, List.of());
             }
 

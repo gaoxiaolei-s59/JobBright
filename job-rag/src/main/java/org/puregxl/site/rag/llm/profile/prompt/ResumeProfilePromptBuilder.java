@@ -30,7 +30,7 @@ public final class ResumeProfilePromptBuilder {
                 8. strengths：只保留简短能力标签，如 Java基础扎实、性能优化、问题排查、工程实践，不要输出大段句子。
                 9. internship_months：只有在简历明确写了可实习时长时再填写。
                 10. salary_expectation、work_years：只有简历明确提到时再填写。
-                
+                11. model输出你自己的的模型名称
                 输出 JSON schema:
                 {
                   "candidate_name": "string|null",
@@ -49,7 +49,7 @@ public final class ResumeProfilePromptBuilder {
                   "internship_months": "string|null",
                   "salary_expectation": "string|null",
                   "work_years": "string|null",
-                  "resume_summary": "string"
+                  "resume_summary": "string",
                 }
                 """;
     }

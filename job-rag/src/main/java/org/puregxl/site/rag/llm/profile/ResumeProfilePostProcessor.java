@@ -14,6 +14,13 @@ public final class ResumeProfilePostProcessor {
             "意向城市", "工作地点", "base", "上海", "杭州", "深圳", "广州", "成都", "北京"
     );
 
+    private static final List<String> models = List.of(
+            "Pro/zai-org/GLM-5",
+            "Qwen/Qwen2.5-32B-Instruct",
+            "deepseek-ai/DeepSeek-V3.2",
+            "Pro/MiniMaxAI/MiniMax-M2.5"
+    );
+
     private ResumeProfilePostProcessor() {
     }
 
@@ -30,7 +37,38 @@ public final class ResumeProfilePostProcessor {
         dto.setProject_tags(deduplicate(dto.getProject_tags()));
         dto.setIndustry_tags(deduplicate(dto.getIndustry_tags()));
         dto.setStrengths(deduplicate(dto.getStrengths()));
+        dto.setModel(cleanModel(dto.getModel(), warnings));
         return new PostProcessResult(dto, warnings);
+    }
+
+    /**
+     * 在这里校验模型的合法性
+     * @param model
+     * @return
+     */
+    private static String cleanModel(String model, List<String> warnings) {
+        if (!StringUtils.hasText(model)) {
+            warnings.add("model为空，已回退到默认模型");
+            return models.get(0);
+        }
+
+        String normalizedModel = model.trim();
+
+        for (String candidate : models) {
+            if (candidate.equalsIgnoreCase(normalizedModel)) {
+                return candidate;
+            }
+        }
+
+        for (String candidate : models) {
+            if (candidate.toLowerCase().contains(normalizedModel.toLowerCase())
+                    || normalizedModel.toLowerCase().contains(candidate.toLowerCase())) {
+                return candidate;
+            }
+        }
+
+        warnings.add("model不在白名单中，已回退到默认模型: " + normalizedModel);
+        return models.get(0);
     }
 
     private static List<String> cleanSchoolTags(ResumeProfileDTO dto, List<String> warnings) {

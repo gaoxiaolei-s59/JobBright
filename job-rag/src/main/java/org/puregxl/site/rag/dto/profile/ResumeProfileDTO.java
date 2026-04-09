@@ -40,4 +40,6 @@ public class ResumeProfileDTO {
     private String work_years;
 
     private String resume_summary;
+
+    private String model;
 }

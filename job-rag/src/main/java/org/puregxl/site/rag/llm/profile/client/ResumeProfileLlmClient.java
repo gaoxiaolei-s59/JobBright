@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.exception.ClientException;
 import org.puregxl.site.framework.exception.ServiceException;
 import org.puregxl.site.rag.config.LLMConfiguration;
+import org.puregxl.site.rag.llm.profile.ProfileGenerateResult;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -28,7 +29,7 @@ public class ResumeProfileLlmClient {
     private final LLMConfiguration llmConfiguration;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public String generateProfileJson(String systemPrompt, String userPrompt) throws Exception {
+    public ProfileGenerateResult generateProfile(String systemPrompt, String userPrompt) throws Exception {
         if (llmConfiguration.getApiKey() == null || llmConfiguration.getApiKey().isBlank()) {
             throw new ClientException("LLM API Key 未配置");
         }
@@ -61,7 +62,11 @@ public class ResumeProfileLlmClient {
         throw new RuntimeException("所有 LLM 模型调用均失败: " + String.join(" | ", errors));
     }
 
-    private String doGenerateProfileJson(String model, String systemPrompt, String userPrompt) throws Exception {
+    public ProfileGenerateResult generateProfileJson(String systemPrompt, String userPrompt) throws Exception {
+        return generateProfile(systemPrompt, userPrompt);
+    }
+
+    private ProfileGenerateResult doGenerateProfileJson(String model, String systemPrompt, String userPrompt) throws Exception {
         Map<String, Object> requestBody = Map.of(
                 "model", model,
                 "temperature", llmConfiguration.getTemperature(),
@@ -98,7 +103,9 @@ public class ResumeProfileLlmClient {
 
         String profileJson = contentNode.asText().trim();
         objectMapper.readTree(profileJson);
-        return profileJson;
+        return ProfileGenerateResult.builder()
+                .parseResult(profileJson)
+                .model(model).build();
     }
 
     private List<String> resolveModels() {
@@ -107,4 +114,6 @@ public class ResumeProfileLlmClient {
         }
         return llmConfiguration.getModels();
     }
+
+
 }
