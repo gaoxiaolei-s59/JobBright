@@ -17,7 +17,7 @@ public class UploadCompanyLogo {
     /**
      * 开发定时任务 - 定期执行来自爬虫端的job职位的清洗
      */
-    @Scheduled(fixedRate = 5000)
+//    @Scheduled(fixedRate = 5000)
     public void run() {
         System.out.println("每 5 秒执行一次");
     }

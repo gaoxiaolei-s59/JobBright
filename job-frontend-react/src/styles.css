@@ -627,6 +627,13 @@ button {
   color: var(--brand-subtle);
 }
 
+.auth-inline-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -675,6 +682,26 @@ textarea:focus {
   color: var(--brand-ink);
   background: linear-gradient(135deg, var(--brand-primary) 0%, #9bffd6 100%);
   box-shadow: 0 14px 26px rgba(4, 217, 151, 0.18);
+}
+
+.auth-code-button {
+  height: 50px;
+  padding: 0 16px;
+  border-radius: 16px;
+  background: rgba(16, 35, 49, 0.92);
+  color: white;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.auth-code-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.auth-code-button:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
 }
 
 .helper-text {
@@ -2117,7 +2144,7 @@ textarea:focus {
 }
 
 .profile-section-card.hero {
-  padding-top: 18px;
+  padding-top: 6px;
 }
 
 .profile-main-card .profile-section-card:last-child {
@@ -2130,7 +2157,7 @@ textarea:focus {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
 
 .profile-section-head.inline {
@@ -2144,8 +2171,8 @@ textarea:focus {
 }
 
 .profile-section-head h2 {
-  font-size: clamp(2rem, 2.8vw, 3rem);
-  line-height: 1;
+  font-size: clamp(1.55rem, 2.1vw, 2.3rem);
+  line-height: 0.98;
   letter-spacing: -0.05em;
 }
 
@@ -2166,12 +2193,13 @@ textarea:focus {
 .profile-location-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 10px 16px;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 7px 12px;
   border-radius: 999px;
   background: #f5f7f8;
   color: #1c2530;
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
@@ -2211,6 +2239,56 @@ textarea:focus {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px 18px;
+}
+
+.profile-display-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
+}
+
+.profile-display-item {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(16, 35, 49, 0.06);
+}
+
+.profile-display-item.full-width {
+  grid-column: 1 / -1;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.profile-display-item > span {
+  color: #7f8a95;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.profile-display-item > div {
+  min-height: 0;
+  padding: 2px 0 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #1a2b39;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.profile-display-item.summary > div {
+  min-height: 84px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(251, 252, 252, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.05);
+  align-content: start;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-weight: 600;
 }
 
 .profile-form-grid label,
@@ -2504,6 +2582,17 @@ textarea:focus {
 .profile-editor-work-stack {
   display: grid;
   gap: 26px;
+}
+
+.profile-editor-inline-group {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-editor-inline-group > strong {
+  color: #111;
+  font-size: 0.98rem;
+  font-weight: 900;
 }
 
 .profile-editor-block {
@@ -4620,6 +4709,10 @@ textarea:focus {
   }
 
   .profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-display-grid {
     grid-template-columns: 1fr;
   }
 

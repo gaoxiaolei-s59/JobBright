@@ -20,6 +20,20 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 100MB
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: gaocom_22@qq.com
+    password: xlluovbctgdbdddg
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: false
 
 
 app:

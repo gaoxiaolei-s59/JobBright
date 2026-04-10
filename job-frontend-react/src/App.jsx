@@ -14,7 +14,8 @@ const registerInitialState = {
   username: "",
   email: "",
   displayName: "",
-  password: ""
+  password: "",
+  verificationCode: ""
 };
 
 const sidebarItems = [
@@ -192,8 +193,7 @@ const profileTabItems = [
   { key: "basic", label: "个人信息" },
   { key: "education", label: "教育经历" },
   { key: "work", label: "工作经历" },
-  { key: "skills", label: "技能标签" },
-  { key: "preferences", label: "求职偏好" }
+  { key: "skills", label: "技能标签" }
 ];
 
 const profilePersonalEditorInitialState = {
@@ -225,6 +225,24 @@ const profileWorkEditorInitialState = {
 const profileSkillsEditorInitialState = {
   items: [],
   pendingSkill: ""
+};
+
+const profileEducationEditorInitialState = {
+  school: "",
+  degree: "",
+  fieldOfStudy: "",
+  location: "",
+  startDate: "",
+  endDate: "",
+  highlights: ""
+};
+
+const profilePreferencesEditorInitialState = {
+  targetRole: "",
+  expectedCity: "",
+  jobTypes: [],
+  openToRemote: true,
+  requireVisaSupport: false
 };
 
 const jobItems = [
@@ -508,19 +526,19 @@ function buildProfileWorkEditorDraft(profileDraft) {
   const summaryBullets = getProfileSummaryBullets(profileDraft?.personalSummary);
   return {
     ...profileWorkEditorInitialState,
-    jobTitle: profileDraft?.targetRole?.trim() || "Backend Developer Intern",
-    company: "[Company Name]",
+    jobTitle: profileDraft?.targetRole?.trim() || "后端开发实习生",
+    company: "[公司名称]",
     jobType: Array.isArray(profileDraft?.jobTypes) && profileDraft.jobTypes.length > 0
       ? profileDraft.jobTypes[0]
       : "实习",
-    location: profileDraft?.expectedCity?.trim() || "[City, Country]",
+    location: profileDraft?.expectedCity?.trim() || "[城市, 国家]",
     experienceSummary: "补充一段 1-2 句话的职责概述，让招聘方先快速理解你的角色定位。",
     jobDescriptionBullets: summaryBullets.length
       ? summaryBullets
       : [
-        "Collaborated with the frontend team to develop internal tools using Spring Boot, improving team efficiency by 20%.",
-        "Assisted in migrating legacy code to a microservices architecture, enhancing system maintainability.",
-        "Wrote unit tests (JUnit) and participated in code reviews to ensure code quality and reliability."
+        "与前端团队协作开发内部工具，基于 Spring Boot 提升团队协作效率。",
+        "协助将旧系统迁移到微服务架构，提升系统可维护性与扩展性。",
+        "编写单元测试并参与代码评审，保障接口质量与系统稳定性。"
       ]
   };
 }
@@ -533,6 +551,24 @@ function buildProfileSkillsEditorDraft(profileDraft) {
       ? items
       : ["Java", "Python", "SQL", "C++", "Spring Boot", "MyBatis", "Django", "MySQL", "Redis", "RabbitMQ", "Docker", "Git"],
     pendingSkill: ""
+  };
+}
+
+function buildProfileEducationEditorDraft() {
+  return {
+    ...profileEducationEditorInitialState,
+    highlights: ""
+  };
+}
+
+function buildProfilePreferencesEditorDraft(profileDraft) {
+  return {
+    ...profilePreferencesEditorInitialState,
+    targetRole: profileDraft?.targetRole?.trim() || "",
+    expectedCity: profileDraft?.expectedCity?.trim() || "",
+    jobTypes: Array.isArray(profileDraft?.jobTypes) ? profileDraft.jobTypes : [],
+    openToRemote: profileDraft?.openToRemote !== false,
+    requireVisaSupport: Boolean(profileDraft?.requireVisaSupport)
   };
 }
 
@@ -1029,10 +1065,14 @@ function App() {
   const [profilePersonalEditorDraft, setProfilePersonalEditorDraft] = useState(null);
   const [profileWorkEditorDraft, setProfileWorkEditorDraft] = useState(null);
   const [profileSkillsEditorDraft, setProfileSkillsEditorDraft] = useState(null);
+  const [profileEducationEditorDraft, setProfileEducationEditorDraft] = useState(null);
+  const [profilePreferencesEditorDraft, setProfilePreferencesEditorDraft] = useState(null);
   const [filterExpanded, setFilterExpanded] = useState(false);
   const [authView, setAuthView] = useState("login");
   const [loginForm, setLoginForm] = useState(loginInitialState);
   const [registerForm, setRegisterForm] = useState(registerInitialState);
+  const [sendCodeLoading, setSendCodeLoading] = useState(false);
+  const [sendCodeCooldown, setSendCodeCooldown] = useState(0);
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeInfo, setResumeInfo] = useState(null);
   const [resumePreviewOpen, setResumePreviewOpen] = useState(false);
@@ -1070,6 +1110,16 @@ function App() {
     token: localStorage.getItem(TOKEN_KEY),
     user: null
   }));
+
+  useEffect(() => {
+    if (sendCodeCooldown <= 0) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      setSendCodeCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [sendCodeCooldown]);
   const currentJobsData =
     activeTab === "收藏职位"
       ? favoriteJobsData
@@ -1116,6 +1166,8 @@ function App() {
   const profilePersonalView = profilePersonalEditorDraft || buildProfilePersonalEditorDraft(auth.user, userProfileDraft);
   const profileWorkView = profileWorkEditorDraft || buildProfileWorkEditorDraft(userProfileDraft);
   const profileSkillsView = profileSkillsEditorDraft || buildProfileSkillsEditorDraft(userProfileDraft);
+  const profileEducationView = profileEducationEditorDraft || buildProfileEducationEditorDraft();
+  const profilePreferencesView = profilePreferencesEditorDraft || buildProfilePreferencesEditorDraft(userProfileDraft);
 
   useEffect(() => {
     if (auth.token) {
@@ -1298,6 +1350,14 @@ function App() {
     setProfileSkillsEditorDraft((current) => current || readLocalJson(
       getUserScopedStorageKey(auth.user, "profile_skills_editor"),
       buildProfileSkillsEditorDraft(userProfileDraft)
+    ));
+    setProfileEducationEditorDraft((current) => current || readLocalJson(
+      getUserScopedStorageKey(auth.user, "profile_education_editor"),
+      buildProfileEducationEditorDraft()
+    ));
+    setProfilePreferencesEditorDraft((current) => current || readLocalJson(
+      getUserScopedStorageKey(auth.user, "profile_preferences_editor"),
+      buildProfilePreferencesEditorDraft(userProfileDraft)
     ));
   }, [auth.user, sessionReady]);
 
@@ -1707,17 +1767,50 @@ function App() {
     setLoading(true);
     setMessage({ type: "", text: "" });
     try {
+      const { verificationCode: _verificationCode, ...registerPayload } = registerForm;
       await request("/api/auth/register", {
         method: "POST",
-        body: JSON.stringify(registerForm)
+        body: JSON.stringify(registerPayload)
       });
       setRegisterForm(registerInitialState);
+      setSendCodeCooldown(0);
       setAuthView("login");
       setMessage({ type: "success", text: "注册成功，请使用新账号登录。" });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSendVerificationCode() {
+    const email = String(registerForm.email || "").trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setMessage({ type: "error", text: "请先填写邮箱后再发送验证码。" });
+      return;
+    }
+    if (!emailPattern.test(email)) {
+      setMessage({ type: "error", text: "邮箱格式不正确，请检查后再试。" });
+      return;
+    }
+    if (sendCodeCooldown > 0) {
+      return;
+    }
+
+    setSendCodeLoading(true);
+    setMessage({ type: "", text: "" });
+    try {
+      await request("/api/auth/send", {
+        method: "POST",
+        body: JSON.stringify({ email })
+      });
+      setSendCodeCooldown(60);
+      setMessage({ type: "success", text: "验证码已发送，请留意邮箱。" });
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "验证码发送失败" });
+    } finally {
+      setSendCodeLoading(false);
     }
   }
 
@@ -2011,6 +2104,18 @@ function App() {
         buildProfileSkillsEditorDraft(userProfileDraft)
       ));
     }
+    if (type === "education") {
+      setProfileEducationEditorDraft((current) => current || readLocalJson(
+        getUserScopedStorageKey(auth.user, "profile_education_editor"),
+        buildProfileEducationEditorDraft()
+      ));
+    }
+    if (type === "preferences") {
+      setProfilePreferencesEditorDraft((current) => current || readLocalJson(
+        getUserScopedStorageKey(auth.user, "profile_preferences_editor"),
+        buildProfilePreferencesEditorDraft(userProfileDraft)
+      ));
+    }
     setProfileEditorType(type);
   }
 
@@ -2028,6 +2133,14 @@ function App() {
 
   function handleProfileSkillsEditorChange(field, value) {
     setProfileSkillsEditorDraft((current) => ({ ...(current || profileSkillsView), [field]: value }));
+  }
+
+  function handleProfileEducationEditorChange(field, value) {
+    setProfileEducationEditorDraft((current) => ({ ...(current || profileEducationView), [field]: value }));
+  }
+
+  function handleProfilePreferencesEditorChange(field, value) {
+    setProfilePreferencesEditorDraft((current) => ({ ...(current || profilePreferencesView), [field]: value }));
   }
 
   function handleAddSkillItem() {
@@ -2131,6 +2244,36 @@ function App() {
     closeProfileEditor();
   }
 
+  function handleSaveEducationProfileEditor() {
+    if (!auth.user || !profileEducationView.school.trim()) {
+      setMessage({ type: "error", text: "请先填写学校名称。" });
+      return;
+    }
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_education_editor"), profileEducationView);
+    setMessage({ type: "success", text: "教育经历已更新。" });
+    closeProfileEditor();
+  }
+
+  function handleSavePreferencesProfileEditor() {
+    if (!auth.user) {
+      return;
+    }
+    const nextProfileDraft = {
+      ...userProfileDraft,
+      targetRole: profilePreferencesView.targetRole.trim(),
+      expectedCity: profilePreferencesView.expectedCity.trim(),
+      jobTypes: profilePreferencesView.jobTypes,
+      openToRemote: profilePreferencesView.openToRemote,
+      requireVisaSupport: profilePreferencesView.requireVisaSupport
+    };
+    setUserProfileDraft(nextProfileDraft);
+    setProfilePreferencesEditorDraft(profilePreferencesView);
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_preferences_editor"), profilePreferencesView);
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), nextProfileDraft);
+    setMessage({ type: "success", text: "求职偏好已更新。" });
+    closeProfileEditor();
+  }
+
   async function handleJobTabChange(tab) {
     const nextFilters = { ...jobFilters, current: 1 };
     setActiveTab(tab);
@@ -2149,6 +2292,17 @@ function App() {
         ? currentTypes.filter((item) => item !== jobType)
         : [...currentTypes, jobType];
       return { ...current, jobTypes: nextTypes };
+    });
+  }
+
+  function handleProfilePreferencesJobTypeToggle(jobType) {
+    setProfilePreferencesEditorDraft((current) => {
+      const base = current || profilePreferencesView;
+      const currentTypes = Array.isArray(base.jobTypes) ? base.jobTypes : [];
+      const nextTypes = currentTypes.includes(jobType)
+        ? currentTypes.filter((item) => item !== jobType)
+        : [...currentTypes, jobType];
+      return { ...base, jobTypes: nextTypes };
     });
   }
 
@@ -2766,32 +2920,19 @@ function App() {
                 </button>
               </div>
 
-              <div className="profile-form-grid">
-                <label>
-                  目标岗位
-                  <input
-                    value={userProfileDraft.targetRole}
-                    onChange={(event) => handleProfileDraftChange("targetRole", event.target.value)}
-                    placeholder="例如 后端开发 / Java 工程师"
-                  />
-                </label>
-                <label>
-                  期望城市
-                  <input
-                    value={userProfileDraft.expectedCity}
-                    onChange={(event) => handleProfileDraftChange("expectedCity", event.target.value)}
-                    placeholder="例如 上海 / 深圳"
-                  />
-                </label>
-                <label className="full-width">
-                  个人亮点摘要
-                  <textarea
-                    value={userProfileDraft.personalSummary}
-                    onChange={(event) => handleProfileDraftChange("personalSummary", event.target.value)}
-                    placeholder="写下你最想让招聘方快速看到的项目经历、技术栈或求职方向。"
-                    rows={4}
-                  />
-                </label>
+              <div className="profile-display-grid">
+                <article className="profile-display-item">
+                  <span>目标岗位</span>
+                  <div>{userProfileDraft.targetRole || "待补充目标岗位"}</div>
+                </article>
+                <article className="profile-display-item">
+                  <span>期望城市</span>
+                  <div>{userProfileDraft.expectedCity || "待补充期望城市"}</div>
+                </article>
+                <article className="profile-display-item full-width summary">
+                  <span>个人亮点摘要</span>
+                  <div>{userProfileDraft.personalSummary || "待补充个人亮点摘要"}</div>
+                </article>
               </div>
             </section>
 
@@ -2799,16 +2940,16 @@ function App() {
               <div className="profile-section-head inline">
                 <div>
                   <h3>教育经历</h3>
-                  <p>补充教育经历后，系统更容易识别校招、实习和当前阶段的匹配逻辑。</p>
+                  <p>{profileEducationView.school ? `${profileEducationView.school} · ${profileEducationView.degree} · ${profileEducationView.fieldOfStudy}` : "补充教育经历后，系统更容易识别校招、实习和当前阶段的匹配逻辑。"}</p>
                 </div>
-                <button className="profile-edit-button" type="button" onClick={handleSaveUserProfileDraft}>
+                <button className="profile-edit-button" type="button" onClick={() => openProfileEditor("education")}>
                   <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                     <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
                     <path d="M11.93 5.99 14.01 8.07" />
                   </svg>
                 </button>
               </div>
-              <button className="profile-outline-action" type="button" onClick={() => setActiveSection("resume")}>
+              <button className="profile-outline-action" type="button" onClick={() => openProfileEditor("education")}>
                 + 添加教育经历
               </button>
             </section>
@@ -2830,7 +2971,7 @@ function App() {
               <article className="profile-timeline-card">
                 <div className="profile-timeline-marker" />
                 <div className="profile-timeline-content">
-                  <strong>{profileWorkView.jobTitle || "Backend Developer Intern"}</strong>
+                  <strong>{profileWorkView.jobTitle || "后端开发实习生"}</strong>
                   <span>{profileWorkView.location || profileDisplayLocation}</span>
                   <ul className="profile-bullet-list">
                     {(profileSummaryBullets.length ? profileSummaryBullets : [
@@ -2870,64 +3011,6 @@ function App() {
                 {(profileKeywordTags.length ? profileKeywordTags : ["Java", "Spring Boot", "MySQL"]).map((tag) => (
                   <span key={tag}>{tag}</span>
                 ))}
-              </div>
-            </section>
-
-            <section className="profile-section-card" ref={profilePreferencesRef}>
-              <div className="profile-section-head inline">
-                <div>
-                  <h3>求职偏好</h3>
-                  <p>把求职类型、远程意愿和签证需求整理清楚，推荐结果会更稳定。</p>
-                </div>
-                <button className="profile-edit-button" type="button" onClick={handleSaveUserProfileDraft}>
-                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                    <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
-                    <path d="M11.93 5.99 14.01 8.07" />
-                  </svg>
-                </button>
-              </div>
-              <div className="profile-preference-stack">
-                <div className="profile-preference-group">
-                  <span>求职类型</span>
-                  <div className="profile-choice-row">
-                    {onboardingJobTypeOptions.map((jobType) => (
-                      <button
-                        key={jobType}
-                        className={`profile-choice-chip${userProfileDraft.jobTypes.includes(jobType) ? " active" : ""}`}
-                        onClick={() => handleProfileJobTypeToggle(jobType)}
-                        type="button"
-                      >
-                        {jobType}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="profile-preference-group">
-                  <span>投递偏好</span>
-                  <div className="profile-toggle-list">
-                    <label className="profile-toggle-item">
-                      <input
-                        checked={userProfileDraft.openToRemote}
-                        onChange={(event) => handleProfileDraftChange("openToRemote", event.target.checked)}
-                        type="checkbox"
-                      />
-                      <span>接受远程办公</span>
-                    </label>
-                    <label className="profile-toggle-item">
-                      <input
-                        checked={userProfileDraft.requireVisaSupport}
-                        onChange={(event) => handleProfileDraftChange("requireVisaSupport", event.target.checked)}
-                        type="checkbox"
-                      />
-                      <span>需要签证支持</span>
-                    </label>
-                  </div>
-                </div>
-
-                <button className="profile-outline-action" onClick={handleSaveUserProfileDraft} type="button">
-                  保存求职偏好
-                </button>
               </div>
             </section>
           </section>
@@ -2979,23 +3062,31 @@ function App() {
                 </button>
                 <strong>
                   {profileEditorType === "personal"
-                    ? "Personal"
+                    ? "个人信息"
+                    : profileEditorType === "education"
+                      ? "教育经历"
                     : profileEditorType === "work"
-                      ? "Work Experience"
-                      : "Skills"}
+                      ? "工作经历"
+                      : profileEditorType === "skills"
+                        ? "技能标签"
+                        : "求职偏好"}
                 </strong>
                 <button
                   className="profile-editor-update"
                   onClick={
                     profileEditorType === "personal"
                       ? handleSavePersonalProfileEditor
+                      : profileEditorType === "education"
+                        ? handleSaveEducationProfileEditor
                       : profileEditorType === "work"
                         ? handleSaveWorkProfileEditor
-                        : handleSaveSkillsProfileEditor
+                        : profileEditorType === "skills"
+                          ? handleSaveSkillsProfileEditor
+                          : handleSavePreferencesProfileEditor
                   }
                   type="button"
                 >
-                  UPDATE
+                  更新
                 </button>
               </div>
 
@@ -3003,91 +3094,91 @@ function App() {
                 {profileEditorType === "personal" ? (
                   <div className="profile-editor-form-grid">
                     <label>
-                      <span>* First Name</span>
+                      <span>* 名</span>
                       <input
                         value={profilePersonalView.firstName}
                         onChange={(event) => handleProfilePersonalEditorChange("firstName", event.target.value)}
-                        placeholder="First name"
+                        placeholder="请输入名字"
                       />
                     </label>
                     <label>
-                      <span>* Last Name</span>
+                      <span>* 姓</span>
                       <input
                         value={profilePersonalView.lastName}
                         onChange={(event) => handleProfilePersonalEditorChange("lastName", event.target.value)}
-                        placeholder="Last name"
+                        placeholder="请输入姓氏"
                       />
                     </label>
                     <label>
-                      <span>* Email</span>
+                      <span>* 邮箱</span>
                       <input
                         value={profilePersonalView.email}
                         onChange={(event) => handleProfilePersonalEditorChange("email", event.target.value)}
-                        placeholder="Email"
+                        placeholder="请输入邮箱"
                       />
                     </label>
                     <label>
-                      <span>Phone</span>
+                      <span>手机号</span>
                       <input
                         value={profilePersonalView.phone}
                         onChange={(event) => handleProfilePersonalEditorChange("phone", event.target.value)}
-                        placeholder="Phone"
+                        placeholder="请输入手机号"
                       />
                     </label>
                     <label>
-                      <span>Country/Region</span>
+                      <span>国家/地区</span>
                       <input
                         value={profilePersonalView.countryRegion}
                         onChange={(event) => handleProfilePersonalEditorChange("countryRegion", event.target.value)}
-                        placeholder="Country/Region"
+                        placeholder="请输入国家/地区"
                       />
                     </label>
                     <label>
-                      <span>City</span>
+                      <span>城市</span>
                       <input
                         value={profilePersonalView.city}
                         onChange={(event) => handleProfilePersonalEditorChange("city", event.target.value)}
-                        placeholder="City"
+                        placeholder="请输入城市"
                       />
                     </label>
                     <label>
-                      <span>County</span>
+                      <span>区县</span>
                       <input
                         value={profilePersonalView.county}
                         onChange={(event) => handleProfilePersonalEditorChange("county", event.target.value)}
-                        placeholder="County"
+                        placeholder="请输入区县"
                       />
                     </label>
                     <label>
-                      <span>Postal Code</span>
+                      <span>邮编</span>
                       <input
                         value={profilePersonalView.postalCode}
                         onChange={(event) => handleProfilePersonalEditorChange("postalCode", event.target.value)}
-                        placeholder="Postal code"
+                        placeholder="请输入邮编"
                       />
                     </label>
                     <label className="full-width">
-                      <span>Address Line</span>
+                      <span>详细地址</span>
                       <input
                         value={profilePersonalView.addressLine}
                         onChange={(event) => handleProfilePersonalEditorChange("addressLine", event.target.value)}
-                        placeholder="Address line"
+                        placeholder="请输入详细地址"
                       />
                     </label>
                     <label className="full-width">
-                      <span>* Linkedin URL</span>
+                      <span>* LinkedIn 地址</span>
                       <input
                         value={profilePersonalView.linkedInUrl}
                         onChange={(event) => handleProfilePersonalEditorChange("linkedInUrl", event.target.value)}
-                        placeholder="Linkedin URL"
+                        placeholder="请输入 LinkedIn 地址"
                       />
                     </label>
                     <label className="full-width">
-                      <span>Github URL</span>
+                      <span>GitHub 地址</span>
                       <input
                         value={profilePersonalView.githubUrl}
                         onChange={(event) => handleProfilePersonalEditorChange("githubUrl", event.target.value)}
-                        placeholder="Github URL"
+                        placeholder="请输入 GitHub 地址"
                       />
                     </label>
                   </div>
@@ -3097,84 +3188,84 @@ function App() {
                   <div className="profile-editor-work-stack">
                     <div className="profile-editor-block">
                       <div className="profile-editor-block-head">
-                        <strong>Work Experience 1</strong>
+                        <strong>工作经历 1</strong>
                       </div>
                       <div className="profile-editor-form-grid">
                         <label className="full-width">
-                          <span>* Job Title</span>
+                          <span>* 职位名称</span>
                           <input
                             value={profileWorkView.jobTitle}
                             onChange={(event) => handleProfileWorkEditorChange("jobTitle", event.target.value)}
-                            placeholder="Job Title"
+                            placeholder="请输入职位名称"
                           />
                         </label>
                         <label className="full-width">
-                          <span>* Company</span>
+                          <span>* 公司名称</span>
                           <input
                             value={profileWorkView.company}
                             onChange={(event) => handleProfileWorkEditorChange("company", event.target.value)}
-                            placeholder="Company"
+                            placeholder="请输入公司名称"
                           />
                         </label>
                         <label>
-                          <span>* Job Type</span>
+                          <span>* 工作类型</span>
                           <input
                             value={profileWorkView.jobType}
                             onChange={(event) => handleProfileWorkEditorChange("jobType", event.target.value)}
-                            placeholder="Job type"
+                            placeholder="请输入工作类型"
                           />
                         </label>
                         <label>
-                          <span>Location</span>
+                          <span>工作地点</span>
                           <input
                             value={profileWorkView.location}
                             onChange={(event) => handleProfileWorkEditorChange("location", event.target.value)}
-                            placeholder="Location"
+                            placeholder="请输入工作地点"
                           />
                         </label>
                         <label>
-                          <span>Start Date</span>
+                          <span>开始时间</span>
                           <input
                             value={profileWorkView.startDate}
                             onChange={(event) => handleProfileWorkEditorChange("startDate", event.target.value)}
-                            placeholder="Select start date"
+                            placeholder="请选择开始时间"
                           />
                         </label>
                         <label>
-                          <span>End Date</span>
+                          <span>结束时间</span>
                           <input
                             value={profileWorkView.endDate}
                             onChange={(event) => handleProfileWorkEditorChange("endDate", event.target.value)}
-                            placeholder="Select end date"
+                            placeholder="请选择结束时间"
                           />
                         </label>
                         <label className="full-width">
-                          <span>Experience Summary</span>
+                          <span>经历概述</span>
                           <textarea
                             rows={3}
                             value={profileWorkView.experienceSummary}
                             onChange={(event) => handleProfileWorkEditorChange("experienceSummary", event.target.value)}
-                            placeholder="Describe the role briefly"
+                            placeholder="补充 1-2 句岗位职责概述"
                           />
                         </label>
                       </div>
                     </div>
 
                     <div className="profile-editor-bullets">
-                      <strong>Job Description</strong>
+                      <strong>工作描述</strong>
                       {(profileWorkView.jobDescriptionBullets || []).map((bullet, index) => (
                         <div key={`work-bullet-${index}`} className="profile-editor-bullet-row">
                           <textarea
                             rows={2}
                             value={bullet}
                             onChange={(event) => handleProfileWorkBulletChange(index, event.target.value)}
-                            placeholder="Add a bullet point"
+                            placeholder="请输入一条工作描述"
                           />
                           <button type="button" onClick={() => handleRemoveProfileWorkBullet(index)}>×</button>
                         </div>
                       ))}
                       <button className="profile-editor-outline" onClick={handleAddProfileWorkBullet} type="button">
-                        + Bullet points
+                        + 添加描述要点
                       </button>
                     </div>
                   </div>
@@ -3199,9 +3290,132 @@ function App() {
                               handleAddSkillItem();
                             }
                           }}
-                          placeholder="Add skill..."
+                          placeholder="添加技能..."
                         />
                       </label>
+                    </div>
+                  </div>
+                ) : null}
+
+                {profileEditorType === "education" ? (
+                  <div className="profile-editor-form-grid">
+                    <label className="full-width">
+                      <span>* 学校名称</span>
+                      <input
+                        value={profileEducationView.school}
+                        onChange={(event) => handleProfileEducationEditorChange("school", event.target.value)}
+                        placeholder="请输入学校名称"
+                      />
+                    </label>
+                    <label>
+                      <span>学历</span>
+                      <input
+                        value={profileEducationView.degree}
+                        onChange={(event) => handleProfileEducationEditorChange("degree", event.target.value)}
+                        placeholder="请输入学历"
+                      />
+                    </label>
+                    <label>
+                      <span>专业</span>
+                      <input
+                        value={profileEducationView.fieldOfStudy}
+                        onChange={(event) => handleProfileEducationEditorChange("fieldOfStudy", event.target.value)}
+                        placeholder="请输入专业"
+                      />
+                    </label>
+                    <label>
+                      <span>所在地</span>
+                      <input
+                        value={profileEducationView.location}
+                        onChange={(event) => handleProfileEducationEditorChange("location", event.target.value)}
+                        placeholder="请输入所在地"
+                      />
+                    </label>
+                    <label>
+                      <span>开始时间</span>
+                      <input
+                        value={profileEducationView.startDate}
+                        onChange={(event) => handleProfileEducationEditorChange("startDate", event.target.value)}
+                        placeholder="请选择开始时间"
+                      />
+                    </label>
+                    <label>
+                      <span>结束时间</span>
+                      <input
+                        value={profileEducationView.endDate}
+                        onChange={(event) => handleProfileEducationEditorChange("endDate", event.target.value)}
+                        placeholder="请选择结束时间"
+                      />
+                    </label>
+                    <label className="full-width">
+                      <span>补充说明</span>
+                      <textarea
+                        rows={4}
+                        value={profileEducationView.highlights}
+                        onChange={(event) => handleProfileEducationEditorChange("highlights", event.target.value)}
+                        placeholder="可补充 GPA、竞赛、科研或奖项经历"
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                {profileEditorType === "preferences" ? (
+                  <div className="profile-editor-work-stack">
+                    <div className="profile-editor-form-grid">
+                      <label>
+                        <span>目标岗位</span>
+                        <input
+                          value={profilePreferencesView.targetRole}
+                          onChange={(event) => handleProfilePreferencesEditorChange("targetRole", event.target.value)}
+                          placeholder="请输入目标岗位"
+                        />
+                      </label>
+                      <label>
+                        <span>期望城市</span>
+                        <input
+                          value={profilePreferencesView.expectedCity}
+                          onChange={(event) => handleProfilePreferencesEditorChange("expectedCity", event.target.value)}
+                          placeholder="请输入期望城市"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="profile-editor-inline-group">
+                      <strong>求职类型</strong>
+                      <div className="profile-choice-row">
+                        {onboardingJobTypeOptions.map((jobType) => (
+                          <button
+                            key={`editor-${jobType}`}
+                            className={`profile-choice-chip${profilePreferencesView.jobTypes.includes(jobType) ? " active" : ""}`}
+                            onClick={() => handleProfilePreferencesJobTypeToggle(jobType)}
+                            type="button"
+                          >
+                            {jobType}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="profile-editor-inline-group">
+                      <strong>投递偏好</strong>
+                      <div className="profile-toggle-list">
+                        <label className="profile-toggle-item">
+                          <input
+                            checked={profilePreferencesView.openToRemote}
+                            onChange={(event) => handleProfilePreferencesEditorChange("openToRemote", event.target.checked)}
+                            type="checkbox"
+                          />
+                          <span>接受远程办公</span>
+                        </label>
+                        <label className="profile-toggle-item">
+                          <input
+                            checked={profilePreferencesView.requireVisaSupport}
+                            onChange={(event) => handleProfilePreferencesEditorChange("requireVisaSupport", event.target.checked)}
+                            type="checkbox"
+                          />
+                          <span>需要签证支持</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 ) : null}
@@ -3372,10 +3586,33 @@ function App() {
 
                   <label>
                     邮箱
+                    <div className="auth-inline-row">
+                      <input
+                        value={registerForm.email}
+                        onChange={(event) => updateForm(setRegisterForm, "email", event.target.value)}
+                        placeholder="请输入邮箱"
+                      />
+                      <button
+                        className="auth-code-button"
+                        disabled={sendCodeLoading || sendCodeCooldown > 0 || loading}
+                        onClick={handleSendVerificationCode}
+                        type="button"
+                      >
+                        {sendCodeLoading
+                          ? "发送中..."
+                          : sendCodeCooldown > 0
+                            ? `${sendCodeCooldown}s`
+                            : "发送验证码"}
+                      </button>
+                    </div>
+                  </label>
+
+                  <label>
+                    邮箱验证码
                     <input
-                      value={registerForm.email}
-                      onChange={(event) => updateForm(setRegisterForm, "email", event.target.value)}
-                      placeholder="请输入邮箱"
+                      value={registerForm.verificationCode}
+                      onChange={(event) => updateForm(setRegisterForm, "verificationCode", event.target.value)}
+                      placeholder="请输入收到的邮箱验证码"
                     />
                   </label>
 
@@ -3405,6 +3642,10 @@ function App() {
                   <button className="primary-button" disabled={loading} type="submit">
                     {loading ? "注册中..." : "创建账号"}
                   </button>
+
+                  <div className="helper-text">
+                    当前注册页已接入邮箱验证码发送接口，注册提交本身暂未校验验证码。
+                  </div>
                 </form>
               )}
           </section>

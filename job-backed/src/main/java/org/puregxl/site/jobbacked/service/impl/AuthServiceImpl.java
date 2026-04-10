@@ -2,6 +2,7 @@ package org.puregxl.site.jobbacked.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -18,9 +19,11 @@ import org.puregxl.site.jobbacked.dto.resp.AuthResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserProfileResponse;
 import org.puregxl.site.jobbacked.service.AuthService;
 import org.puregxl.site.jobbacked.service.FileStorageService;
+import org.puregxl.site.jobbacked.service.MailService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static org.puregxl.site.jobbacked.common.constant.AuthConstant.USER_LOGIN_KEY_PREFIX;
@@ -33,6 +36,9 @@ public class AuthServiceImpl implements AuthService {
 
     private final StringRedisTemplate stringRedisTemplate;
 
+    private final MailService mailService;
+
+    private static final String MAIL_CODE_PREFIX = "job:backed:mail:code:%s";
 
     @Override
     public AuthResponse login(LoginRequest requestParam) {
@@ -59,7 +65,7 @@ public class AuthServiceImpl implements AuthService {
         //登录成功 - 生成用户令牌
         String token = UUID.randomUUID().toString();
         UserInfoDTO userInfoDTO = new UserInfoDTO(userAccount.getId(), userAccount.getUsername(), userAccount.getEmail(), userAccount.getDisplayName());
-        stringRedisTemplate.opsForValue().set(USER_LOGIN_KEY_PREFIX + token, JSONUtil.toJsonStr(userInfoDTO), 60, TimeUnit.MINUTES);
+        stringRedisTemplate.opsForValue().set(USER_LOGIN_KEY_PREFIX + token, JSONUtil.toJsonStr(userInfoDTO), 5, TimeUnit.MINUTES);
 
         return AuthResponse.builder()
                 .accessToken(token).build();
@@ -72,13 +78,22 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void register(RegisterRequest requestParam) {
-        LambdaQueryWrapper<UserAccount> queryWrapper = Wrappers.lambdaQuery(UserAccount.class)
-                .eq(UserAccount::getUsername, requestParam.getUsername());
 
-        UserAccount userAccount = userAccountMapper.selectOne(queryWrapper);
+        LambdaQueryWrapper<UserAccount> queryWrapperOne = Wrappers.lambdaQuery(UserAccount.class)
+                .eq(UserAccount::getUsername, requestParam.getUsername())
+                .or()
+                .eq(UserAccount::getEmail, requestParam.getEmail());
+
+        UserAccount userAccount = userAccountMapper.selectOne(queryWrapperOne);
 
         if (userAccount != null) {
             throw new ClientException("用户已经存在");
+        }
+
+        //验证验证码是否正确
+        String code = stringRedisTemplate.opsForValue().get(String.format(MAIL_CODE_PREFIX, requestParam.getEmail()));
+        if (StrUtil.isBlank(code) || Objects.equals(code, requestParam.getCode())) {
+            throw new ClientException("验证码错误");
         }
 
         UserAccount build = UserAccount.builder()
@@ -90,6 +105,8 @@ public class AuthServiceImpl implements AuthService {
 
         userAccountMapper.insert(build);
     }
+
+
 
 
 }

@@ -18,46 +18,15 @@ import java.util.List;
 @SpringBootTest
 public class test {
 
-    @Autowired
-    public UserResumeFileMapper userResumeFileMapper;
-
-    @Autowired
-    public JobPostMapper jobPostMapper;
-
+    /**
+     * 需求 基于qq邮箱api 开发 xlluovbctgdbdddg
+     */
     @Test
-    void test() {
-        UserResumeFile userResumeFile = UserResumeFile.builder().userId(2039240368378200065L).
-                resumeId("1c02e038-1feb-4f7e-9f0e-8e4e10280f92").
-                fileName("高晓雷-实习.pdf").
-                fileExt("pdf").
-                contentType("application/pdf").
-                fileSize(834566L).
-                objectKey("user/resume/1c02e038-1feb-4f7e-9f0e-8e4e10280f98.pdf").
-                objectUrl("http://localhost:9000/user-resume/user/resume/1c02e038-1feb-4f7e-9f0e-8e4e10280f98.pdf").
-                isCurrent(1).
-                score(88d).build();
-        userResumeFileMapper.insert(userResumeFile);
-        System.out.println(userResumeFile.getId());
-    }
-
-    @Test
-    void testv2() {
-        JobPageRequestV2 jobPageRequestV2 = new JobPageRequestV2();
-        jobPageRequestV2.setCurrent(0);
-        jobPageRequestV2.setSize(5);
-
-        IPage<JobPost> jobPostIPage = jobPostMapper.selectRecommendJobPageV2(jobPageRequestV2, jobPageRequestV2);
-
-        List<JobPost> records = jobPostIPage.getRecords();
-
-        for (JobPost record : records) {
-            System.out.println(JSONUtil.toJsonStr(record));
-        }
-
+    public void test() {
 
     }
 
 
 
-    
+
 }

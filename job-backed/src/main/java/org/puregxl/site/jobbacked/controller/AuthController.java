@@ -7,9 +7,11 @@ import org.puregxl.site.framework.web.Results;
 import org.puregxl.site.jobbacked.common.context.UserContext;
 import org.puregxl.site.jobbacked.dto.req.LoginRequest;
 import org.puregxl.site.jobbacked.dto.req.RegisterRequest;
+import org.puregxl.site.jobbacked.dto.req.SendVerificationCodeRequest;
 import org.puregxl.site.jobbacked.dto.resp.AuthResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserProfileResponse;
 import org.puregxl.site.jobbacked.service.AuthService;
+import org.puregxl.site.jobbacked.service.MailService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    private final MailService mailService;
+
 
 
     /**
@@ -57,4 +62,17 @@ public class AuthController {
         long currentUserId = UserContext.getUserId();
         return Results.success(authService.currentUser(currentUserId));
     }
+
+
+    /**
+     * 发送验证码
+     * @return
+     */
+    @PostMapping("/send")
+    public Result<Void> sendVerificationCode(@Valid @RequestBody SendVerificationCodeRequest request) {
+        mailService.sendVerificationCode(request.getEmail().trim());
+        return Results.success();
+    }
+
+
 }
