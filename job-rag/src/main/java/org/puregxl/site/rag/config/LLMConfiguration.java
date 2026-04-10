@@ -48,7 +48,7 @@ public class LLMConfiguration {
     /**
      * 最大返回 token 数
      */
-    private Integer maxTokens = 800;
+    private Integer maxTokens = 8000;
 
     /**
      * 温度参数

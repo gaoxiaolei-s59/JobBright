@@ -188,6 +188,45 @@ const jobTabEndpointMap = {
   已投递: "/api/jobs/applied"
 };
 
+const profileTabItems = [
+  { key: "basic", label: "个人信息" },
+  { key: "education", label: "教育经历" },
+  { key: "work", label: "工作经历" },
+  { key: "skills", label: "技能标签" },
+  { key: "preferences", label: "求职偏好" }
+];
+
+const profilePersonalEditorInitialState = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  countryRegion: "",
+  city: "",
+  county: "",
+  postalCode: "",
+  addressLine: "",
+  linkedInUrl: "",
+  githubUrl: ""
+};
+
+const profileWorkEditorInitialState = {
+  jobTitle: "",
+  company: "",
+  jobType: "",
+  location: "",
+  startDate: "",
+  endDate: "",
+  currentlyWorkHere: true,
+  experienceSummary: "",
+  jobDescriptionBullets: []
+};
+
+const profileSkillsEditorInitialState = {
+  items: [],
+  pendingSkill: ""
+};
+
 const jobItems = [
   {
     id: "job-1",
@@ -438,6 +477,65 @@ function getAuthDisplayName(user) {
   return user?.displayName || user?.username || "U";
 }
 
+function splitDisplayName(value) {
+  const parts = String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return {
+    firstName: parts[0] || "",
+    lastName: parts.slice(1).join(" ")
+  };
+}
+
+function buildProfilePersonalEditorDraft(authUser, profileDraft) {
+  const displayName = getAuthDisplayName(authUser);
+  const { firstName, lastName } = splitDisplayName(displayName);
+  return {
+    ...profilePersonalEditorInitialState,
+    firstName,
+    lastName,
+    email: authUser?.email || "",
+    phone: "",
+    countryRegion: "中国大陆",
+    city: profileDraft?.expectedCity?.trim() || "",
+    linkedInUrl: "",
+    githubUrl: ""
+  };
+}
+
+function buildProfileWorkEditorDraft(profileDraft) {
+  const summaryBullets = getProfileSummaryBullets(profileDraft?.personalSummary);
+  return {
+    ...profileWorkEditorInitialState,
+    jobTitle: profileDraft?.targetRole?.trim() || "Backend Developer Intern",
+    company: "[Company Name]",
+    jobType: Array.isArray(profileDraft?.jobTypes) && profileDraft.jobTypes.length > 0
+      ? profileDraft.jobTypes[0]
+      : "实习",
+    location: profileDraft?.expectedCity?.trim() || "[City, Country]",
+    experienceSummary: "补充一段 1-2 句话的职责概述，让招聘方先快速理解你的角色定位。",
+    jobDescriptionBullets: summaryBullets.length
+      ? summaryBullets
+      : [
+        "Collaborated with the frontend team to develop internal tools using Spring Boot, improving team efficiency by 20%.",
+        "Assisted in migrating legacy code to a microservices architecture, enhancing system maintainability.",
+        "Wrote unit tests (JUnit) and participated in code reviews to ensure code quality and reliability."
+      ]
+  };
+}
+
+function buildProfileSkillsEditorDraft(profileDraft) {
+  const items = getProfileKeywordTags(profileDraft?.keywordTags);
+  return {
+    ...profileSkillsEditorInitialState,
+    items: items.length
+      ? items
+      : ["Java", "Python", "SQL", "C++", "Spring Boot", "MyBatis", "Django", "MySQL", "Redis", "RabbitMQ", "Docker", "Git"],
+    pendingSkill: ""
+  };
+}
+
 function hasCompletedProfileOnboarding(profileDraft) {
   return Boolean(
     profileDraft?.targetRole?.trim()
@@ -564,8 +662,77 @@ function buildResumePreviewContent(resumeInfo, profileDraft, authUser) {
           "补充更明确的性能和业务指标后，会更适合 LLM 做打分和建议。"
         ]
       }
+    ],
+    workExperiences: [
+      {
+        company: "某互联网平台",
+        role: "后端开发实习生",
+        bullets: [
+          "参与订单、库存、商品等核心服务的接口开发与联调。",
+          "协助老系统向微服务架构迁移，提升模块可维护性。",
+          "编写单元测试并参与代码评审，保障接口稳定性。"
+        ]
+      }
+    ],
+    certifications: [
+      {
+        name: "数据库与中间件能力",
+        description: "熟悉 MySQL、Redis、RabbitMQ 等常见后端基础组件。"
+      },
+      {
+        name: "工程化与工具链",
+        description: "掌握 Git、Maven、Postman、Linux 基础脚本与排障。"
+      }
     ]
   };
+}
+
+function getResumeContactCards(previewData, profileDraft, authUser) {
+  const name = getAuthDisplayName(authUser);
+  return [
+    {
+      key: "email",
+      icon: "mail",
+      title: "邮箱",
+      value: authUser?.email || "待补充邮箱",
+      hint: "建议补充常用邮箱，方便投递与自动填充。"
+    },
+    {
+      key: "phone",
+      icon: "phone",
+      title: "电话",
+      value: "待补充电话",
+      hint: "建议补充手机号，用于后续简历完善。"
+    },
+    {
+      key: "location",
+      icon: "location",
+      title: "地点",
+      value: previewData?.profile?.location || getProfileLocationText(profileDraft),
+      hint: "可填写城市 / 国家，提升岗位地域匹配。"
+    },
+    {
+      key: "linkedin",
+      icon: "link",
+      title: "LinkedIn",
+      value: `${name} 的职业主页`,
+      hint: "可补充公开职业链接，增强招聘方了解。"
+    },
+    {
+      key: "github",
+      icon: "github",
+      title: "GitHub",
+      value: `${name} 的项目仓库`,
+      hint: "可展示代表性项目与工程能力。"
+    },
+    {
+      key: "other",
+      icon: "globe",
+      title: "其他链接",
+      value: "个人站点 / 作品集 / 博客",
+      hint: "可补充你的技术博客或作品展示页。"
+    }
+  ];
 }
 
 function SidebarIcon({ type }) {
@@ -857,6 +1024,11 @@ function getErrorMessage(payload, fallbackMessage) {
 function App() {
   const [activeTab, setActiveTab] = useState("推荐职位");
   const [activeSection, setActiveSection] = useState("jobs");
+  const [activeProfileTab, setActiveProfileTab] = useState("basic");
+  const [profileEditorType, setProfileEditorType] = useState("");
+  const [profilePersonalEditorDraft, setProfilePersonalEditorDraft] = useState(null);
+  const [profileWorkEditorDraft, setProfileWorkEditorDraft] = useState(null);
+  const [profileSkillsEditorDraft, setProfileSkillsEditorDraft] = useState(null);
   const [filterExpanded, setFilterExpanded] = useState(false);
   const [authView, setAuthView] = useState("login");
   const [loginForm, setLoginForm] = useState(loginInitialState);
@@ -889,6 +1061,11 @@ function App() {
   const resumeUploadInputRef = useRef(null);
   const onboardingResumeInputRef = useRef(null);
   const loadMoreLockRef = useRef(false);
+  const profileBasicRef = useRef(null);
+  const profileEducationRef = useRef(null);
+  const profileWorkRef = useRef(null);
+  const profileSkillsRef = useRef(null);
+  const profilePreferencesRef = useRef(null);
   const [auth, setAuth] = useState(() => ({
     token: localStorage.getItem(TOKEN_KEY),
     user: null
@@ -929,6 +1106,16 @@ function App() {
   const visibleJobTotal = currentJobsData.total;
   const favoriteCount = favoriteJobsData.total;
   const appliedCount = appliedJobsData.total;
+  const profileSectionRefs = {
+    basic: profileBasicRef,
+    education: profileEducationRef,
+    work: profileWorkRef,
+    skills: profileSkillsRef,
+    preferences: profilePreferencesRef
+  };
+  const profilePersonalView = profilePersonalEditorDraft || buildProfilePersonalEditorDraft(auth.user, userProfileDraft);
+  const profileWorkView = profileWorkEditorDraft || buildProfileWorkEditorDraft(userProfileDraft);
+  const profileSkillsView = profileSkillsEditorDraft || buildProfileSkillsEditorDraft(userProfileDraft);
 
   useEffect(() => {
     if (auth.token) {
@@ -1048,6 +1235,71 @@ function App() {
       panel.removeEventListener("scroll", tryLoadMore);
     };
   }, [auth.token, jobLoading, hasMoreJobs, activeTab, isUserHomeSection, settingsDraft.autoLoadMoreJobs, visibleJobRecords.length]);
+
+  useEffect(() => {
+    if (activeSection !== "profile") {
+      return undefined;
+    }
+
+    const panel = mainPanelRef.current;
+    if (!panel) {
+      return undefined;
+    }
+
+    const updateActiveProfileTab = () => {
+      const panelTop = panel.getBoundingClientRect().top;
+      let nextTab = profileTabItems[0].key;
+      let nearestNegative = Number.NEGATIVE_INFINITY;
+      let nearestPositive = Number.POSITIVE_INFINITY;
+
+      profileTabItems.forEach((item) => {
+        const element = profileSectionRefs[item.key]?.current;
+        if (!element) {
+          return;
+        }
+        const offsetTop = element.getBoundingClientRect().top - panelTop - 92;
+        if (offsetTop <= 0 && offsetTop > nearestNegative) {
+          nearestNegative = offsetTop;
+          nextTab = item.key;
+          return;
+        }
+        if (nearestNegative === Number.NEGATIVE_INFINITY && offsetTop < nearestPositive) {
+          nearestPositive = offsetTop;
+          nextTab = item.key;
+        }
+      });
+
+      setActiveProfileTab((current) => (current === nextTab ? current : nextTab));
+    };
+
+    updateActiveProfileTab();
+    panel.addEventListener("scroll", updateActiveProfileTab, { passive: true });
+    window.addEventListener("resize", updateActiveProfileTab);
+
+    return () => {
+      panel.removeEventListener("scroll", updateActiveProfileTab);
+      window.removeEventListener("resize", updateActiveProfileTab);
+    };
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (!auth.user || !sessionReady) {
+      return;
+    }
+
+    setProfilePersonalEditorDraft((current) => current || readLocalJson(
+      getUserScopedStorageKey(auth.user, "profile_personal_editor"),
+      buildProfilePersonalEditorDraft(auth.user, userProfileDraft)
+    ));
+    setProfileWorkEditorDraft((current) => current || readLocalJson(
+      getUserScopedStorageKey(auth.user, "profile_work_editor"),
+      buildProfileWorkEditorDraft(userProfileDraft)
+    ));
+    setProfileSkillsEditorDraft((current) => current || readLocalJson(
+      getUserScopedStorageKey(auth.user, "profile_skills_editor"),
+      buildProfileSkillsEditorDraft(userProfileDraft)
+    ));
+  }, [auth.user, sessionReady]);
 
   function handleLoadMoreRecommended() {
     if (loadMoreLockRef.current || jobLoading || !hasMoreJobs || activeTab !== "推荐职位" || isUserHomeSection) {
@@ -1729,6 +1981,156 @@ function App() {
     setActiveSection(sectionKey);
   }
 
+  function handleProfileTabClick(tabKey) {
+    setActiveProfileTab(tabKey);
+    profileSectionRefs[tabKey]?.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function openProfileEditor(type) {
+    if (!auth.user) {
+      return;
+    }
+    if (type === "personal") {
+      setProfilePersonalEditorDraft((current) => current || readLocalJson(
+        getUserScopedStorageKey(auth.user, "profile_personal_editor"),
+        buildProfilePersonalEditorDraft(auth.user, userProfileDraft)
+      ));
+    }
+    if (type === "work") {
+      setProfileWorkEditorDraft((current) => current || readLocalJson(
+        getUserScopedStorageKey(auth.user, "profile_work_editor"),
+        buildProfileWorkEditorDraft(userProfileDraft)
+      ));
+    }
+    if (type === "skills") {
+      setProfileSkillsEditorDraft((current) => current || readLocalJson(
+        getUserScopedStorageKey(auth.user, "profile_skills_editor"),
+        buildProfileSkillsEditorDraft(userProfileDraft)
+      ));
+    }
+    setProfileEditorType(type);
+  }
+
+  function closeProfileEditor() {
+    setProfileEditorType("");
+  }
+
+  function handleProfilePersonalEditorChange(field, value) {
+    setProfilePersonalEditorDraft((current) => ({ ...(current || profilePersonalView), [field]: value }));
+  }
+
+  function handleProfileWorkEditorChange(field, value) {
+    setProfileWorkEditorDraft((current) => ({ ...(current || profileWorkView), [field]: value }));
+  }
+
+  function handleProfileSkillsEditorChange(field, value) {
+    setProfileSkillsEditorDraft((current) => ({ ...(current || profileSkillsView), [field]: value }));
+  }
+
+  function handleAddSkillItem() {
+    const nextSkill = String(profileSkillsView.pendingSkill || "").trim();
+    if (!nextSkill || profileSkillsView.items.includes(nextSkill)) {
+      return;
+    }
+    setProfileSkillsEditorDraft((current) => ({
+      ...(current || profileSkillsView),
+      items: [...(current?.items || profileSkillsView.items), nextSkill],
+      pendingSkill: ""
+    }));
+  }
+
+  function handleRemoveSkillItem(skill) {
+    setProfileSkillsEditorDraft((current) => ({
+      ...(current || profileSkillsView),
+      items: (current?.items || profileSkillsView.items).filter((item) => item !== skill)
+    }));
+  }
+
+  function handleProfileWorkBulletChange(index, value) {
+    setProfileWorkEditorDraft((current) => ({
+      ...(current || profileWorkView),
+      jobDescriptionBullets: (current?.jobDescriptionBullets || profileWorkView.jobDescriptionBullets).map((item, itemIndex) => (
+        itemIndex === index ? value : item
+      ))
+    }));
+  }
+
+  function handleRemoveProfileWorkBullet(index) {
+    setProfileWorkEditorDraft((current) => ({
+      ...(current || profileWorkView),
+      jobDescriptionBullets: (current?.jobDescriptionBullets || profileWorkView.jobDescriptionBullets).filter((_, itemIndex) => itemIndex !== index)
+    }));
+  }
+
+  function handleAddProfileWorkBullet() {
+    setProfileWorkEditorDraft((current) => ({
+      ...(current || profileWorkView),
+      jobDescriptionBullets: [...(current?.jobDescriptionBullets || profileWorkView.jobDescriptionBullets), ""]
+    }));
+  }
+
+  function handleSavePersonalProfileEditor() {
+    if (!auth.user || !profilePersonalView.firstName.trim()) {
+      setMessage({ type: "error", text: "请先填写名字。" });
+      return;
+    }
+    const nextDisplayName = [profilePersonalView.firstName.trim(), profilePersonalView.lastName.trim()]
+      .filter(Boolean)
+      .join(" ");
+    const nextProfileDraft = {
+      ...userProfileDraft,
+      expectedCity: profilePersonalView.city.trim() || userProfileDraft.expectedCity
+    };
+    setAuth((current) => ({
+      ...current,
+      user: current.user
+        ? { ...current.user, displayName: nextDisplayName, email: profilePersonalView.email.trim() || current.user.email }
+        : current.user
+    }));
+    setUserProfileDraft(nextProfileDraft);
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_personal_editor"), profilePersonalView);
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), nextProfileDraft);
+    setMessage({ type: "success", text: "个人信息已更新。" });
+    closeProfileEditor();
+  }
+
+  function handleSaveWorkProfileEditor() {
+    if (!auth.user || !profileWorkView.jobTitle.trim()) {
+      setMessage({ type: "error", text: "请先填写职位名称。" });
+      return;
+    }
+    const nextProfileDraft = {
+      ...userProfileDraft,
+      targetRole: profileWorkView.jobTitle.trim(),
+      expectedCity: profileWorkView.location.trim() || userProfileDraft.expectedCity,
+      personalSummary: (profileWorkView.jobDescriptionBullets || []).map((item) => item.trim()).filter(Boolean).join("\n")
+    };
+    setUserProfileDraft(nextProfileDraft);
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_work_editor"), profileWorkView);
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), nextProfileDraft);
+    setMessage({ type: "success", text: "工作经历已更新。" });
+    closeProfileEditor();
+  }
+
+  function handleSaveSkillsProfileEditor() {
+    if (!auth.user || !Array.isArray(profileSkillsView.items) || profileSkillsView.items.length === 0) {
+      setMessage({ type: "error", text: "请至少保留一个技能标签。" });
+      return;
+    }
+    const nextProfileDraft = {
+      ...userProfileDraft,
+      keywordTags: profileSkillsView.items.join(", ")
+    };
+    setUserProfileDraft(nextProfileDraft);
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_skills_editor"), profileSkillsView);
+    writeLocalJson(getUserScopedStorageKey(auth.user, "profile_draft"), nextProfileDraft);
+    setMessage({ type: "success", text: "技能标签已更新。" });
+    closeProfileEditor();
+  }
+
   async function handleJobTabChange(tab) {
     const nextFilters = { ...jobFilters, current: 1 };
     setActiveTab(tab);
@@ -1962,22 +2364,22 @@ function App() {
                   className="resume-preview-panel"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <div className="resume-preview-header">
-                    <div className="resume-preview-head-main">
-                      <div>
-                        <small>Resume Analysis Report</small>
+                  <div className="resume-workbench-toolbar">
+                    <div className="resume-workbench-left">
+                      <button className="resume-preview-close flat" onClick={closeResumePreview} type="button">
+                        ×
+                      </button>
+                      <div className="resume-file-pill">
+                        <span className="resume-file-pill-star">★</span>
                         <strong>{resumePreviewData?.fileName || "当前简历"}</strong>
-                        <span>{formatResumeAbsoluteTime(resumePreviewData?.updatedAt)}</span>
-                      </div>
-                      <div className="resume-preview-actions">
-                        <button className="ghost-button" onClick={handleDownloadResume} type="button">
-                          下载简历
-                        </button>
                       </div>
                     </div>
-                    <button className="resume-preview-close" onClick={closeResumePreview} type="button">
-                      ×
-                    </button>
+                    <div className="resume-workbench-actions">
+                      <button className="resume-action-button success" type="button">反馈</button>
+                      <button className="resume-action-button" type="button">编辑简历信息</button>
+                      <button className="resume-action-button" onClick={handleDownloadResume} type="button">导出</button>
+                      <button className="resume-action-button subtle" type="button">删除</button>
+                    </div>
                   </div>
 
                   <div className="resume-preview-body">
@@ -1985,59 +2387,81 @@ function App() {
                       <div className="resume-preview-loading">正在加载简历内容...</div>
                     ) : null}
 
-                    <section className="resume-analysis-hero">
-                      <div className="resume-grade-card">
-                        <div className="resume-grade-badge">{resumePreviewData?.score?.grade || "A"}</div>
-                        <div className="resume-grade-copy">
-                          <strong>{resumePreviewData?.score?.label || "EXCELLENT"}</strong>
+                    <section className="resume-workbench-hero">
+                      <div className="resume-workbench-grade">
+                        <div className="resume-grade-badge hex">{resumePreviewData?.score?.grade || "A"}</div>
+                        <div className="resume-workbench-grade-copy">
+                          <div className="resume-workbench-grade-row">
+                            <strong>{resumePreviewData?.score?.label || "EXCELLENT"}</strong>
+                            <button className="resume-report-button" type="button">查看完整报告</button>
+                          </div>
                           <span>评分 {resumePreviewData?.score?.scoreValue || 88}</span>
                         </div>
                       </div>
 
-                      <div className="resume-fix-grid">
+                      <div className="resume-workbench-scoreboard">
                         <article className="fix-card urgent">
                           <strong>{resumePreviewData?.score?.urgentFixCount ?? 0}</strong>
-                          <span>Urgent Fix</span>
+                          <span>紧急修复</span>
                         </article>
                         <article className="fix-card critical">
                           <strong>{resumePreviewData?.score?.criticalFixCount ?? 0}</strong>
-                          <span>Critical Fix</span>
+                          <span>重要修复</span>
                         </article>
                         <article className="fix-card optional">
                           <strong>{resumePreviewData?.score?.optionalFixCount ?? 0}</strong>
-                          <span>Optional Fix</span>
+                          <span>可选优化</span>
                         </article>
+                        <div className="resume-reanalyze-card">
+                          <strong>重新分析</strong>
+                          <span>最近更新 {formatResumeRelativeTime(resumePreviewData?.updatedAt)}</span>
+                        </div>
+                        <div className="resume-credit-pill">还可用 1 次分析机会</div>
+                      </div>
+                    </section>
+
+                    <section className="resume-editor-surface">
+                      <div className="resume-editor-name-row">
+                        <div>
+                          <h2>{resumePreviewData?.profile?.name || getAuthDisplayName(auth.user)}</h2>
+                          <p>{resumePreviewData?.profile?.title || "后端开发"}</p>
+                        </div>
+                        <div className="resume-urgent-pill">
+                          <span>{resumePreviewData?.score?.urgentFixCount ?? 0} 项紧急问题</span>
+                          <button type="button">修复建议</button>
+                        </div>
+                      </div>
+
+                      <div className="resume-contact-grid">
+                        {getResumeContactCards(resumePreviewData, userProfileDraft, auth.user).map((item) => (
+                          <article key={item.key} className="resume-contact-card">
+                            <div className="resume-contact-head">
+                              <span className="resume-contact-icon">
+                                {item.icon === "mail" ? "✉" : item.icon === "phone" ? "✆" : item.icon === "location" ? "⌖" : item.icon === "github" ? "⌘" : item.icon === "link" ? "in" : "◎"}
+                              </span>
+                              <strong>{item.value}</strong>
+                            </div>
+                            <span>{item.hint}</span>
+                          </article>
+                        ))}
                       </div>
                     </section>
 
                     <section className="resume-preview-section">
-                      <h3>Analysis Summary</h3>
-                      <div className="resume-preview-lines">
-                        <p>{resumePreviewData?.score?.summary}</p>
-                        <p>{resumePreviewData?.analysisSummary}</p>
+                      <div className="resume-section-title-row">
+                        <h3>技术技能</h3>
+                        <button className="resume-icon-action" type="button" aria-label="删除模块">🗑</button>
                       </div>
-                    </section>
-
-                    <section className="resume-preview-section">
-                      <h3>简历基础信息</h3>
-                      <div className="resume-profile-grid">
-                        <article><strong>姓名</strong><span>{resumePreviewData?.profile?.name || getAuthDisplayName(auth.user)}</span></article>
-                        <article><strong>目标岗位</strong><span>{resumePreviewData?.profile?.title || "后端开发"}</span></article>
-                        <article><strong>意向城市</strong><span>{resumePreviewData?.profile?.location || "上海"}</span></article>
-                        <article><strong>当前状态</strong><span>{resumePreviewData?.profile?.status || "ACTIVE"}</span></article>
-                      </div>
-                    </section>
-
-                    <section className="resume-preview-section">
-                      <h3>技能要点拆分</h3>
-                      <div className="resume-skill-groups">
+                      <div className="resume-skill-editor-list">
                         {(resumePreviewData?.skillGroups || []).map((group) => (
-                          <article key={group.title} className="resume-skill-group-card">
+                          <article key={group.title} className="resume-skill-editor-group">
                             <strong>{group.title}</strong>
-                            <div className="resume-skill-chip-row">
+                            <div className="resume-skill-editor-row">
                               {(group.items || []).map((item) => (
-                                <span key={`${group.title}-${item}`}>{item}</span>
+                                <span key={`${group.title}-${item}`} className="resume-editor-chip">{item} <em>×</em></span>
                               ))}
+                              <span className="resume-editor-chip ghost">添加技能...</span>
+                              <button className="resume-chip-help" type="button">?</button>
                             </div>
                           </article>
                         ))}
@@ -2045,37 +2469,34 @@ function App() {
                     </section>
 
                     <section className="resume-preview-section">
-                      <h3>Analysis Highlights</h3>
-                      <div className="resume-highlight-list">
-                        {(resumePreviewData?.analysisHighlights || []).map((item, index) => (
-                          <article key={item.title} className="resume-highlight-card">
-                            <span className="resume-highlight-index">{index + 1}</span>
-                            <div>
-                              <strong>{item.title}</strong>
-                              <p>{item.description}</p>
-                            </div>
+                      <div className="resume-section-title-row">
+                        <h3>工作经历</h3>
+                        <button className="resume-outline-add" type="button">+ 工作经历</button>
+                      </div>
+                      <div className="resume-experience-list">
+                        {(resumePreviewData?.workExperiences || []).map((item) => (
+                          <article key={`${item.company}-${item.role}`} className="resume-experience-card">
+                            <strong>{item.company}</strong>
+                            <span>{item.role}</span>
+                            <ul>
+                              {(item.bullets || []).map((bullet) => (
+                                <li key={`${item.company}-${bullet}`}>{bullet}</li>
+                              ))}
+                            </ul>
+                            <button className="resume-outline-add small" type="button">+ 要点描述</button>
                           </article>
                         ))}
                       </div>
                     </section>
 
                     <section className="resume-preview-section">
-                      <h3>Urgent Issues</h3>
-                      <div className="resume-issue-list">
-                        {(resumePreviewData?.urgentIssues || []).map((issue) => (
-                          <article key={issue.title} className="resume-issue-card">
-                            <strong>{issue.title}</strong>
-                            <p>{issue.description}</p>
-                          </article>
-                        ))}
+                      <div className="resume-section-title-row">
+                        <h3>项目经历</h3>
+                        <button className="resume-outline-add" type="button">+ 项目经历</button>
                       </div>
-                    </section>
-
-                    <section className="resume-preview-section">
-                      <h3>Projects</h3>
-                      <div className="resume-project-list">
+                      <div className="resume-project-editor-list">
                         {(resumePreviewData?.projects || []).map((project) => (
-                          <article key={project.name} className="resume-project-card">
+                          <article key={project.name} className="resume-project-editor-card">
                             <strong>{project.name}</strong>
                             <div className="resume-project-tech">
                               {(project.technologies || []).map((tech) => (
@@ -2087,6 +2508,49 @@ function App() {
                                 <li key={`${project.name}-${bullet}`}>{bullet}</li>
                               ))}
                             </ul>
+                            <button className="resume-outline-add small" type="button">+ 要点描述</button>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <div className="resume-section-title-row">
+                        <h3>证书与能力说明</h3>
+                        <button className="resume-outline-add" type="button">+ 证书信息</button>
+                      </div>
+                      <div className="resume-certification-list">
+                        {(resumePreviewData?.certifications || []).map((item) => (
+                          <article key={item.name} className="resume-certification-card">
+                            <strong>{item.name}</strong>
+                            <p>{item.description}</p>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <div className="resume-section-title-row">
+                        <h3>分析摘要</h3>
+                      </div>
+                      <div className="resume-preview-lines">
+                        <p>{resumePreviewData?.score?.summary}</p>
+                        <p>{resumePreviewData?.analysisSummary}</p>
+                      </div>
+                    </section>
+
+                    <section className="resume-preview-section">
+                      <div className="resume-section-title-row">
+                        <h3>优化建议</h3>
+                        <button className="resume-fab" type="button" aria-label="更多操作">
+                          ≣
+                        </button>
+                      </div>
+                      <div className="resume-issue-list">
+                        {(resumePreviewData?.urgentIssues || []).map((issue) => (
+                          <article key={issue.title} className="resume-issue-card">
+                            <strong>{issue.title}</strong>
+                            <p>{issue.description}</p>
                           </article>
                         ))}
                       </div>
@@ -2256,8 +2720,10 @@ function App() {
       );
     }
 
-    const profileKeywordTags = getProfileKeywordTags(userProfileDraft.keywordTags);
-    const profileSummaryBullets = getProfileSummaryBullets(userProfileDraft.personalSummary);
+    const profileKeywordTags = profileSkillsView.items;
+    const profileSummaryBullets = (profileWorkView.jobDescriptionBullets || []).filter((item) => String(item || "").trim());
+    const profileDisplayName = [profilePersonalView.firstName, profilePersonalView.lastName].filter(Boolean).join(" ") || getAuthDisplayName(auth.user);
+    const profileDisplayLocation = profilePersonalView.city?.trim() || getProfileLocationText(userProfileDraft);
 
     return (
       <section className="profile-page-shell">
@@ -2268,26 +2734,31 @@ function App() {
         <div className="profile-page-grid">
           <section className="profile-main-card">
             <div className="profile-tab-row">
-              <button className="profile-tab active" type="button">个人信息</button>
-              <button className="profile-tab" type="button">教育经历</button>
-              <button className="profile-tab" type="button">工作经历</button>
-              <button className="profile-tab" type="button">技能标签</button>
-              <button className="profile-tab" type="button">求职偏好</button>
+              {profileTabItems.map((item) => (
+                <button
+                  key={item.key}
+                  className={`profile-tab${activeProfileTab === item.key ? " active" : ""}`}
+                  onClick={() => handleProfileTabClick(item.key)}
+                  type="button"
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
 
-            <section className="profile-section-card hero">
+            <section className="profile-section-card hero" ref={profileBasicRef}>
               <div className="profile-section-head">
                 <div>
-                  <h2>{getAuthDisplayName(auth.user)}</h2>
+                  <h2>{profileDisplayName}</h2>
                   <span className="profile-location-pill">
                     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                       <path d="M10 17s4.7-3.76 4.7-7.82A4.7 4.7 0 1 0 5.3 9.18C5.3 13.24 10 17 10 17Z" />
                       <path d="M10 10.9a1.9 1.9 0 1 0 0-3.8 1.9 1.9 0 0 0 0 3.8Z" />
                     </svg>
-                    <span>{getProfileLocationText(userProfileDraft)}</span>
+                    <span>{profileDisplayLocation}</span>
                   </span>
                 </div>
-                <button className="profile-edit-button" type="button" onClick={handleSaveUserProfileDraft}>
+                <button className="profile-edit-button" type="button" onClick={() => openProfileEditor("personal")}>
                   <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                     <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
                     <path d="M11.93 5.99 14.01 8.07" />
@@ -2324,25 +2795,31 @@ function App() {
               </div>
             </section>
 
-            <section className="profile-section-card">
+            <section className="profile-section-card" ref={profileEducationRef}>
               <div className="profile-section-head inline">
                 <div>
                   <h3>教育经历</h3>
                   <p>补充教育经历后，系统更容易识别校招、实习和当前阶段的匹配逻辑。</p>
                 </div>
+                <button className="profile-edit-button" type="button" onClick={handleSaveUserProfileDraft}>
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
+                    <path d="M11.93 5.99 14.01 8.07" />
+                  </svg>
+                </button>
               </div>
               <button className="profile-outline-action" type="button" onClick={() => setActiveSection("resume")}>
                 + 添加教育经历
               </button>
             </section>
 
-            <section className="profile-section-card">
+            <section className="profile-section-card" ref={profileWorkRef}>
               <div className="profile-section-head inline">
                 <div>
                   <h3>工作经历</h3>
                   <p>项目经历越具体，推荐和匹配原因越稳定，也更方便后续做自动填充。</p>
                 </div>
-                <button className="profile-edit-button" type="button" onClick={handleSaveUserProfileDraft}>
+                <button className="profile-edit-button" type="button" onClick={() => openProfileEditor("work")}>
                   <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                     <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
                     <path d="M11.93 5.99 14.01 8.07" />
@@ -2353,8 +2830,8 @@ function App() {
               <article className="profile-timeline-card">
                 <div className="profile-timeline-marker" />
                 <div className="profile-timeline-content">
-                  <strong>{userProfileDraft.targetRole || "Backend Developer Intern"}</strong>
-                  <span>{getProfileLocationText(userProfileDraft)}</span>
+                  <strong>{profileWorkView.jobTitle || "Backend Developer Intern"}</strong>
+                  <span>{profileWorkView.location || profileDisplayLocation}</span>
                   <ul className="profile-bullet-list">
                     {(profileSummaryBullets.length ? profileSummaryBullets : [
                       "补充你的核心项目和业务场景，让招聘侧更快看懂你的经验边界。",
@@ -2368,25 +2845,89 @@ function App() {
               </article>
             </section>
 
-            <section className="profile-section-card">
+            <section className="profile-section-card" ref={profileSkillsRef}>
               <div className="profile-section-head inline">
                 <div>
                   <h3>技能标签</h3>
                   <p>关键词拆成技能标签后，职位命中原因和推荐展示会更直观。</p>
                 </div>
+                <button className="profile-edit-button" type="button" onClick={() => openProfileEditor("skills")}>
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
+                    <path d="M11.93 5.99 14.01 8.07" />
+                  </svg>
+                </button>
               </div>
               <label className="profile-inline-input">
                 <span>岗位关键词</span>
                 <input
-                  value={userProfileDraft.keywordTags}
-                  onChange={(event) => handleProfileDraftChange("keywordTags", event.target.value)}
+                  value={profileSkillsView.items.join(", ")}
                   placeholder="例如 Java, Spring Boot, MySQL"
+                  readOnly
                 />
               </label>
               <div className="profile-skill-tags">
                 {(profileKeywordTags.length ? profileKeywordTags : ["Java", "Spring Boot", "MySQL"]).map((tag) => (
                   <span key={tag}>{tag}</span>
                 ))}
+              </div>
+            </section>
+
+            <section className="profile-section-card" ref={profilePreferencesRef}>
+              <div className="profile-section-head inline">
+                <div>
+                  <h3>求职偏好</h3>
+                  <p>把求职类型、远程意愿和签证需求整理清楚，推荐结果会更稳定。</p>
+                </div>
+                <button className="profile-edit-button" type="button" onClick={handleSaveUserProfileDraft}>
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
+                    <path d="M11.93 5.99 14.01 8.07" />
+                  </svg>
+                </button>
+              </div>
+              <div className="profile-preference-stack">
+                <div className="profile-preference-group">
+                  <span>求职类型</span>
+                  <div className="profile-choice-row">
+                    {onboardingJobTypeOptions.map((jobType) => (
+                      <button
+                        key={jobType}
+                        className={`profile-choice-chip${userProfileDraft.jobTypes.includes(jobType) ? " active" : ""}`}
+                        onClick={() => handleProfileJobTypeToggle(jobType)}
+                        type="button"
+                      >
+                        {jobType}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="profile-preference-group">
+                  <span>投递偏好</span>
+                  <div className="profile-toggle-list">
+                    <label className="profile-toggle-item">
+                      <input
+                        checked={userProfileDraft.openToRemote}
+                        onChange={(event) => handleProfileDraftChange("openToRemote", event.target.checked)}
+                        type="checkbox"
+                      />
+                      <span>接受远程办公</span>
+                    </label>
+                    <label className="profile-toggle-item">
+                      <input
+                        checked={userProfileDraft.requireVisaSupport}
+                        onChange={(event) => handleProfileDraftChange("requireVisaSupport", event.target.checked)}
+                        type="checkbox"
+                      />
+                      <span>需要签证支持</span>
+                    </label>
+                  </div>
+                </div>
+
+                <button className="profile-outline-action" onClick={handleSaveUserProfileDraft} type="button">
+                  保存求职偏好
+                </button>
               </div>
             </section>
           </section>
@@ -2423,6 +2964,251 @@ function App() {
             </section>
           </aside>
         </div>
+
+        {profileEditorType ? (
+          <div className="profile-editor-overlay" onClick={closeProfileEditor} role="presentation">
+            <div
+              className="profile-editor-modal"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="profile-editor-header">
+                <button className="profile-editor-back" onClick={closeProfileEditor} type="button" aria-label="关闭编辑页">
+                  ›
+                </button>
+                <strong>
+                  {profileEditorType === "personal"
+                    ? "Personal"
+                    : profileEditorType === "work"
+                      ? "Work Experience"
+                      : "Skills"}
+                </strong>
+                <button
+                  className="profile-editor-update"
+                  onClick={
+                    profileEditorType === "personal"
+                      ? handleSavePersonalProfileEditor
+                      : profileEditorType === "work"
+                        ? handleSaveWorkProfileEditor
+                        : handleSaveSkillsProfileEditor
+                  }
+                  type="button"
+                >
+                  UPDATE
+                </button>
+              </div>
+
+              <div className="profile-editor-body">
+                {profileEditorType === "personal" ? (
+                  <div className="profile-editor-form-grid">
+                    <label>
+                      <span>* First Name</span>
+                      <input
+                        value={profilePersonalView.firstName}
+                        onChange={(event) => handleProfilePersonalEditorChange("firstName", event.target.value)}
+                        placeholder="First name"
+                      />
+                    </label>
+                    <label>
+                      <span>* Last Name</span>
+                      <input
+                        value={profilePersonalView.lastName}
+                        onChange={(event) => handleProfilePersonalEditorChange("lastName", event.target.value)}
+                        placeholder="Last name"
+                      />
+                    </label>
+                    <label>
+                      <span>* Email</span>
+                      <input
+                        value={profilePersonalView.email}
+                        onChange={(event) => handleProfilePersonalEditorChange("email", event.target.value)}
+                        placeholder="Email"
+                      />
+                    </label>
+                    <label>
+                      <span>Phone</span>
+                      <input
+                        value={profilePersonalView.phone}
+                        onChange={(event) => handleProfilePersonalEditorChange("phone", event.target.value)}
+                        placeholder="Phone"
+                      />
+                    </label>
+                    <label>
+                      <span>Country/Region</span>
+                      <input
+                        value={profilePersonalView.countryRegion}
+                        onChange={(event) => handleProfilePersonalEditorChange("countryRegion", event.target.value)}
+                        placeholder="Country/Region"
+                      />
+                    </label>
+                    <label>
+                      <span>City</span>
+                      <input
+                        value={profilePersonalView.city}
+                        onChange={(event) => handleProfilePersonalEditorChange("city", event.target.value)}
+                        placeholder="City"
+                      />
+                    </label>
+                    <label>
+                      <span>County</span>
+                      <input
+                        value={profilePersonalView.county}
+                        onChange={(event) => handleProfilePersonalEditorChange("county", event.target.value)}
+                        placeholder="County"
+                      />
+                    </label>
+                    <label>
+                      <span>Postal Code</span>
+                      <input
+                        value={profilePersonalView.postalCode}
+                        onChange={(event) => handleProfilePersonalEditorChange("postalCode", event.target.value)}
+                        placeholder="Postal code"
+                      />
+                    </label>
+                    <label className="full-width">
+                      <span>Address Line</span>
+                      <input
+                        value={profilePersonalView.addressLine}
+                        onChange={(event) => handleProfilePersonalEditorChange("addressLine", event.target.value)}
+                        placeholder="Address line"
+                      />
+                    </label>
+                    <label className="full-width">
+                      <span>* Linkedin URL</span>
+                      <input
+                        value={profilePersonalView.linkedInUrl}
+                        onChange={(event) => handleProfilePersonalEditorChange("linkedInUrl", event.target.value)}
+                        placeholder="Linkedin URL"
+                      />
+                    </label>
+                    <label className="full-width">
+                      <span>Github URL</span>
+                      <input
+                        value={profilePersonalView.githubUrl}
+                        onChange={(event) => handleProfilePersonalEditorChange("githubUrl", event.target.value)}
+                        placeholder="Github URL"
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                {profileEditorType === "work" ? (
+                  <div className="profile-editor-work-stack">
+                    <div className="profile-editor-block">
+                      <div className="profile-editor-block-head">
+                        <strong>Work Experience 1</strong>
+                      </div>
+                      <div className="profile-editor-form-grid">
+                        <label className="full-width">
+                          <span>* Job Title</span>
+                          <input
+                            value={profileWorkView.jobTitle}
+                            onChange={(event) => handleProfileWorkEditorChange("jobTitle", event.target.value)}
+                            placeholder="Job Title"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>* Company</span>
+                          <input
+                            value={profileWorkView.company}
+                            onChange={(event) => handleProfileWorkEditorChange("company", event.target.value)}
+                            placeholder="Company"
+                          />
+                        </label>
+                        <label>
+                          <span>* Job Type</span>
+                          <input
+                            value={profileWorkView.jobType}
+                            onChange={(event) => handleProfileWorkEditorChange("jobType", event.target.value)}
+                            placeholder="Job type"
+                          />
+                        </label>
+                        <label>
+                          <span>Location</span>
+                          <input
+                            value={profileWorkView.location}
+                            onChange={(event) => handleProfileWorkEditorChange("location", event.target.value)}
+                            placeholder="Location"
+                          />
+                        </label>
+                        <label>
+                          <span>Start Date</span>
+                          <input
+                            value={profileWorkView.startDate}
+                            onChange={(event) => handleProfileWorkEditorChange("startDate", event.target.value)}
+                            placeholder="Select start date"
+                          />
+                        </label>
+                        <label>
+                          <span>End Date</span>
+                          <input
+                            value={profileWorkView.endDate}
+                            onChange={(event) => handleProfileWorkEditorChange("endDate", event.target.value)}
+                            placeholder="Select end date"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>Experience Summary</span>
+                          <textarea
+                            rows={3}
+                            value={profileWorkView.experienceSummary}
+                            onChange={(event) => handleProfileWorkEditorChange("experienceSummary", event.target.value)}
+                            placeholder="Describe the role briefly"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="profile-editor-bullets">
+                      <strong>Job Description</strong>
+                      {(profileWorkView.jobDescriptionBullets || []).map((bullet, index) => (
+                        <div key={`work-bullet-${index}`} className="profile-editor-bullet-row">
+                          <textarea
+                            rows={2}
+                            value={bullet}
+                            onChange={(event) => handleProfileWorkBulletChange(index, event.target.value)}
+                            placeholder="Add a bullet point"
+                          />
+                          <button type="button" onClick={() => handleRemoveProfileWorkBullet(index)}>×</button>
+                        </div>
+                      ))}
+                      <button className="profile-editor-outline" onClick={handleAddProfileWorkBullet} type="button">
+                        + Bullet points
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {profileEditorType === "skills" ? (
+                  <div className="profile-editor-skills-stack">
+                    <div className="profile-editor-chip-grid">
+                      {profileSkillsView.items.map((skill) => (
+                        <span key={skill} className="profile-editor-skill-chip">
+                          {skill}
+                          <button type="button" onClick={() => handleRemoveSkillItem(skill)}>×</button>
+                        </span>
+                      ))}
+                      <label className="profile-editor-skill-input">
+                        <input
+                          value={profileSkillsView.pendingSkill}
+                          onChange={(event) => handleProfileSkillsEditorChange("pendingSkill", event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              handleAddSkillItem();
+                            }
+                          }}
+                          placeholder="Add skill..."
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
     );
   }

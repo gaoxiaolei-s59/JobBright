@@ -2065,43 +2065,55 @@ textarea:focus {
 .profile-main-card,
 .profile-alert-card,
 .profile-side-links {
-  border: 1px solid rgba(16, 35, 49, 0.08);
-  border-radius: 18px;
+  border: 1px solid rgba(16, 35, 49, 0.06);
+  border-radius: 26px;
   background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 6px 18px rgba(18, 38, 53, 0.04);
+  box-shadow: 0 12px 28px rgba(18, 38, 53, 0.045);
 }
 
 .profile-main-card {
-  padding: 14px 18px 18px;
+  position: relative;
+  padding: 20px 22px 22px;
 }
 
 .profile-tab-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 22px;
-  padding: 2px 0 12px;
+  gap: 32px;
+  margin: -4px -4px 14px;
+  padding: 10px 22px 12px;
   border-bottom: 1px solid rgba(16, 35, 49, 0.08);
+  position: sticky;
+  top: 10px;
+  z-index: 6;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 10px 24px rgba(18, 38, 53, 0.04);
 }
 
 .profile-tab {
   padding: 0;
   background: transparent;
   color: #8d949a;
-  font-size: 0.9rem;
+  font-size: 0.96rem;
   font-weight: 800;
   box-shadow: none;
+  cursor: pointer;
+  min-height: 36px;
 }
 
 .profile-tab.active {
   color: #111;
   text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 14px;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 18px;
 }
 
 .profile-section-card {
-  padding: 18px 0;
-  border-bottom: 1px solid rgba(16, 35, 49, 0.08);
+  padding: 26px 2px 28px;
+  border-bottom: 1px solid rgba(16, 35, 49, 0.07);
+  scroll-margin-top: 112px;
 }
 
 .profile-section-card.hero {
@@ -2121,6 +2133,10 @@ textarea:focus {
   margin-bottom: 14px;
 }
 
+.profile-section-head.inline {
+  align-items: center;
+}
+
 .profile-section-head.inline h3,
 .profile-section-head h2,
 .profile-section-head h3 {
@@ -2128,29 +2144,31 @@ textarea:focus {
 }
 
 .profile-section-head h2 {
-  font-size: clamp(1.55rem, 2.4vw, 2.3rem);
-  line-height: 1.08;
+  font-size: clamp(2rem, 2.8vw, 3rem);
+  line-height: 1;
   letter-spacing: -0.05em;
 }
 
 .profile-section-head h3 {
-  font-size: 1rem;
+  font-size: 1.12rem;
   line-height: 1.1;
+  letter-spacing: -0.03em;
 }
 
 .profile-section-head p {
-  margin: 6px 0 0;
-  color: #87929d;
+  margin: 8px 0 0;
+  color: #91979d;
   font-size: 0.88rem;
-  line-height: 1.45;
+  line-height: 1.48;
+  max-width: 58ch;
 }
 
 .profile-location-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
-  padding: 8px 12px;
+  margin-top: 14px;
+  padding: 10px 16px;
   border-radius: 999px;
   background: #f5f7f8;
   color: #1c2530;
@@ -2159,8 +2177,8 @@ textarea:focus {
 
 .profile-location-pill svg,
 .profile-edit-button svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   stroke: currentColor;
   stroke-width: 1.85;
   stroke-linecap: round;
@@ -2168,19 +2186,31 @@ textarea:focus {
 }
 
 .profile-edit-button {
-  width: 34px;
-  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   padding: 0;
-  border-radius: 999px;
-  background: #f4f6f7;
-  color: #10161c;
+  border-radius: 10px;
+  background: transparent;
+  color: #111923;
   box-shadow: none;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.profile-edit-button:hover {
+  background: rgba(16, 35, 49, 0.05);
+  color: #0b1118;
+  transform: translateY(-1px);
 }
 
 .profile-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 16px;
+  gap: 16px 18px;
 }
 
 .profile-form-grid label,
@@ -2201,50 +2231,51 @@ textarea:focus {
 .profile-inline-input input {
   width: 100%;
   border: 1px solid rgba(16, 35, 49, 0.1);
-  border-radius: 12px;
+  border-radius: 14px;
   background: #fbfcfc;
   color: #142433;
   font: inherit;
-  padding: 11px 13px;
+  padding: 13px 14px;
   box-sizing: border-box;
 }
 
 .profile-form-grid textarea {
   resize: vertical;
-  min-height: 104px;
+  min-height: 120px;
 }
 
 .profile-outline-action {
   min-width: 168px;
-  min-height: 40px;
-  padding: 0 16px;
-  border-radius: 12px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 14px;
   background: #fff;
   color: #111;
+  font-size: 0.92rem;
   font-weight: 800;
   box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.1);
 }
 
 .profile-timeline-card {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
 
 .profile-timeline-marker {
   position: relative;
-  width: 18px;
-  min-height: 176px;
+  width: 24px;
+  min-height: 188px;
 }
 
 .profile-timeline-marker::before {
   content: "";
   position: absolute;
-  top: 4px;
+  top: 2px;
   left: 0;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border: 3px solid #111;
   border-radius: 999px;
   background: #fff;
@@ -2255,7 +2286,7 @@ textarea:focus {
   content: "";
   position: absolute;
   top: 24px;
-  left: 6px;
+  left: 8px;
   bottom: 0;
   width: 2px;
   background: linear-gradient(180deg, rgba(97, 241, 191, 0.95), rgba(97, 241, 191, 0.1));
@@ -2263,43 +2294,305 @@ textarea:focus {
 
 .profile-timeline-content strong {
   display: block;
-  font-size: 0.95rem;
+  font-size: 1.06rem;
 }
 
 .profile-timeline-content > span {
   display: block;
-  margin-top: 4px;
+  margin-top: 6px;
   color: #445462;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
 }
 
 .profile-bullet-list {
   display: grid;
   gap: 8px;
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   padding-left: 20px;
   color: #182c3d;
-  line-height: 1.5;
-  font-size: 0.9rem;
+  line-height: 1.54;
+  font-size: 0.92rem;
 }
 
 .profile-skill-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .profile-skill-tags span {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: #eef4f2;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #f3f5f6;
   color: #173143;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 800;
+}
+
+.profile-preference-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-preference-group {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-preference-group > span {
+  color: #7f8a95;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.profile-choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-choice-chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f4f7f8;
+  color: #334756;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.06);
+}
+
+.profile-choice-chip.active {
+  background: rgba(17, 230, 164, 0.14);
+  color: #097153;
+  box-shadow: inset 0 0 0 1px rgba(17, 230, 164, 0.22);
+}
+
+.profile-toggle-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-toggle-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: #fbfcfc;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.08);
+  color: #1f3341;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.profile-toggle-item input {
+  margin: 0;
+}
+
+.profile-editor-overlay {
+  position: fixed;
+  inset: 0 0 0 286px;
+  z-index: 40;
+  background: rgba(18, 25, 34, 0.34);
+  backdrop-filter: blur(2px);
+}
+
+.profile-editor-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.profile-editor-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 28px;
+  border-bottom: 1px solid rgba(16, 35, 49, 0.08);
+}
+
+.profile-editor-header strong {
+  font-size: 1.3rem;
+  letter-spacing: -0.03em;
+}
+
+.profile-editor-back {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: #fff;
+  color: #111;
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.08);
+  cursor: pointer;
+}
+
+.profile-editor-update {
+  min-width: 170px;
+  min-height: 60px;
+  padding: 0 28px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #06e2a0 0%, #20eab5 100%);
+  color: #07141b;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.profile-editor-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 28px 40px;
+}
+
+.profile-editor-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px 16px;
+}
+
+.profile-editor-form-grid label,
+.profile-editor-bullets {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-editor-form-grid label.full-width {
+  grid-column: 1 / -1;
+}
+
+.profile-editor-form-grid label > span,
+.profile-editor-bullets > strong {
+  color: #111;
+  font-size: 0.98rem;
+  font-weight: 900;
+}
+
+.profile-editor-form-grid input,
+.profile-editor-form-grid textarea,
+.profile-editor-bullet-row textarea,
+.profile-editor-skill-input input {
+  width: 100%;
+  border: 0;
+  border-radius: 18px;
+  background: #f4f6f7;
+  color: #162634;
+  font: inherit;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.profile-editor-form-grid textarea,
+.profile-editor-bullet-row textarea {
+  resize: vertical;
+  min-height: 98px;
+}
+
+.profile-editor-work-stack {
+  display: grid;
+  gap: 26px;
+}
+
+.profile-editor-block {
+  display: grid;
+  gap: 22px;
+}
+
+.profile-editor-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-editor-block-head strong {
+  font-size: 1.2rem;
+  letter-spacing: -0.03em;
+}
+
+.profile-editor-bullet-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 12px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+.profile-editor-bullet-row button {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: 1.7rem;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.08);
+  cursor: pointer;
+}
+
+.profile-editor-outline {
+  justify-self: start;
+  min-height: 54px;
+  padding: 0 22px;
+  border-radius: 16px;
+  background: #fff;
+  color: #111;
+  font-size: 0.96rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.1);
+  cursor: pointer;
+}
+
+.profile-editor-skills-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-editor-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-editor-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 16px;
+  border-radius: 16px;
+  background: #f4f6f7;
+  color: #111;
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.profile-editor-skill-chip button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #111;
+  font-size: 1.45rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.profile-editor-skill-input {
+  min-width: 320px;
 }
 
 .profile-side-column {
@@ -3087,33 +3380,70 @@ textarea:focus {
   flex-direction: column;
   width: 100%;
   height: 100%;
-  padding: 20px 24px 28px;
+  padding: 16px 20px 22px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: none;
   overflow: hidden;
 }
 
-.resume-preview-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(16, 35, 49, 0.08);
-}
-
-.resume-preview-head-main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  flex: 1 1 auto;
-}
-
-.resume-preview-actions {
+.resume-workbench-toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+}
+
+.resume-workbench-left,
+.resume-workbench-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.resume-file-pill {
+  display: inline-flex;
+  align-items: center;
   gap: 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: #f3f5f6;
+}
+
+.resume-file-pill-star {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(4, 217, 151, 0.22), rgba(123, 255, 208, 0.82));
+  font-size: 0.88rem;
+}
+
+.resume-file-pill strong {
+  font-size: 0.9rem;
+}
+
+.resume-action-button {
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 12px;
+  background: #fff;
+  color: #111;
+  font-size: 0.86rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.08);
+}
+
+.resume-action-button.success {
+  background: linear-gradient(135deg, #03e8a1 0%, #06d7d6 100%);
+  box-shadow: none;
+}
+
+.resume-action-button.subtle {
+  color: #8c949b;
 }
 
 .resume-preview-header small {
@@ -3139,22 +3469,27 @@ textarea:focus {
 }
 
 .resume-preview-close {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
   padding: 0;
   border-radius: 999px;
   background: rgba(244, 247, 248, 0.96);
   color: var(--brand-ink);
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   line-height: 1;
   cursor: pointer;
 }
 
+.resume-preview-close.flat {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.08);
+}
+
 .resume-preview-body {
   display: grid;
-  gap: 18px;
-  padding-top: 18px;
+  gap: 14px;
+  padding-top: 12px;
   overflow-y: auto;
   padding-right: 8px;
 }
@@ -3167,16 +3502,86 @@ textarea:focus {
   font-weight: 700;
 }
 
+.resume-workbench-hero {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 0.92fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.resume-workbench-grade {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(4, 217, 151, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(239, 255, 250, 0.84), rgba(249, 252, 250, 0.72));
+  border: 1px solid rgba(4, 217, 151, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.resume-grade-badge.hex {
+  clip-path: polygon(50% 0%, 92% 24%, 92% 76%, 50% 100%, 8% 76%, 8% 24%);
+  border-radius: 0;
+}
+
+.resume-workbench-grade-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.resume-workbench-grade-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.resume-workbench-grade-copy strong {
+  font-size: 1.18rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.resume-workbench-grade-copy span {
+  color: var(--brand-subtle);
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.resume-report-button {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #111;
+  font-size: 0.84rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.resume-workbench-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
 .resume-preview-section {
-  padding: 18px 18px 16px;
-  border-radius: 20px;
-  background: rgba(248, 250, 249, 0.96);
-  border: 1px solid rgba(16, 35, 49, 0.06);
+  padding: 14px 12px 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(16, 35, 49, 0.05);
 }
 
 .resume-preview-section h3 {
   margin: 0 0 12px;
-  font-size: 1rem;
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
 }
 
 .resume-preview-lines {
@@ -3189,12 +3594,6 @@ textarea:focus {
   color: #1d3040;
   line-height: 1.72;
   white-space: pre-wrap;
-}
-
-.resume-analysis-hero {
-  display: grid;
-  grid-template-columns: minmax(320px, 1.15fr) minmax(0, 1fr);
-  gap: 18px;
 }
 
 .resume-grade-card {
@@ -3241,32 +3640,352 @@ textarea:focus {
 .fix-card {
   display: grid;
   justify-items: center;
-  gap: 8px;
-  padding: 18px 12px 14px;
-  border-radius: 20px;
+  gap: 4px;
+  padding: 14px 8px 12px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .fix-card strong {
-  font-size: 2rem;
+  font-size: 1.1rem;
   line-height: 1;
 }
 
 .fix-card span {
-  font-size: 0.86rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  text-transform: uppercase;
+  text-transform: none;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .fix-card.urgent {
-  background: rgba(255, 239, 242, 0.95);
+  background: linear-gradient(180deg, rgba(255, 239, 242, 0.72), rgba(255, 243, 246, 0.92));
 }
 
 .fix-card.critical {
-  background: rgba(255, 246, 231, 0.96);
+  background: linear-gradient(180deg, rgba(255, 246, 231, 0.74), rgba(255, 249, 238, 0.94));
 }
 
 .fix-card.optional {
-  background: rgba(235, 247, 255, 0.96);
+  background: linear-gradient(180deg, rgba(235, 247, 255, 0.76), rgba(241, 250, 255, 0.94));
+}
+
+.resume-reanalyze-card {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  min-height: 100%;
+  padding: 12px 10px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(16, 35, 49, 0.12);
+  text-align: center;
+}
+
+.resume-reanalyze-card strong {
+  font-size: 0.98rem;
+}
+
+.resume-reanalyze-card span {
+  font-size: 0.72rem;
+  color: #fff;
+  background: rgba(17, 17, 17, 0.94);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.resume-credit-pill {
+  grid-column: 1 / -1;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #11e6a4 0%, #7cefd1 100%);
+  color: #07151b;
+  font-weight: 800;
+  font-size: 0.84rem;
+  box-shadow: 0 10px 24px rgba(17, 230, 164, 0.14);
+}
+
+.resume-editor-surface {
+  padding: 18px 0 2px;
+  border-top: 1px solid rgba(16, 35, 49, 0.08);
+  border-bottom: 1px solid rgba(16, 35, 49, 0.08);
+}
+
+.resume-editor-name-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.resume-editor-name-row h2 {
+  margin: 0;
+  font-size: clamp(1.65rem, 2.2vw, 2.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+
+.resume-editor-name-row p {
+  margin: 8px 0 0;
+  color: var(--brand-subtle);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.resume-urgent-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resume-urgent-pill span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(15, 34, 49, 0.045);
+  font-weight: 800;
+  font-size: 0.84rem;
+}
+
+.resume-urgent-pill button {
+  min-width: 108px;
+  min-height: 38px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #8ef0bb 0%, #9feccd 100%);
+  font-weight: 900;
+  font-size: 0.88rem;
+  box-shadow: 0 10px 20px rgba(18, 220, 160, 0.14);
+}
+
+.resume-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 14px;
+  padding: 0 4px 4px;
+}
+
+.resume-contact-card {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  padding: 10px 0 12px;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(16, 35, 49, 0.08);
+}
+
+.resume-contact-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.resume-contact-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(15, 34, 49, 0.04);
+  color: #233746;
+  font-size: 0.72rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.resume-contact-head strong {
+  font-size: 0.86rem;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.resume-contact-card span:last-child {
+  padding-left: 34px;
+  color: #8b949d;
+  line-height: 1.45;
+  font-size: 0.78rem;
+}
+
+.resume-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.resume-section-title-row h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resume-section-title-row h3::before {
+  content: "";
+  width: 10px;
+  height: 18px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(16, 35, 49, 0.28) 1.5px, transparent 2px) 0 0 / 5px 5px repeat;
+  opacity: 0.9;
+}
+
+.resume-skill-editor-list,
+.resume-project-editor-list,
+.resume-experience-list,
+.resume-certification-list {
+  display: grid;
+  gap: 12px;
+}
+
+.resume-skill-editor-group {
+  display: grid;
+  gap: 10px;
+  padding: 8px 0 0;
+  border-top: 1px solid rgba(16, 35, 49, 0.06);
+}
+
+.resume-skill-editor-group strong {
+  font-size: 0.92rem;
+}
+
+.resume-skill-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.resume-editor-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #f5f7f8;
+  color: #132a39;
+  font-size: 0.84rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.04);
+}
+
+.resume-editor-chip em {
+  margin-left: 7px;
+  font-style: normal;
+  color: #5d7180;
+}
+
+.resume-editor-chip.ghost {
+  color: #a0a8b0;
+  background: rgba(244, 246, 247, 0.8);
+}
+
+.resume-chip-help,
+.resume-icon-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.1);
+  font-weight: 900;
+  color: #213443;
+}
+
+.resume-project-editor-card {
+  display: grid;
+  gap: 10px;
+  padding: 10px 0 6px;
+  border-top: 1px solid rgba(16, 35, 49, 0.06);
+}
+
+.resume-experience-card,
+.resume-certification-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0 6px;
+  border-top: 1px solid rgba(16, 35, 49, 0.06);
+}
+
+.resume-experience-card strong,
+.resume-certification-card strong {
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+}
+
+.resume-experience-card > span {
+  color: #5e7282;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.resume-experience-card ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
+.resume-certification-card p {
+  margin: 0;
+  color: #243848;
+  line-height: 1.58;
+  font-size: 0.9rem;
+}
+
+.resume-project-editor-card strong {
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+}
+
+.resume-project-editor-card ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
+.resume-outline-add {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #fff;
+  color: #111;
+  font-size: 0.84rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.1);
+}
+
+.resume-outline-add.small {
+  justify-self: start;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.resume-fab {
+  position: sticky;
+  bottom: 14px;
+  justify-self: end;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #5ff2bb 0%, #5de7c3 100%);
+  color: #111;
+  font-size: 1.5rem;
+  box-shadow: 0 14px 26px rgba(5, 214, 164, 0.18);
 }
 
 .resume-profile-grid {
@@ -3300,74 +4019,76 @@ textarea:focus {
 .resume-issue-list,
 .resume-highlight-list {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .resume-skill-group-card,
 .resume-project-card,
 .resume-highlight-card,
 .resume-issue-card {
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: rgba(248, 250, 249, 0.96);
-  border: 1px solid rgba(16, 35, 49, 0.06);
+  padding: 14px 14px;
+  border-radius: 16px;
+  background: rgba(248, 250, 249, 0.82);
+  border: 1px solid rgba(16, 35, 49, 0.05);
 }
 
 .resume-skill-group-card strong,
 .resume-project-card strong,
 .resume-issue-card strong {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .resume-skill-chip-row,
 .resume-project-tech {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px;
 }
 
 .resume-skill-chip-row span,
 .resume-project-tech span {
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 10px;
   border-radius: 999px;
   background: #eef4f2;
   color: #173143;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
 .resume-highlight-card {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
 }
 
 .resume-highlight-index {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
   background: #111;
   color: white;
+  font-size: 0.82rem;
   font-weight: 800;
 }
 
 .resume-highlight-card strong {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .resume-highlight-card p,
 .resume-issue-card p {
   margin: 0;
   color: var(--brand-subtle);
-  line-height: 1.68;
+  line-height: 1.58;
+  font-size: 0.88rem;
 }
 
 .resume-issue-card {
@@ -3376,10 +4097,11 @@ textarea:focus {
 }
 
 .resume-project-card ul {
-  margin: 14px 0 0;
+  margin: 10px 0 0;
   padding-left: 20px;
   color: #1d3040;
-  line-height: 1.7;
+  line-height: 1.62;
+  font-size: 0.92rem;
 }
 
 .resume-row-icon {
@@ -3774,8 +4496,28 @@ textarea:focus {
     padding: 18px 18px 24px;
   }
 
-  .resume-analysis-hero {
+  .resume-workbench-toolbar,
+  .resume-workbench-left,
+  .resume-workbench-actions,
+  .resume-workbench-hero,
+  .resume-contact-grid,
+  .resume-workbench-scoreboard {
     grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .resume-workbench-toolbar,
+  .resume-workbench-left,
+  .resume-workbench-actions {
+    gap: 10px;
+  }
+
+  .resume-workbench-scoreboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .resume-credit-pill {
+    justify-self: stretch;
   }
 
   .job-detail-modal-body,
@@ -3793,6 +4535,14 @@ textarea:focus {
 
   .resume-preview-panel {
     width: 100vw;
+  }
+
+  .profile-editor-overlay {
+    left: 0;
+  }
+
+  .profile-editor-form-grid {
+    grid-template-columns: 1fr;
   }
 
   .resume-analysis-hero,
@@ -3875,6 +4625,34 @@ textarea:focus {
 
   .profile-tab-row {
     gap: 18px;
+    top: 8px;
+    margin: -4px -4px 14px;
+    padding: 10px 16px 12px;
+  }
+
+  .profile-editor-header {
+    grid-template-columns: auto 1fr;
+    padding: 16px;
+  }
+
+  .profile-editor-update {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .profile-editor-body {
+    padding: 18px 16px 28px;
+  }
+
+  .profile-editor-bullet-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-editor-skill-input {
+    min-width: 0;
+    width: 100%;
   }
 
   .profile-tab.active {
@@ -3973,6 +4751,23 @@ textarea:focus {
   .apply-followup-primary,
   .apply-followup-secondary {
     min-height: 54px;
+  }
+
+  .resume-workbench-scoreboard,
+  .resume-contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-editor-name-row,
+  .resume-section-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .resume-fab {
+    width: 64px;
+    height: 64px;
+    font-size: 1.45rem;
   }
 
   .match-ring {

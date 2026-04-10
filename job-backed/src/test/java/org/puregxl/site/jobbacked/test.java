@@ -12,6 +12,7 @@ import org.puregxl.site.jobbacked.dto.req.JobPageRequestV2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
@@ -55,4 +56,8 @@ public class test {
 
 
     }
+
+
+
+    
 }
