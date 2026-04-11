@@ -704,6 +704,54 @@ textarea:focus {
   cursor: not-allowed;
 }
 
+.auth-captcha-button {
+  display: inline-grid;
+  place-items: center;
+  width: 152px;
+  height: 50px;
+  padding: 0;
+  border-radius: 16px;
+  background: rgba(244, 247, 248, 0.92);
+  border: 1px solid var(--brand-line);
+  overflow: hidden;
+  transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.auth-captcha-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(4, 217, 151, 0.34);
+}
+
+.auth-captcha-button:disabled {
+  opacity: 0.64;
+  cursor: not-allowed;
+}
+
+.auth-captcha-button img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.auth-refresh-link {
+  justify-self: start;
+  padding: 0;
+  background: transparent;
+  color: var(--brand-subtle);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.auth-refresh-link:hover:not(:disabled) {
+  color: var(--brand-primary-deep);
+}
+
+.auth-refresh-link:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
 .helper-text {
   color: var(--brand-subtle);
   font-size: 0.9rem;
@@ -837,6 +885,10 @@ textarea:focus {
   grid-template-columns: 286px minmax(0, 1fr) 332px;
   height: calc(100vh - 52px);
   overflow: hidden;
+}
+
+.dashboard-layout.no-promo {
+  height: 100vh;
 }
 
 .dashboard-layout.resume-layout {

@@ -18,6 +18,7 @@ import org.puregxl.site.jobbacked.dto.req.RegisterRequest;
 import org.puregxl.site.jobbacked.dto.resp.AuthResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserProfileResponse;
 import org.puregxl.site.jobbacked.service.AuthService;
+import org.puregxl.site.jobbacked.service.CaptchaService;
 import org.puregxl.site.jobbacked.service.FileStorageService;
 import org.puregxl.site.jobbacked.service.MailService;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -38,6 +39,8 @@ public class AuthServiceImpl implements AuthService {
 
     private final MailService mailService;
 
+    private final CaptchaService captchaService;
+
     private static final String MAIL_CODE_PREFIX = "job:backed:mail:code:%s";
 
     @Override
@@ -45,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
         String account = requestParam.getAccount();
         String password = requestParam.getPassword();
 
+        captchaService.validateLoginCaptcha(requestParam.getCaptchaKey(), requestParam.getCaptchaCode());
 
         LambdaQueryWrapper<UserAccount> queryWrapper = Wrappers.lambdaQuery(UserAccount.class)
                 .and(wrapper -> wrapper

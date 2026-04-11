@@ -7,7 +7,9 @@ const TOKEN_HEADER = "X-Access-Token";
 
 const loginInitialState = {
   account: "demo",
-  password: "JobBacked123"
+  password: "JobBacked123",
+  captchaKey: "",
+  captchaCode: ""
 };
 
 const registerInitialState = {
@@ -1071,6 +1073,8 @@ function App() {
   const [authView, setAuthView] = useState("login");
   const [loginForm, setLoginForm] = useState(loginInitialState);
   const [registerForm, setRegisterForm] = useState(registerInitialState);
+  const [loginCaptcha, setLoginCaptcha] = useState(null);
+  const [loginCaptchaLoading, setLoginCaptchaLoading] = useState(false);
   const [sendCodeLoading, setSendCodeLoading] = useState(false);
   const [sendCodeCooldown, setSendCodeCooldown] = useState(0);
   const [resumeFile, setResumeFile] = useState(null);
@@ -1120,6 +1124,16 @@ function App() {
     }, 1000);
     return () => window.clearTimeout(timer);
   }, [sendCodeCooldown]);
+
+  useEffect(() => {
+    if (auth.token || authView !== "login") {
+      return;
+    }
+    if (loginCaptcha?.captchaKey) {
+      return;
+    }
+    refreshLoginCaptcha();
+  }, [auth.token, authView, loginCaptcha?.captchaKey]);
   const currentJobsData =
     activeTab === "收藏职位"
       ? favoriteJobsData
@@ -1757,8 +1771,30 @@ function App() {
       setMessage({ type: "success", text: "登录成功，正在进入首页。" });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
+      await refreshLoginCaptcha(true);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refreshLoginCaptcha(silent = false) {
+    if (!silent) {
+      setLoginCaptchaLoading(true);
+    }
+    try {
+      const data = await request("/api/auth/captcha", { method: "GET" });
+      setLoginCaptcha(data);
+      setLoginForm((current) => ({
+        ...current,
+        captchaKey: data?.captchaKey || "",
+        captchaCode: ""
+      }));
+    } catch (error) {
+      if (!silent) {
+        setMessage({ type: "error", text: error.message || "获取图形验证码失败" });
+      }
+    } finally {
+      setLoginCaptchaLoading(false);
     }
   }
 
@@ -3562,6 +3598,40 @@ function App() {
                     />
                   </label>
 
+                  <label>
+                    图形验证码
+                    <div className="auth-inline-row">
+                      <input
+                        value={loginForm.captchaCode}
+                        onChange={(event) => updateForm(setLoginForm, "captchaCode", event.target.value)}
+                        placeholder="请输入图形验证码"
+                      />
+                      <button
+                        className="auth-captcha-button"
+                        onClick={() => refreshLoginCaptcha()}
+                        type="button"
+                        disabled={loginCaptchaLoading || loading}
+                      >
+                        {loginCaptchaLoading ? (
+                          <span>加载中...</span>
+                        ) : loginCaptcha?.imageData ? (
+                          <img src={loginCaptcha.imageData} alt="图形验证码" />
+                        ) : (
+                          <span>获取验证码</span>
+                        )}
+                      </button>
+                    </div>
+                  </label>
+
+                  <button
+                    className="auth-refresh-link"
+                    onClick={() => refreshLoginCaptcha()}
+                    type="button"
+                    disabled={loginCaptchaLoading || loading}
+                  >
+                    看不清？换一张
+                  </button>
+
                   <button className="primary-button" disabled={loading} type="submit">
                     {loading ? "登录中..." : "立即登录"}
                   </button>
@@ -3769,12 +3839,14 @@ function App() {
 
   return (
     <div className="dashboard-shell">
-      <div className="promo-bar">
-        <span>本周重点机会仍在持续刷新。</span>
-        <strong>优化简历和筛选条件，可以显著提升岗位匹配度。</strong>
-      </div>
+      {activeSection === "jobs" ? (
+        <div className="promo-bar">
+          <span>本周重点机会仍在持续刷新。</span>
+          <strong>优化简历和筛选条件，可以显著提升岗位匹配度。</strong>
+        </div>
+      ) : null}
 
-      <div className={activeSection === "resume" ? "dashboard-layout resume-layout" : activeSection === "profile" ? "dashboard-layout profile-layout" : "dashboard-layout"}>
+      <div className={`dashboard-layout${activeSection === "resume" ? " resume-layout" : ""}${activeSection === "profile" ? " profile-layout" : ""}${activeSection !== "jobs" ? " no-promo" : ""}`}>
         <aside className="sidebar">
           <div className="brand-block">
             <div className="brand-mark">J</div>

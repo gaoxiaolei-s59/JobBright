@@ -9,8 +9,10 @@ import org.puregxl.site.jobbacked.dto.req.LoginRequest;
 import org.puregxl.site.jobbacked.dto.req.RegisterRequest;
 import org.puregxl.site.jobbacked.dto.req.SendVerificationCodeRequest;
 import org.puregxl.site.jobbacked.dto.resp.AuthResponse;
+import org.puregxl.site.jobbacked.dto.resp.LoginCaptchaResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserProfileResponse;
 import org.puregxl.site.jobbacked.service.AuthService;
+import org.puregxl.site.jobbacked.service.CaptchaService;
 import org.puregxl.site.jobbacked.service.MailService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,8 @@ public class AuthController {
     private final AuthService authService;
 
     private final MailService mailService;
+
+    private final CaptchaService captchaService;
 
 
 
@@ -61,6 +65,14 @@ public class AuthController {
     public Result<UserProfileResponse> currentUser() {
         long currentUserId = UserContext.getUserId();
         return Results.success(authService.currentUser(currentUserId));
+    }
+
+    /**
+     * 获取登录图形验证码
+     */
+    @GetMapping("/captcha")
+    public Result<LoginCaptchaResponse> getLoginCaptcha() {
+        return Results.success(captchaService.generateLoginCaptcha());
     }
 
 
