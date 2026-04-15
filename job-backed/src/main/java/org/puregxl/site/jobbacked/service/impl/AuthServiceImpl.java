@@ -23,6 +23,7 @@ import org.puregxl.site.jobbacked.service.FileStorageService;
 import org.puregxl.site.jobbacked.service.MailService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private static final String MAIL_CODE_PREFIX = "job:backed:mail:code:%s";
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public AuthResponse login(LoginRequest requestParam) {
         String account = requestParam.getAccount();
         String password = requestParam.getPassword();
@@ -81,6 +83,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void register(RegisterRequest requestParam) {
 
         LambdaQueryWrapper<UserAccount> queryWrapperOne = Wrappers.lambdaQuery(UserAccount.class)
@@ -109,8 +112,5 @@ public class AuthServiceImpl implements AuthService {
 
         userAccountMapper.insert(build);
     }
-
-
-
 
 }

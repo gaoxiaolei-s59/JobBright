@@ -25,6 +25,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
@@ -63,6 +66,7 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
      * @param file
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void uploadUserResume(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ClientException("上传简历不能为空");
@@ -128,7 +132,12 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                 .userId(UserContext.getUserId())
                 .build();
 
-        jobBackedUserResumeProduceTemplate.sendMessage(uploadEvent);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                jobBackedUserResumeProduceTemplate.sendMessage(uploadEvent);
+            }
+        });
 
     }
 

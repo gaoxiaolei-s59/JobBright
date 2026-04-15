@@ -26,6 +26,7 @@
         <module>job-framework</module>
         <module>job-rag</module>
         <module>clawler</module>
+        <module>infra-ai</module>
     </modules>
     <scm>
         <connection/>
