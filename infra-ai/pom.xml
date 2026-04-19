@@ -21,14 +21,20 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.puregxl</groupId>
-            <artifactId>framework</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <groupId>org.puregxl.site</groupId>
+            <artifactId>job-framework</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
