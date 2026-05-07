@@ -21,9 +21,6 @@ rustfs:
   bucket-name: user-resume
   create-bucket-if-missing: true
 
-
-
-
 rocketmq:
   name-server: 127.0.0.1:9876 # NameServer 地址
   producer:
@@ -32,7 +29,53 @@ rocketmq:
     retry-times-when-send-failed: 1 # 同步发送重试次数
     retry-times-when-send-async-failed: 1 # 异步发送重试次数
 
+ai:
+  providers:
+    ollama:
+      url: http://localhost:11434
+      endpoints:
+        chat: /v1/chat/completions
+        embedding: /v1/embeddings
+    bailian:
+      url: https://dashscope.aliyuncs.com
+      api-key: ${BAILIAN_API_KEY:}
+      endpoints:
+        chat: /compatible-mode/v1/chat/completions
+        rerank: /api/v1/services/rerank/text-rerank/text-rerank
+    siliconflow:
+      url: https://api.siliconflow.cn
+      api-key: sk-rjtfqcpnhpzonswkebygmaqnqvibqcndgqxqfxghizuguthf
+      endpoints:
+        chat: /v1/chat/completions
+        embedding: /v1/embeddings
 
-llm:
-  api-key: ${SILICONFLOW_API_KEY:}
+  selection:
+    failure-threshold: 2
+    open-duration-ms: 30000
+
+  stream:
+    message-chunk-size: 1
+
+  chat:
+    default-model: qwen3-max
+    deep-thinking-model: qwen3-max
+    candidates:
+      - id: qwen-plus
+        provider: bailian
+        model: qwen-plus-latest
+        priority: 1
+      - id: qwen3-max
+        provider: bailian
+        model: qwen3-max
+        supports-thinking: true
+        priority: 3
+      - id: glm-4.7
+        provider: siliconflow
+        model: Pro/zai-org/GLM-4.7
+        supports-thinking: true
+        priority: 0
+      - id: qwen3-local
+        provider: ollama
+        model: qwen3:8b-fp16
+        priority: 2
 

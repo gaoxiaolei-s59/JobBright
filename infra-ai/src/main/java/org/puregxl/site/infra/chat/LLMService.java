@@ -26,4 +26,13 @@ public interface LLMService {
     String doChat(ChatRequest chatRequest);
 
 
+    /**
+     * 根据modelid调用
+     * @param chatRequest
+     * @param modelId
+     * @return
+     */
+    String doChat(ChatRequest chatRequest, String modelId);
+
+
 }

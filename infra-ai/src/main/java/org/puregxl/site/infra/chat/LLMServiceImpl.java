@@ -9,6 +9,7 @@ import org.puregxl.site.infra.model.ModelHealthStore;
 import org.puregxl.site.infra.model.ModelSelector;
 import org.puregxl.site.infra.model.ModelTarget;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -32,12 +33,16 @@ public class LLMServiceImpl implements LLMService {
 
     @Override
     public String doChat(ChatRequest request) {
-        List<ModelTarget> modelTargets = modelSelector.selectChatCandidates(request.getThinking());
+        List<ModelTarget> modelTargets = modelSelector.selectChatCandidates(Boolean.TRUE.equals(request.getThinking()));
 
         if (modelTargets == null || modelTargets.isEmpty()) {
             throw new RemoteException("No available chat model candidates", BaseErrorCode.REMOTE_ERROR);
         }
 
+        return executeChat(request, modelTargets);
+    }
+
+    private String executeChat(ChatRequest request, List<ModelTarget> modelTargets) {
         for (ModelTarget modelTarget : modelTargets) {
             String modelTargetId = modelTarget.getId();
             String provider = modelTarget.getCandidate().getProvider();
@@ -64,5 +69,29 @@ public class LLMServiceImpl implements LLMService {
         }
 
         throw new RemoteException("ALL CHAT Model Fail, messages", BaseErrorCode.REMOTE_ERROR);
+    }
+
+    /**
+     * 选用特定model
+     * @param chatRequest
+     * @param modelId
+     * @return
+     */
+    @Override
+    public String doChat(ChatRequest chatRequest, String modelId) {
+        if (!StringUtils.hasText(modelId)) {
+            return doChat(chatRequest);
+        }
+
+        List<ModelTarget> modelTargets = modelSelector.selectChatCandidates(Boolean.TRUE.equals(chatRequest.getThinking()))
+                .stream()
+                .filter(each -> modelId.equals(each.getId()))
+                .toList();
+
+        if (modelTargets.isEmpty()) {
+            throw new RemoteException("No available chat model candidate for modelId=" + modelId, BaseErrorCode.REMOTE_ERROR);
+        }
+
+        return executeChat(chatRequest, modelTargets);
     }
 }
