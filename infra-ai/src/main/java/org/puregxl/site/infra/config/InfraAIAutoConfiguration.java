@@ -6,6 +6,10 @@ import org.puregxl.site.infra.chat.ChatClient;
 import org.puregxl.site.infra.chat.LLMService;
 import org.puregxl.site.infra.chat.LLMServiceImpl;
 import org.puregxl.site.infra.chat.SiliconFlowChatClient;
+import org.puregxl.site.infra.embedding.EmbeddingClient;
+import org.puregxl.site.infra.embedding.EmbeddingService;
+import org.puregxl.site.infra.embedding.EmbeddingServiceImpl;
+import org.puregxl.site.infra.embedding.SiliconFlowEmbeddingClient;
 import org.puregxl.site.infra.model.ModelHealthStore;
 import org.puregxl.site.infra.model.ModelSelector;
 import org.puregxl.site.infra.rerank.BaiLianRerankClient;
@@ -54,6 +58,12 @@ public class InfraAIAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "siliconFlowEmbeddingClient")
+    public SiliconFlowEmbeddingClient siliconFlowEmbeddingClient(OkHttpClient infraAiOkHttpClient) {
+        return new SiliconFlowEmbeddingClient(infraAiOkHttpClient);
+    }
+
+    @Bean
     @ConditionalOnMissingBean(name = "baiLianRerankClient")
     public BaiLianRerankClient baiLianRerankClient(OkHttpClient infraAiOkHttpClient) {
         return new BaiLianRerankClient(infraAiOkHttpClient);
@@ -65,6 +75,14 @@ public class InfraAIAutoConfiguration {
                                  ModelHealthStore modelHealthStore,
                                  List<ChatClient> chatClients) {
         return new LLMServiceImpl(modelSelector, modelHealthStore, chatClients);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public EmbeddingService embeddingService(ModelSelector modelSelector,
+                                             ModelHealthStore modelHealthStore,
+                                             List<EmbeddingClient> embeddingClients) {
+        return new EmbeddingServiceImpl(modelSelector, modelHealthStore, embeddingClients);
     }
 
     @Bean
