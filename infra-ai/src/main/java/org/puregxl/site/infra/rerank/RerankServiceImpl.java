@@ -1,7 +1,8 @@
 package org.puregxl.site.infra.rerank;
 
-import lombok.RequiredArgsConstructor;
-import net.sf.jsqlparser.Model;
+import lombok.extern.slf4j.Slf4j;
+import org.puregxl.site.framework.errorcode.BaseErrorCode;
+import org.puregxl.site.framework.exception.RemoteException;
 import org.puregxl.site.infra.convention.RetrievedChunk;
 import org.puregxl.site.infra.model.ModelHealthStore;
 import org.puregxl.site.infra.model.ModelSelector;
@@ -10,11 +11,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class RerankServiceImpl implements RerankService{
 
     private final Map<String, RerankClient> map;
@@ -29,13 +30,38 @@ public class RerankServiceImpl implements RerankService{
 
     @Override
     public List<RetrievedChunk> rerank(String query, List<RetrievedChunk> candidates, int topN) {
+        if (candidates == null || candidates.isEmpty()) {
+            return List.of();
+        }
         List<ModelTarget> modelTargets = modelSelector.selectRerankCandidates();
-        for (ModelTarget modelTarget : modelTargets) {
-            if (modelHealthStore.allowCall(modelTarget.getId())) {
+        if (modelTargets == null || modelTargets.isEmpty()) {
+            throw new RemoteException("No available rerank model candidates", BaseErrorCode.REMOTE_ERROR);
+        }
 
+        for (ModelTarget modelTarget : modelTargets) {
+            String modelTargetId = modelTarget.getId();
+            String provider = modelTarget.getCandidate().getProvider();
+            RerankClient rerankClient = map.get(provider);
+            if (rerankClient == null) {
+                log.warn("未找到对应的RerankClient, provider={}, modelTarget={}", provider, modelTarget);
+                continue;
+            }
+
+            if (!modelHealthStore.allowCall(modelTargetId)) {
+                log.warn("Rerank模型当前不可调用, modelTargetId={}, modelTarget={}", modelTargetId, modelTarget);
+                continue;
+            }
+
+            try {
+                List<RetrievedChunk> result = rerankClient.rerank(query, candidates, topN, modelTarget);
+                modelHealthStore.markSuccess(modelTargetId);
+                return result;
+            } catch (Exception exception) {
+                log.warn("Rerank调用失败, modelTargetId={}, modelTarget={}", modelTargetId, modelTarget, exception);
+                modelHealthStore.markFailure(modelTargetId);
             }
         }
 
-        return List.of();
+        throw new RemoteException("ALL RERANK Model Fail", BaseErrorCode.REMOTE_ERROR);
     }
 }

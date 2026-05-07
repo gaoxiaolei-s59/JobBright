@@ -78,4 +78,14 @@ ai:
         provider: ollama
         model: qwen3:8b-fp16
         priority: 2
-
+    rerank:
+      default-model: qwen3-rerank
+      candidates:
+        - id: qwen3-rerank
+          provider: bailian
+          model: qwen3-rerank
+          priority: 1
+        - id: rerank-noop
+          provider: noop
+          model: noop
+          priority: 100
