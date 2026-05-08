@@ -113,6 +113,11 @@ public abstract class AbstractChatClient implements ChatClient{
         if (request.getMaxTokens() != null) {
             body.addProperty("max_tokens", request.getMaxTokens());
         }
+        if (request.getResponseFormat() != null && !request.getResponseFormat().isBlank()) {
+            JsonObject responseFormat = new JsonObject();
+            responseFormat.addProperty("type", request.getResponseFormat());
+            body.add("response_format", responseFormat);
+        }
 
         customizeRequestBody(body, request);
         return body;

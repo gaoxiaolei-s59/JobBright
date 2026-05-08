@@ -16,10 +16,11 @@ public final class ResumeProfileConverter {
         return JSONUtil.toBean(profileJson, ResumeProfileDTO.class);
     }
 
-    public static UserResumeProfile toEntity(ResumeProfileDTO dto, String profileJson, String resumeId, String model) {
+    public static UserResumeProfile toEntity(ResumeProfileDTO dto, String profileJson, String resumeId, Long userId, String model) {
         return UserResumeProfile.builder()
                 .profileId(IdUtil.fastSimpleUUID())
                 .resumeId(resumeId)
+                .userId(userId)
                 .candidateName(trimToNull(dto.getCandidate_name()))
                 .targetRoles(writeArrayField(dto.getTarget_roles()))
                 .seniority(trimToNull(dto.getSeniority()))
@@ -45,7 +46,7 @@ public final class ResumeProfileConverter {
     }
 
     public static UserResumeProfile toEntity(String profileJson, String resumeId, String model) {
-        return toEntity(toDto(profileJson), profileJson, resumeId, model);
+        return toEntity(toDto(profileJson), profileJson, resumeId, null, model);
     }
 
     private static String trimToNull(String value) {

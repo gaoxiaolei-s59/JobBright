@@ -133,7 +133,13 @@ public class JobBackedUserResumeConsumer implements RocketMQListener<MessageWrap
 
             List<String> validationErrors = validateProfile(dto);
             if (validationErrors.isEmpty()) {
-                UserResumeProfile profile = ResumeProfileConverter.toEntity(dto, userProfileJson, userResumeFile.getResumeId(), userProfileResult.getModel());
+                UserResumeProfile profile = ResumeProfileConverter.toEntity(
+                        dto,
+                        userProfileJson,
+                        userResumeFile.getResumeId(),
+                        userResumeFile.getUserId(),
+                        userProfileResult.getModel()
+                );
                 return new ProfileBuildResult(true, profile, dto, List.of());
             }
 

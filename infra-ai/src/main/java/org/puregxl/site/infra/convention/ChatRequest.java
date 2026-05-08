@@ -85,6 +85,15 @@ public class ChatRequest {
     private Integer maxTokens;
 
     /**
+     * 可选：OpenAI-compatible response_format.type。
+     * <p>
+     * 例如 {@code json_object}，用于要求模型返回可解析 JSON。
+     * 不需要结构化输出时保持 {@code null}。
+     * </p>
+     */
+    private String responseFormat;
+
+    /**
      * 可选：是否启用「思考模式」开关
      * <p>
      * 占坑字段，用于兼容支持思考过程 / reasoning 扩展能力的模型，

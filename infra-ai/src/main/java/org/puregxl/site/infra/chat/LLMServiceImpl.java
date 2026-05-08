@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.puregxl.site.framework.errorcode.BaseErrorCode;
 import org.puregxl.site.framework.exception.RemoteException;
 import org.puregxl.site.infra.convention.ChatRequest;
+import org.puregxl.site.infra.convention.ChatResult;
 import org.puregxl.site.infra.model.ModelHealthStore;
 import org.puregxl.site.infra.model.ModelSelector;
 import org.puregxl.site.infra.model.ModelTarget;
@@ -33,16 +34,21 @@ public class LLMServiceImpl implements LLMService {
 
     @Override
     public String doChat(ChatRequest request) {
+        return doChatWithResult(request).getContent();
+    }
+
+    @Override
+    public ChatResult doChatWithResult(ChatRequest request) {
         List<ModelTarget> modelTargets = modelSelector.selectChatCandidates(Boolean.TRUE.equals(request.getThinking()));
 
         if (modelTargets == null || modelTargets.isEmpty()) {
             throw new RemoteException("No available chat model candidates", BaseErrorCode.REMOTE_ERROR);
         }
 
-        return executeChat(request, modelTargets);
+        return executeChatWithResult(request, modelTargets);
     }
 
-    private String executeChat(ChatRequest request, List<ModelTarget> modelTargets) {
+    private ChatResult executeChatWithResult(ChatRequest request, List<ModelTarget> modelTargets) {
         for (ModelTarget modelTarget : modelTargets) {
             String modelTargetId = modelTarget.getId();
             String provider = modelTarget.getCandidate().getProvider();
@@ -61,7 +67,12 @@ public class LLMServiceImpl implements LLMService {
             try {
                 String result = chatClient.chat(request, modelTarget);
                 modelHealthStore.markSuccess(modelTargetId);
-                return result;
+                return ChatResult.builder()
+                        .content(result)
+                        .modelId(modelTargetId)
+                        .provider(provider)
+                        .model(modelTarget.getCandidate().getModel())
+                        .build();
             } catch (Exception e) {
                 log.warn("大模型调用失败, modelTargetId={}, modelTarget={}", modelTargetId, modelTarget, e);
                 modelHealthStore.markFailure(modelTargetId);
@@ -79,8 +90,13 @@ public class LLMServiceImpl implements LLMService {
      */
     @Override
     public String doChat(ChatRequest chatRequest, String modelId) {
+        return doChatWithResult(chatRequest, modelId).getContent();
+    }
+
+    @Override
+    public ChatResult doChatWithResult(ChatRequest chatRequest, String modelId) {
         if (!StringUtils.hasText(modelId)) {
-            return doChat(chatRequest);
+            return doChatWithResult(chatRequest);
         }
 
         List<ModelTarget> modelTargets = modelSelector.selectChatCandidates(Boolean.TRUE.equals(chatRequest.getThinking()))
@@ -92,6 +108,6 @@ public class LLMServiceImpl implements LLMService {
             throw new RemoteException("No available chat model candidate for modelId=" + modelId, BaseErrorCode.REMOTE_ERROR);
         }
 
-        return executeChat(chatRequest, modelTargets);
+        return executeChatWithResult(chatRequest, modelTargets);
     }
 }
