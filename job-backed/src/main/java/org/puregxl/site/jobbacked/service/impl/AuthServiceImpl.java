@@ -71,7 +71,7 @@ public class AuthServiceImpl implements AuthService {
         //登录成功 - 生成用户令牌
         String token = UUID.randomUUID().toString();
         UserInfoDTO userInfoDTO = new UserInfoDTO(userAccount.getId(), userAccount.getUsername(), userAccount.getEmail(), userAccount.getDisplayName());
-        stringRedisTemplate.opsForValue().set(USER_LOGIN_KEY_PREFIX + token, JSONUtil.toJsonStr(userInfoDTO), 5, TimeUnit.MINUTES);
+        stringRedisTemplate.opsForValue().set(USER_LOGIN_KEY_PREFIX + token, JSONUtil.toJsonStr(userInfoDTO), 30, TimeUnit.MINUTES);
 
         return AuthResponse.builder()
                 .accessToken(token).build();

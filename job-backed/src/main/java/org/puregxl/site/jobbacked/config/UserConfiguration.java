@@ -45,7 +45,8 @@ public class UserConfiguration implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new UserTransmitInterceptor(stringRedisTemplate))
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/login", "/api/auth/register", "/api/health", "/error", "/api/auth/send", "/api/auth/captcha");
+                .excludePathPatterns("/api/auth/login", "/api/auth/register", "/api/health", "/error", "/api/auth/send", "/api/auth/captcha").order(0)
+        ;
     }
 
     @RequiredArgsConstructor
