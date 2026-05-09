@@ -3935,7 +3935,6 @@ textarea:focus {
 
 .resume-contact-card {
   display: grid;
-  gap: 8px;
   min-height: 0;
   padding: 0 0 12px;
   border-bottom: 1px solid rgba(16, 35, 49, 0.08);
@@ -4005,21 +4004,6 @@ textarea:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.resume-contact-secondary {
-  min-height: 50px;
-  padding: 0 16px 0 56px;
-  display: flex;
-  align-items: center;
-  border-radius: 0 0 18px 18px;
-  border-top: 1px solid rgba(16, 35, 49, 0.06);
-}
-
-.resume-contact-secondary span {
-  color: #8b949d;
-  line-height: 1.45;
-  font-size: 0.78rem;
 }
 
 .resume-section-title-row {

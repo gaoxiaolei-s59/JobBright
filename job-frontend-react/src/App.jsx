@@ -821,54 +821,42 @@ function getResumeContactCards(previewData, profileDraft, authUser) {
       icon: "mail",
       title: "邮箱",
       tone: "warm",
-      value: contact.email || authUser?.email || "待补充邮箱",
-      showHint: !(contact.email || authUser?.email),
-      hint: "建议补充常用邮箱，方便投递与自动填充。"
+      value: contact.email || authUser?.email || "待补充邮箱"
     },
     {
       key: "phone",
       icon: "phone",
       title: "电话",
       tone: "neutral",
-      value: contact.phone || "待补充电话",
-      showHint: !contact.phone,
-      hint: "建议补充手机号，用于后续简历完善。"
+      value: contact.phone || "待补充电话"
     },
     {
       key: "location",
       icon: "location",
       title: "地点",
       tone: "plain",
-      value: location,
-      showHint: !location,
-      hint: "可填写城市 / 国家，提升岗位地域匹配。"
+      value: location
     },
     {
       key: "linkedin",
       icon: "link",
       title: "LinkedIn",
       tone: "neutral",
-      value: contact.linkedin || `${name} 的职业主页`,
-      showHint: !contact.linkedin,
-      hint: "可补充公开职业链接，增强招聘方了解。"
+      value: contact.linkedin || `${name} 的职业主页`
     },
     {
       key: "github",
       icon: "github",
       title: "GitHub",
       tone: "neutral",
-      value: contact.github || `${name} 的项目仓库`,
-      showHint: !contact.github,
-      hint: "可展示代表性项目与工程能力。"
+      value: contact.github || `${name} 的项目仓库`
     },
     {
       key: "other",
       icon: "globe",
       title: "其他链接",
       tone: "neutral",
-      value: contact.website || "个人站点 / 作品集 / 博客",
-      showHint: !contact.website,
-      hint: "可补充你的技术博客或作品展示页。"
+      value: contact.website || "个人站点 / 作品集 / 博客"
     }
   ];
 }
@@ -3078,11 +3066,6 @@ function App() {
                                 <strong>{item.value}</strong>
                               </div>
                             </div>
-                            {item.showHint ? (
-                              <div className="resume-contact-secondary">
-                                <span>{item.hint}</span>
-                              </div>
-                            ) : null}
                           </article>
                         ))}
                       </div>
