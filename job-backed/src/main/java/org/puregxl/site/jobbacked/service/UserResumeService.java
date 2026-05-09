@@ -2,6 +2,7 @@ package org.puregxl.site.jobbacked.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
+import org.puregxl.site.jobbacked.dto.req.UserResumeManualUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.springframework.core.io.Resource;
@@ -17,4 +18,6 @@ public interface UserResumeService extends IService<UserResumeFile> {
     UserResumePreviewResponse getResumePreview(String resumeId);
 
     ResponseEntity<Resource> getResumeFile(String resumeId);
+
+    void updateResumeManualContent(String resumeId, UserResumeManualUpdateRequest request);
 }

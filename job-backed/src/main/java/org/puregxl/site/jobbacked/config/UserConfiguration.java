@@ -58,7 +58,7 @@ public class UserConfiguration implements WebMvcConfigurer {
             if (request != null && HttpMethod.OPTIONS.matches(request.getMethod())) {
                 return true;
             }
-            String token = request == null ? null : request.getHeader(AuthConstant.USER_TOKEN_HEADER);
+            String token = resolveToken(request);
             if (token == null || token.isBlank()) {
                 throw new ClientException("请先登录");
             }
@@ -74,6 +74,25 @@ public class UserConfiguration implements WebMvcConfigurer {
         @Override
         public void afterCompletion(@Nullable HttpServletRequest request, @Nullable HttpServletResponse response, @Nullable Object handler, Exception exception) throws Exception {
             UserContext.removeUserContext();
+        }
+
+        private String resolveToken(@Nullable HttpServletRequest request) {
+            if (request == null) {
+                return null;
+            }
+            String token = request.getHeader(AuthConstant.USER_TOKEN_HEADER);
+            if (token != null && !token.isBlank()) {
+                return token;
+            }
+            String authorization = request.getHeader("Authorization");
+            if (authorization == null || authorization.isBlank()) {
+                return null;
+            }
+            if (authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+                String bearerToken = authorization.substring(7).trim();
+                return bearerToken.isEmpty() ? null : bearerToken;
+            }
+            return authorization.trim();
         }
     }
 

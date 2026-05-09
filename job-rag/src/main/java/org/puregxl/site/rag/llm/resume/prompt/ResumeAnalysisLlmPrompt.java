@@ -22,6 +22,7 @@ public final class ResumeAnalysisLlmPrompt {
                 6. urgentIssues 只放最需要立即修改的问题，最多 5 条。
                 7. skillGroups 最多 5 组，每组 items 最多 8 个。
                 8. projects 只提取简历中真实出现的项目，最多 5 个。
+                9. 忽略时间相关的需要修正的地方
                 
                 JSON Schema：
                 {

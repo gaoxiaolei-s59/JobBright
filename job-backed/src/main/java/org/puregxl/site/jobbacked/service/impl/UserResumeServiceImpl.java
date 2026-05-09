@@ -13,9 +13,12 @@ import org.puregxl.site.jobbacked.common.context.UserContext;
 import org.puregxl.site.jobbacked.config.RustfsProperties;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeAnalysis;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
+import org.puregxl.site.jobbacked.dao.entity.UserResumeManualContent;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeAnalysisMapper;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper;
+import org.puregxl.site.jobbacked.dao.mapper.UserResumeManualContentMapper;
 import org.puregxl.site.jobbacked.dto.file.UploadFileInfo;
+import org.puregxl.site.jobbacked.dto.req.UserResumeManualUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.puregxl.site.jobbacked.mq.producer.JobBackedUserResumeAnalysisProduceTemplate;
@@ -36,6 +39,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +60,8 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
     private final UserResumeFileMapper userResumeFileMapper;
 
     private final UserResumeAnalysisMapper userResumeAnalysisMapper;
+
+    private final UserResumeManualContentMapper userResumeManualContentMapper;
 
     private final RustfsProperties rustfsProperties;
 
@@ -181,8 +187,10 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
 
     @Override
     public UserResumePreviewResponse getResumePreview(String resumeId) {
+
         UserResumeFile userResumeFile = getOwnedResumeByResumeId(resumeId);
         UserResumeAnalysis analysis = getResumeAnalysis(userResumeFile.getResumeId(), userResumeFile.getUserId());
+        UserResumeManualContent manualContent = getManualContent(userResumeFile.getResumeId(), userResumeFile.getUserId());
         UserResumePreviewResponse preview = UserResumePreviewResponse.builder()
                 .resumeId(userResumeFile.getResumeId())
                 .fileName(userResumeFile.getFileName())
@@ -194,6 +202,7 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                 .updatedAt(Optional.ofNullable(userResumeFile.getUpdateTime()).map(Object::toString).orElse(null))
                 .build();
         fillAnalysisPreview(preview, userResumeFile, analysis);
+        fillManualPreview(preview, manualContent);
         return preview;
     }
 
@@ -223,6 +232,29 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
         } catch (S3Exception exception) {
             throw new ClientException("读取简历文件失败");
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateResumeManualContent(String resumeId, UserResumeManualUpdateRequest request) {
+        UserResumeFile userResumeFile = getOwnedResumeByResumeId(resumeId);
+        UserResumeManualUpdateRequest normalized = normalizeManualContent(request);
+        UserResumeManualContent existing = getManualContent(userResumeFile.getResumeId(), userResumeFile.getUserId());
+        String contentJson = JSONUtil.toJsonStr(normalized);
+        if (existing == null) {
+            userResumeManualContentMapper.insert(UserResumeManualContent.builder()
+                    .userId(userResumeFile.getUserId())
+                    .resumeId(userResumeFile.getResumeId())
+                    .contentJson(contentJson)
+                    .status("ACTIVE")
+                    .delFlag(0)
+                    .build());
+            return;
+        }
+        existing.setContentJson(contentJson);
+        existing.setStatus("ACTIVE");
+        existing.setDelFlag(0);
+        userResumeManualContentMapper.updateById(existing);
     }
 
 
@@ -299,6 +331,17 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
                 .eq(UserResumeAnalysis::getResumeId, resumeId)
                 .eq(UserResumeAnalysis::getUserId, userId)
                 .eq(UserResumeAnalysis::getDelFlag, 0)
+                .last("limit 1"));
+    }
+
+    private UserResumeManualContent getManualContent(String resumeId, Long userId) {
+        if (!StringUtils.hasText(resumeId) || userId == null) {
+            return null;
+        }
+        return userResumeManualContentMapper.selectOne(Wrappers.lambdaQuery(UserResumeManualContent.class)
+                .eq(UserResumeManualContent::getResumeId, resumeId)
+                .eq(UserResumeManualContent::getUserId, userId)
+                .eq(UserResumeManualContent::getDelFlag, 0)
                 .last("limit 1"));
     }
 
@@ -382,11 +425,37 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
     private void copyAnalysisFields(UserResumePreviewResponse target, UserResumePreviewResponse source) {
         target.setScore(firstNonNull(source.getScore(), target.getScore()));
         target.setProfile(firstNonNull(source.getProfile(), target.getProfile()));
+        target.setContact(firstNonNull(source.getContact(), target.getContact()));
         target.setAnalysisSummary(firstText(source.getAnalysisSummary(), target.getAnalysisSummary()));
         target.setAnalysisHighlights(firstNonEmpty(source.getAnalysisHighlights(), target.getAnalysisHighlights()));
         target.setUrgentIssues(firstNonEmpty(source.getUrgentIssues(), target.getUrgentIssues()));
         target.setSkillGroups(firstNonEmpty(source.getSkillGroups(), target.getSkillGroups()));
         target.setProjects(firstNonEmpty(source.getProjects(), target.getProjects()));
+        target.setWorkExperiences(firstNonEmpty(source.getWorkExperiences(), target.getWorkExperiences()));
+        target.setCertifications(firstNonEmpty(source.getCertifications(), target.getCertifications()));
+    }
+
+    private void fillManualPreview(UserResumePreviewResponse preview, UserResumeManualContent manualContent) {
+        if (manualContent == null || !StringUtils.hasText(manualContent.getContentJson())) {
+            return;
+        }
+        UserResumeManualUpdateRequest manual = parseObject(
+                manualContent.getContentJson(),
+                UserResumeManualUpdateRequest.class
+        );
+        if (manual == null) {
+            return;
+        }
+        preview.setProfile(firstNonNull(toPreviewProfile(manual.getProfile()), preview.getProfile()));
+        preview.setContact(firstNonNull(toPreviewContact(manual.getContact()), preview.getContact()));
+        preview.setAnalysisSummary(firstText(manual.getAnalysisSummary(), preview.getAnalysisSummary()));
+        preview.setSkillGroups(firstNonEmpty(toPreviewSkillGroups(manual.getSkillGroups()), preview.getSkillGroups()));
+        preview.setWorkExperiences(firstNonEmpty(toPreviewWorkExperiences(manual.getWorkExperiences()), preview.getWorkExperiences()));
+        preview.setProjects(firstNonEmpty(toPreviewProjects(manual.getProjects()), preview.getProjects()));
+        preview.setCertifications(firstNonEmpty(toPreviewCertifications(manual.getCertifications()), preview.getCertifications()));
+        preview.setUpdatedAt(Optional.ofNullable(manualContent.getUpdateTime())
+                .map(Object::toString)
+                .orElse(preview.getUpdatedAt()));
     }
 
     private String resolveGrade(Integer scoreValue) {
@@ -444,6 +513,245 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
 
     private String firstText(String first, String fallback) {
         return StringUtils.hasText(first) ? first : fallback;
+    }
+
+    private UserResumeManualUpdateRequest normalizeManualContent(UserResumeManualUpdateRequest request) {
+        UserResumeManualUpdateRequest safeRequest = request == null
+                ? UserResumeManualUpdateRequest.builder().build()
+                : request;
+        return UserResumeManualUpdateRequest.builder()
+                .profile(normalizeProfile(safeRequest.getProfile()))
+                .contact(normalizeContact(safeRequest.getContact()))
+                .analysisSummary(trimToNull(safeRequest.getAnalysisSummary()))
+                .skillGroups(normalizeSkillGroups(safeRequest.getSkillGroups()))
+                .workExperiences(normalizeWorkExperiences(safeRequest.getWorkExperiences()))
+                .projects(normalizeProjects(safeRequest.getProjects()))
+                .certifications(normalizeCertifications(safeRequest.getCertifications()))
+                .build();
+    }
+
+    private UserResumeManualUpdateRequest.Profile normalizeProfile(UserResumeManualUpdateRequest.Profile profile) {
+        if (profile == null) {
+            return null;
+        }
+        return UserResumeManualUpdateRequest.Profile.builder()
+                .name(trimToNull(profile.getName()))
+                .title(trimToNull(profile.getTitle()))
+                .location(trimToNull(profile.getLocation()))
+                .status(trimToNull(profile.getStatus()))
+                .build();
+    }
+
+    private UserResumeManualUpdateRequest.Contact normalizeContact(UserResumeManualUpdateRequest.Contact contact) {
+        if (contact == null) {
+            return null;
+        }
+        return UserResumeManualUpdateRequest.Contact.builder()
+                .email(trimToNull(contact.getEmail()))
+                .phone(trimToNull(contact.getPhone()))
+                .linkedin(trimToNull(contact.getLinkedin()))
+                .github(trimToNull(contact.getGithub()))
+                .website(trimToNull(contact.getWebsite()))
+                .build();
+    }
+
+    private List<UserResumeManualUpdateRequest.SkillGroup> normalizeSkillGroups(List<UserResumeManualUpdateRequest.SkillGroup> groups) {
+        List<UserResumeManualUpdateRequest.SkillGroup> normalized = new ArrayList<>();
+        if (groups == null) {
+            return normalized;
+        }
+        for (UserResumeManualUpdateRequest.SkillGroup group : groups) {
+            if (group == null) {
+                continue;
+            }
+            String title = trimToNull(group.getTitle());
+            List<String> items = normalizeStrings(group.getItems());
+            if (!StringUtils.hasText(title) && items.isEmpty()) {
+                continue;
+            }
+            normalized.add(UserResumeManualUpdateRequest.SkillGroup.builder()
+                    .title(title)
+                    .items(items)
+                    .build());
+        }
+        return normalized;
+    }
+
+    private List<UserResumeManualUpdateRequest.WorkExperience> normalizeWorkExperiences(List<UserResumeManualUpdateRequest.WorkExperience> items) {
+        List<UserResumeManualUpdateRequest.WorkExperience> normalized = new ArrayList<>();
+        if (items == null) {
+            return normalized;
+        }
+        for (UserResumeManualUpdateRequest.WorkExperience item : items) {
+            if (item == null) {
+                continue;
+            }
+            String company = trimToNull(item.getCompany());
+            String role = trimToNull(item.getRole());
+            String period = trimToNull(item.getPeriod());
+            List<String> bullets = normalizeStrings(item.getBullets());
+            if (!StringUtils.hasText(company) && !StringUtils.hasText(role) && !StringUtils.hasText(period) && bullets.isEmpty()) {
+                continue;
+            }
+            normalized.add(UserResumeManualUpdateRequest.WorkExperience.builder()
+                    .company(company)
+                    .role(role)
+                    .period(period)
+                    .bullets(bullets)
+                    .build());
+        }
+        return normalized;
+    }
+
+    private List<UserResumeManualUpdateRequest.Project> normalizeProjects(List<UserResumeManualUpdateRequest.Project> items) {
+        List<UserResumeManualUpdateRequest.Project> normalized = new ArrayList<>();
+        if (items == null) {
+            return normalized;
+        }
+        for (UserResumeManualUpdateRequest.Project item : items) {
+            if (item == null) {
+                continue;
+            }
+            String name = trimToNull(item.getName());
+            List<String> technologies = normalizeStrings(item.getTechnologies());
+            List<String> bullets = normalizeStrings(item.getBullets());
+            if (!StringUtils.hasText(name) && technologies.isEmpty() && bullets.isEmpty()) {
+                continue;
+            }
+            normalized.add(UserResumeManualUpdateRequest.Project.builder()
+                    .name(name)
+                    .technologies(technologies)
+                    .bullets(bullets)
+                    .build());
+        }
+        return normalized;
+    }
+
+    private List<UserResumeManualUpdateRequest.Certification> normalizeCertifications(List<UserResumeManualUpdateRequest.Certification> items) {
+        List<UserResumeManualUpdateRequest.Certification> normalized = new ArrayList<>();
+        if (items == null) {
+            return normalized;
+        }
+        for (UserResumeManualUpdateRequest.Certification item : items) {
+            if (item == null) {
+                continue;
+            }
+            String name = trimToNull(item.getName());
+            String description = trimToNull(item.getDescription());
+            if (!StringUtils.hasText(name) && !StringUtils.hasText(description)) {
+                continue;
+            }
+            normalized.add(UserResumeManualUpdateRequest.Certification.builder()
+                    .name(name)
+                    .description(description)
+                    .build());
+        }
+        return normalized;
+    }
+
+    private List<String> normalizeStrings(List<String> items) {
+        List<String> normalized = new ArrayList<>();
+        if (items == null) {
+            return normalized;
+        }
+        for (String item : items) {
+            String text = trimToNull(item);
+            if (StringUtils.hasText(text)) {
+                normalized.add(text);
+            }
+        }
+        return normalized;
+    }
+
+    private UserResumePreviewResponse.Profile toPreviewProfile(UserResumeManualUpdateRequest.Profile profile) {
+        if (profile == null) {
+            return null;
+        }
+        return UserResumePreviewResponse.Profile.builder()
+                .name(profile.getName())
+                .title(profile.getTitle())
+                .location(profile.getLocation())
+                .status(profile.getStatus())
+                .build();
+    }
+
+    private UserResumePreviewResponse.Contact toPreviewContact(UserResumeManualUpdateRequest.Contact contact) {
+        if (contact == null) {
+            return null;
+        }
+        return UserResumePreviewResponse.Contact.builder()
+                .email(contact.getEmail())
+                .phone(contact.getPhone())
+                .linkedin(contact.getLinkedin())
+                .github(contact.getGithub())
+                .website(contact.getWebsite())
+                .build();
+    }
+
+    private List<UserResumePreviewResponse.SkillGroup> toPreviewSkillGroups(List<UserResumeManualUpdateRequest.SkillGroup> groups) {
+        if (groups == null || groups.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<UserResumePreviewResponse.SkillGroup> result = new ArrayList<>();
+        for (UserResumeManualUpdateRequest.SkillGroup group : groups) {
+            result.add(UserResumePreviewResponse.SkillGroup.builder()
+                    .title(group.getTitle())
+                    .items(group.getItems())
+                    .build());
+        }
+        return result;
+    }
+
+    private List<UserResumePreviewResponse.WorkExperience> toPreviewWorkExperiences(List<UserResumeManualUpdateRequest.WorkExperience> items) {
+        if (items == null || items.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<UserResumePreviewResponse.WorkExperience> result = new ArrayList<>();
+        for (UserResumeManualUpdateRequest.WorkExperience item : items) {
+            result.add(UserResumePreviewResponse.WorkExperience.builder()
+                    .company(item.getCompany())
+                    .role(item.getRole())
+                    .period(item.getPeriod())
+                    .bullets(item.getBullets())
+                    .build());
+        }
+        return result;
+    }
+
+    private List<UserResumePreviewResponse.Project> toPreviewProjects(List<UserResumeManualUpdateRequest.Project> items) {
+        if (items == null || items.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<UserResumePreviewResponse.Project> result = new ArrayList<>();
+        for (UserResumeManualUpdateRequest.Project item : items) {
+            result.add(UserResumePreviewResponse.Project.builder()
+                    .name(item.getName())
+                    .technologies(item.getTechnologies())
+                    .bullets(item.getBullets())
+                    .build());
+        }
+        return result;
+    }
+
+    private List<UserResumePreviewResponse.Certification> toPreviewCertifications(List<UserResumeManualUpdateRequest.Certification> items) {
+        if (items == null || items.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<UserResumePreviewResponse.Certification> result = new ArrayList<>();
+        for (UserResumeManualUpdateRequest.Certification item : items) {
+            result.add(UserResumePreviewResponse.Certification.builder()
+                    .name(item.getName())
+                    .description(item.getDescription())
+                    .build());
+        }
+        return result;
+    }
+
+    private String trimToNull(String text) {
+        if (!StringUtils.hasText(text)) {
+            return null;
+        }
+        return text.trim();
     }
 
 }

@@ -43,6 +43,9 @@ public class UserResumePreviewResponse {
     /** 简历基础画像 */
     private Profile profile;
 
+    /** 联系方式 */
+    private Contact contact;
+
     /** 分析总结 */
     private String analysisSummary;
 
@@ -57,6 +60,12 @@ public class UserResumePreviewResponse {
 
     /** 项目经历 */
     private List<Project> projects;
+
+    /** 工作经历 */
+    private List<WorkExperience> workExperiences;
+
+    /** 证书与能力说明 */
+    private List<Certification> certifications;
 
     @Data
     @Builder
@@ -81,6 +90,18 @@ public class UserResumePreviewResponse {
         private String title;
         private String location;
         private String status;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Contact {
+        private String email;
+        private String phone;
+        private String linkedin;
+        private String github;
+        private String website;
     }
 
     @Data
@@ -118,5 +139,25 @@ public class UserResumePreviewResponse {
         private String name;
         private List<String> technologies;
         private List<String> bullets;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class WorkExperience {
+        private String company;
+        private String role;
+        private String period;
+        private List<String> bullets;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Certification {
+        private String name;
+        private String description;
     }
 }

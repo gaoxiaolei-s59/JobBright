@@ -48,6 +48,35 @@ const userProfileDraftInitialState = {
   personalSummary: ""
 };
 
+const resumeInfoEditorInitialState = {
+  name: "",
+  title: "",
+  location: "",
+  email: "",
+  phone: "",
+  linkedin: "",
+  github: "",
+  website: ""
+};
+
+const resumeWorkEditorInitialState = {
+  company: "",
+  role: "",
+  period: "",
+  bulletsText: ""
+};
+
+const resumeProjectEditorInitialState = {
+  name: "",
+  technologiesText: "",
+  bulletsText: ""
+};
+
+const resumeCertificationEditorInitialState = {
+  name: "",
+  description: ""
+};
+
 const onboardingJobTypeOptions = ["全职", "合同工", "兼职", "实习"];
 
 const settingsDraftInitialState = {
@@ -784,50 +813,143 @@ function buildResumePreviewContent(resumeInfo, profileDraft, authUser) {
 
 function getResumeContactCards(previewData, profileDraft, authUser) {
   const name = getAuthDisplayName(authUser);
+  const contact = previewData?.contact || {};
+  const location = previewData?.profile?.location || getProfileLocationText(profileDraft);
   return [
     {
       key: "email",
       icon: "mail",
       title: "邮箱",
-      value: authUser?.email || "待补充邮箱",
+      tone: "warm",
+      value: contact.email || authUser?.email || "待补充邮箱",
+      showHint: !(contact.email || authUser?.email),
       hint: "建议补充常用邮箱，方便投递与自动填充。"
     },
     {
       key: "phone",
       icon: "phone",
       title: "电话",
-      value: "待补充电话",
+      tone: "neutral",
+      value: contact.phone || "待补充电话",
+      showHint: !contact.phone,
       hint: "建议补充手机号，用于后续简历完善。"
     },
     {
       key: "location",
       icon: "location",
       title: "地点",
-      value: previewData?.profile?.location || getProfileLocationText(profileDraft),
+      tone: "plain",
+      value: location,
+      showHint: !location,
       hint: "可填写城市 / 国家，提升岗位地域匹配。"
     },
     {
       key: "linkedin",
       icon: "link",
       title: "LinkedIn",
-      value: `${name} 的职业主页`,
+      tone: "neutral",
+      value: contact.linkedin || `${name} 的职业主页`,
+      showHint: !contact.linkedin,
       hint: "可补充公开职业链接，增强招聘方了解。"
     },
     {
       key: "github",
       icon: "github",
       title: "GitHub",
-      value: `${name} 的项目仓库`,
+      tone: "neutral",
+      value: contact.github || `${name} 的项目仓库`,
+      showHint: !contact.github,
       hint: "可展示代表性项目与工程能力。"
     },
     {
       key: "other",
       icon: "globe",
       title: "其他链接",
-      value: "个人站点 / 作品集 / 博客",
+      tone: "neutral",
+      value: contact.website || "个人站点 / 作品集 / 博客",
+      showHint: !contact.website,
       hint: "可补充你的技术博客或作品展示页。"
     }
   ];
+}
+
+function splitEditorLines(value) {
+  return String(value || "")
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function splitEditorTags(value) {
+  return String(value || "")
+    .split(/[，,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildResumeInfoEditorDraft(previewData, profileDraft, authUser) {
+  const profile = previewData?.profile || {};
+  const contact = previewData?.contact || {};
+  return {
+    name: profile.name || getAuthDisplayName(authUser),
+    title: profile.title || profileDraft?.targetRole || "后端开发",
+    location: profile.location || getProfileLocationText(profileDraft),
+    email: contact.email || authUser?.email || "",
+    phone: contact.phone || "",
+    linkedin: contact.linkedin || "",
+    github: contact.github || "",
+    website: contact.website || ""
+  };
+}
+
+function buildResumeWorkEditorDraft(item) {
+  return {
+    company: item?.company || "",
+    role: item?.role || "",
+    period: item?.period || "",
+    bulletsText: Array.isArray(item?.bullets) ? item.bullets.join("\n") : ""
+  };
+}
+
+function buildResumeProjectEditorDraft(item) {
+  return {
+    name: item?.name || "",
+    technologiesText: Array.isArray(item?.technologies) ? item.technologies.join(", ") : "",
+    bulletsText: Array.isArray(item?.bullets) ? item.bullets.join("\n") : ""
+  };
+}
+
+function buildResumeCertificationEditorDraft(item) {
+  return {
+    name: item?.name || "",
+    description: item?.description || ""
+  };
+}
+
+function buildResumeManualPayload(previewData, authUser) {
+  if (!previewData) {
+    return null;
+  }
+  return {
+    profile: {
+      name: previewData.profile?.name || getAuthDisplayName(authUser),
+      title: previewData.profile?.title || "",
+      location: previewData.profile?.location || "",
+      status: previewData.profile?.status || "ACTIVE"
+    },
+    contact: {
+      email: previewData.contact?.email || authUser?.email || "",
+      phone: previewData.contact?.phone || "",
+      linkedin: previewData.contact?.linkedin || "",
+      github: previewData.contact?.github || "",
+      website: previewData.contact?.website || ""
+    },
+    analysisSummary: previewData.analysisSummary || "",
+    skillGroups: Array.isArray(previewData.skillGroups) ? previewData.skillGroups : [],
+    workExperiences: Array.isArray(previewData.workExperiences) ? previewData.workExperiences : [],
+    projects: Array.isArray(previewData.projects) ? previewData.projects : [],
+    certifications: Array.isArray(previewData.certifications) ? previewData.certifications : []
+  };
 }
 
 function SidebarIcon({ type }) {
@@ -1139,6 +1261,14 @@ function App() {
   const [resumePreviewOpen, setResumePreviewOpen] = useState(false);
   const [resumePreviewLoading, setResumePreviewLoading] = useState(false);
   const [resumePreviewData, setResumePreviewData] = useState(null);
+  const [resumeEditorType, setResumeEditorType] = useState("");
+  const [resumeEditorIndex, setResumeEditorIndex] = useState(-1);
+  const [resumeInfoEditorDraft, setResumeInfoEditorDraft] = useState(resumeInfoEditorInitialState);
+  const [resumeWorkEditorDraft, setResumeWorkEditorDraft] = useState(resumeWorkEditorInitialState);
+  const [resumeProjectEditorDraft, setResumeProjectEditorDraft] = useState(resumeProjectEditorInitialState);
+  const [resumeCertificationEditorDraft, setResumeCertificationEditorDraft] = useState(resumeCertificationEditorInitialState);
+  const [resumeManualSaving, setResumeManualSaving] = useState(false);
+  const [resumeSkillAdder, setResumeSkillAdder] = useState({ groupIndex: -1, value: "" });
   const [userDashboard, setUserDashboard] = useState(userDashboardFallback);
   const [userProfileDraft, setUserProfileDraft] = useState(userProfileDraftInitialState);
   const [settingsDraft, setSettingsDraft] = useState(settingsDraftInitialState);
@@ -2163,6 +2293,254 @@ function App() {
     window.open(`${API_BASE_URL}${resumePreviewData.downloadUrl}`, "_blank", "noopener,noreferrer");
   }
 
+  function closeResumeManualEditor() {
+    setResumeEditorType("");
+    setResumeEditorIndex(-1);
+  }
+
+  function openResumeInfoEditor() {
+    setResumeInfoEditorDraft(buildResumeInfoEditorDraft(resumePreviewData, userProfileDraft, auth.user));
+    setResumeEditorType("info");
+    setResumeEditorIndex(-1);
+  }
+
+  function openResumeWorkEditor(item = null, index = -1) {
+    setResumeWorkEditorDraft(buildResumeWorkEditorDraft(item));
+    setResumeEditorType("work");
+    setResumeEditorIndex(index);
+  }
+
+  function openResumeProjectEditor(item = null, index = -1) {
+    setResumeProjectEditorDraft(buildResumeProjectEditorDraft(item));
+    setResumeEditorType("project");
+    setResumeEditorIndex(index);
+  }
+
+  function openResumeCertificationEditor(item = null, index = -1) {
+    setResumeCertificationEditorDraft(buildResumeCertificationEditorDraft(item));
+    setResumeEditorType("certification");
+    setResumeEditorIndex(index);
+  }
+
+  function handleResumeInfoEditorChange(field, value) {
+    setResumeInfoEditorDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleResumeWorkEditorChange(field, value) {
+    setResumeWorkEditorDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleResumeProjectEditorChange(field, value) {
+    setResumeProjectEditorDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleResumeCertificationEditorChange(field, value) {
+    setResumeCertificationEditorDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  async function persistResumeManualContent(nextPreviewData, successText) {
+    if (!resumeInfo?.resumeId || !nextPreviewData) {
+      return;
+    }
+    try {
+      setResumeManualSaving(true);
+      await request(`/api/user/resume/${resumeInfo.resumeId}/manual-content`, {
+        method: "PUT",
+        body: JSON.stringify(buildResumeManualPayload(nextPreviewData, auth.user))
+      });
+      setResumePreviewData(nextPreviewData);
+      if (successText) {
+        setMessage({ type: "success", text: successText });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "保存简历手动内容失败" });
+      throw error;
+    } finally {
+      setResumeManualSaving(false);
+    }
+  }
+
+  async function handleSaveResumeInfoEditor() {
+    if (!resumePreviewData) {
+      return;
+    }
+    const nextPreviewData = {
+      ...resumePreviewData,
+      profile: {
+        ...(resumePreviewData.profile || {}),
+        name: resumeInfoEditorDraft.name.trim(),
+        title: resumeInfoEditorDraft.title.trim(),
+        location: resumeInfoEditorDraft.location.trim()
+      },
+      contact: {
+        email: resumeInfoEditorDraft.email.trim(),
+        phone: resumeInfoEditorDraft.phone.trim(),
+        linkedin: resumeInfoEditorDraft.linkedin.trim(),
+        github: resumeInfoEditorDraft.github.trim(),
+        website: resumeInfoEditorDraft.website.trim()
+      }
+    };
+    await persistResumeManualContent(nextPreviewData, "简历基础信息已保存。");
+    closeResumeManualEditor();
+  }
+
+  async function handleSaveResumeWorkEditor() {
+    if (!resumePreviewData) {
+      return;
+    }
+    const nextItem = {
+      company: resumeWorkEditorDraft.company.trim(),
+      role: resumeWorkEditorDraft.role.trim(),
+      period: resumeWorkEditorDraft.period.trim(),
+      bullets: splitEditorLines(resumeWorkEditorDraft.bulletsText)
+    };
+    if (!nextItem.company && !nextItem.role && !nextItem.period && nextItem.bullets.length === 0) {
+      setMessage({ type: "error", text: "请至少补充一项工作经历内容。" });
+      return;
+    }
+    const nextItems = Array.isArray(resumePreviewData.workExperiences)
+      ? [...resumePreviewData.workExperiences]
+      : [];
+    if (resumeEditorIndex >= 0) {
+      nextItems[resumeEditorIndex] = nextItem;
+    } else {
+      nextItems.push(nextItem);
+    }
+    await persistResumeManualContent(
+      { ...resumePreviewData, workExperiences: nextItems },
+      resumeEditorIndex >= 0 ? "工作经历已更新。" : "工作经历已新增。"
+    );
+    closeResumeManualEditor();
+  }
+
+  async function handleSaveResumeProjectEditor() {
+    if (!resumePreviewData) {
+      return;
+    }
+    const nextItem = {
+      name: resumeProjectEditorDraft.name.trim(),
+      technologies: splitEditorTags(resumeProjectEditorDraft.technologiesText),
+      bullets: splitEditorLines(resumeProjectEditorDraft.bulletsText)
+    };
+    if (!nextItem.name && nextItem.technologies.length === 0 && nextItem.bullets.length === 0) {
+      setMessage({ type: "error", text: "请至少补充一项项目经历内容。" });
+      return;
+    }
+    const nextItems = Array.isArray(resumePreviewData.projects)
+      ? [...resumePreviewData.projects]
+      : [];
+    if (resumeEditorIndex >= 0) {
+      nextItems[resumeEditorIndex] = nextItem;
+    } else {
+      nextItems.push(nextItem);
+    }
+    await persistResumeManualContent(
+      { ...resumePreviewData, projects: nextItems },
+      resumeEditorIndex >= 0 ? "项目经历已更新。" : "项目经历已新增。"
+    );
+    closeResumeManualEditor();
+  }
+
+  async function handleSaveResumeCertificationEditor() {
+    if (!resumePreviewData) {
+      return;
+    }
+    const nextItem = {
+      name: resumeCertificationEditorDraft.name.trim(),
+      description: resumeCertificationEditorDraft.description.trim()
+    };
+    if (!nextItem.name && !nextItem.description) {
+      setMessage({ type: "error", text: "请至少补充一项证书或能力说明。" });
+      return;
+    }
+    const nextItems = Array.isArray(resumePreviewData.certifications)
+      ? [...resumePreviewData.certifications]
+      : [];
+    if (resumeEditorIndex >= 0) {
+      nextItems[resumeEditorIndex] = nextItem;
+    } else {
+      nextItems.push(nextItem);
+    }
+    await persistResumeManualContent(
+      { ...resumePreviewData, certifications: nextItems },
+      resumeEditorIndex >= 0 ? "证书与能力说明已更新。" : "证书与能力说明已新增。"
+    );
+    closeResumeManualEditor();
+  }
+
+  async function handleRemoveResumeListItem(listKey, index, successText) {
+    if (!resumePreviewData) {
+      return;
+    }
+    const currentItems = Array.isArray(resumePreviewData[listKey]) ? resumePreviewData[listKey] : [];
+    const nextItems = currentItems.filter((_, itemIndex) => itemIndex !== index);
+    await persistResumeManualContent(
+      { ...resumePreviewData, [listKey]: nextItems },
+      successText
+    );
+  }
+
+  async function handleRemoveSkill(groupIndex, skill) {
+    if (!resumePreviewData) {
+      return;
+    }
+    const nextGroups = (Array.isArray(resumePreviewData.skillGroups) ? resumePreviewData.skillGroups : [])
+      .map((group, index) => {
+        if (index !== groupIndex) {
+          return group;
+        }
+        return {
+          ...group,
+          items: (group.items || []).filter((item) => item !== skill)
+        };
+      })
+      .filter((group) => group.title || (group.items || []).length > 0);
+    await persistResumeManualContent(
+      { ...resumePreviewData, skillGroups: nextGroups },
+      "技能标签已更新。"
+    );
+  }
+
+  async function handleAddSkill(groupIndex) {
+    setResumeSkillAdder({ groupIndex, value: "" });
+  }
+
+  function handleResumeSkillAdderChange(value) {
+    setResumeSkillAdder((current) => ({ ...current, value }));
+  }
+
+  function handleCancelSkillAdder() {
+    setResumeSkillAdder({ groupIndex: -1, value: "" });
+  }
+
+  async function handleConfirmAddSkill(groupIndex) {
+    if (!resumePreviewData) {
+      return;
+    }
+    const skill = String(resumeSkillAdder.value || "").trim();
+    if (!skill) {
+      setMessage({ type: "error", text: "先输入一个技能名称。" });
+      return;
+    }
+    const nextGroups = (Array.isArray(resumePreviewData.skillGroups) ? resumePreviewData.skillGroups : []).map((group, index) => {
+      if (index !== groupIndex) {
+        return group;
+      }
+      if ((group.items || []).includes(skill)) {
+        return group;
+      }
+      return {
+        ...group,
+        items: [...(group.items || []), skill]
+      };
+    });
+    await persistResumeManualContent(
+      { ...resumePreviewData, skillGroups: nextGroups },
+      "技能标签已新增。"
+    );
+    setResumeSkillAdder({ groupIndex: -1, value: "" });
+  }
+
   function handleSidebarSwitch(sectionKey) {
     setActiveSection(sectionKey);
   }
@@ -2623,7 +3001,7 @@ function App() {
                     </div>
                     <div className="resume-workbench-actions">
                       <button className="resume-action-button success" type="button">反馈</button>
-                      <button className="resume-action-button" type="button">编辑简历信息</button>
+                      <button className="resume-action-button" onClick={openResumeInfoEditor} type="button">编辑简历信息</button>
                       <button className="resume-action-button" onClick={handleDownloadResume} type="button">导出</button>
                       <button className="resume-action-button subtle" type="button">删除</button>
                     </div>
@@ -2687,13 +3065,24 @@ function App() {
                       <div className="resume-contact-grid">
                         {getResumeContactCards(resumePreviewData, userProfileDraft, auth.user).map((item) => (
                           <article key={item.key} className="resume-contact-card">
-                            <div className="resume-contact-head">
-                              <span className="resume-contact-icon">
+                            <div className={`resume-contact-primary resume-contact-primary-${item.tone || "neutral"}`}>
+                              <span
+                                className="resume-contact-icon"
+                                title={item.title}
+                                aria-label={item.title}
+                              >
                                 {item.icon === "mail" ? "✉" : item.icon === "phone" ? "✆" : item.icon === "location" ? "⌖" : item.icon === "github" ? "⌘" : item.icon === "link" ? "in" : "◎"}
                               </span>
-                              <strong>{item.value}</strong>
+                              <div className="resume-contact-copy">
+                                <span className="resume-contact-title">{item.title}</span>
+                                <strong>{item.value}</strong>
+                              </div>
                             </div>
-                            <span>{item.hint}</span>
+                            {item.showHint ? (
+                              <div className="resume-contact-secondary">
+                                <span>{item.hint}</span>
+                              </div>
+                            ) : null}
                           </article>
                         ))}
                       </div>
@@ -2705,14 +3094,67 @@ function App() {
                         <button className="resume-icon-action" type="button" aria-label="删除模块">🗑</button>
                       </div>
                       <div className="resume-skill-editor-list">
-                        {(resumePreviewData?.skillGroups || []).map((group) => (
+                        {(resumePreviewData?.skillGroups || []).map((group, groupIndex) => (
                           <article key={group.title} className="resume-skill-editor-group">
                             <strong>{group.title}</strong>
                             <div className="resume-skill-editor-row">
                               {(group.items || []).map((item) => (
-                                <span key={`${group.title}-${item}`} className="resume-editor-chip">{item} <em>×</em></span>
+                                <button
+                                  key={`${group.title}-${item}`}
+                                  className="resume-editor-chip"
+                                  type="button"
+                                  onClick={() => {
+                                    void handleRemoveSkill(groupIndex, item);
+                                  }}
+                                >
+                                  {item} <em>×</em>
+                                </button>
                               ))}
-                              <span className="resume-editor-chip ghost">添加技能...</span>
+                              <button
+                                className="resume-editor-chip ghost"
+                                type="button"
+                                onClick={() => {
+                                  handleAddSkill(groupIndex);
+                                }}
+                              >
+                                添加技能...
+                              </button>
+                              {resumeSkillAdder.groupIndex === groupIndex ? (
+                                <div className="resume-skill-inline-adder">
+                                  <input
+                                    autoFocus
+                                    value={resumeSkillAdder.value}
+                                    onChange={(event) => handleResumeSkillAdderChange(event.target.value)}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter") {
+                                        event.preventDefault();
+                                        void handleConfirmAddSkill(groupIndex);
+                                      }
+                                      if (event.key === "Escape") {
+                                        event.preventDefault();
+                                        handleCancelSkillAdder();
+                                      }
+                                    }}
+                                    placeholder="输入技能名称"
+                                  />
+                                  <button
+                                    className="resume-outline-add small"
+                                    type="button"
+                                    onClick={() => {
+                                      void handleConfirmAddSkill(groupIndex);
+                                    }}
+                                  >
+                                    添加
+                                  </button>
+                                  <button
+                                    className="resume-outline-add small subtle"
+                                    type="button"
+                                    onClick={handleCancelSkillAdder}
+                                  >
+                                    取消
+                                  </button>
+                                </div>
+                              ) : null}
                               <button className="resume-chip-help" type="button">?</button>
                             </div>
                           </article>
@@ -2726,19 +3168,41 @@ function App() {
                     <section className="resume-preview-section">
                       <div className="resume-section-title-row">
                         <h3>工作经历</h3>
-                        <button className="resume-outline-add" type="button">+ 工作经历</button>
+                        <button className="resume-outline-add" onClick={() => openResumeWorkEditor()} type="button">+ 工作经历</button>
                       </div>
                       <div className="resume-experience-list">
-                        {(resumePreviewData?.workExperiences || []).map((item) => (
-                          <article key={`${item.company}-${item.role}`} className="resume-experience-card">
+                        {(resumePreviewData?.workExperiences || []).map((item, index) => (
+                          <article
+                            key={`${item.company}-${item.role}-${index}`}
+                            className="resume-experience-card editable"
+                            onClick={() => openResumeWorkEditor(item, index)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                openResumeWorkEditor(item, index);
+                              }
+                            }}
+                          >
                             <strong>{item.company}</strong>
                             <span>{item.role}</span>
+                            {item.period ? <small>{item.period}</small> : null}
                             <ul>
                               {(item.bullets || []).map((bullet) => (
                                 <li key={`${item.company}-${bullet}`}>{bullet}</li>
                               ))}
                             </ul>
-                            <button className="resume-outline-add small" type="button">+ 要点描述</button>
+                            <div className="resume-card-actions">
+                              <button className="resume-outline-add small" onClick={(event) => {
+                                event.stopPropagation();
+                                openResumeWorkEditor(item, index);
+                              }} type="button">编辑</button>
+                              <button className="resume-outline-add small danger" onClick={(event) => {
+                                event.stopPropagation();
+                                void handleRemoveResumeListItem("workExperiences", index, "工作经历已删除。");
+                              }} type="button">删除</button>
+                            </div>
                           </article>
                         ))}
                         {(resumePreviewData?.workExperiences || []).length === 0 ? (
@@ -2750,11 +3214,23 @@ function App() {
                     <section className="resume-preview-section">
                       <div className="resume-section-title-row">
                         <h3>项目经历</h3>
-                        <button className="resume-outline-add" type="button">+ 项目经历</button>
+                        <button className="resume-outline-add" onClick={() => openResumeProjectEditor()} type="button">+ 项目经历</button>
                       </div>
                       <div className="resume-project-editor-list">
-                        {(resumePreviewData?.projects || []).map((project) => (
-                          <article key={project.name} className="resume-project-editor-card">
+                        {(resumePreviewData?.projects || []).map((project, index) => (
+                          <article
+                            key={`${project.name}-${index}`}
+                            className="resume-project-editor-card editable"
+                            onClick={() => openResumeProjectEditor(project, index)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                openResumeProjectEditor(project, index);
+                              }
+                            }}
+                          >
                             <strong>{project.name}</strong>
                             <div className="resume-project-tech">
                               {(project.technologies || []).map((tech) => (
@@ -2766,7 +3242,16 @@ function App() {
                                 <li key={`${project.name}-${bullet}`}>{bullet}</li>
                               ))}
                             </ul>
-                            <button className="resume-outline-add small" type="button">+ 要点描述</button>
+                            <div className="resume-card-actions">
+                              <button className="resume-outline-add small" onClick={(event) => {
+                                event.stopPropagation();
+                                openResumeProjectEditor(project, index);
+                              }} type="button">编辑</button>
+                              <button className="resume-outline-add small danger" onClick={(event) => {
+                                event.stopPropagation();
+                                void handleRemoveResumeListItem("projects", index, "项目经历已删除。");
+                              }} type="button">删除</button>
+                            </div>
                           </article>
                         ))}
                         {(resumePreviewData?.projects || []).length === 0 ? (
@@ -2778,13 +3263,35 @@ function App() {
                     <section className="resume-preview-section">
                       <div className="resume-section-title-row">
                         <h3>证书与能力说明</h3>
-                        <button className="resume-outline-add" type="button">+ 证书信息</button>
+                        <button className="resume-outline-add" onClick={() => openResumeCertificationEditor()} type="button">+ 证书信息</button>
                       </div>
                       <div className="resume-certification-list">
-                        {(resumePreviewData?.certifications || []).map((item) => (
-                          <article key={item.name} className="resume-certification-card">
+                        {(resumePreviewData?.certifications || []).map((item, index) => (
+                          <article
+                            key={`${item.name}-${index}`}
+                            className="resume-certification-card editable"
+                            onClick={() => openResumeCertificationEditor(item, index)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                openResumeCertificationEditor(item, index);
+                              }
+                            }}
+                          >
                             <strong>{item.name}</strong>
                             <p>{item.description}</p>
+                            <div className="resume-card-actions">
+                              <button className="resume-outline-add small" onClick={(event) => {
+                                event.stopPropagation();
+                                openResumeCertificationEditor(item, index);
+                              }} type="button">编辑</button>
+                              <button className="resume-outline-add small danger" onClick={(event) => {
+                                event.stopPropagation();
+                                void handleRemoveResumeListItem("certifications", index, "证书与能力说明已删除。");
+                              }} type="button">删除</button>
+                            </div>
                           </article>
                         ))}
                         {(resumePreviewData?.certifications || []).length === 0 ? (
@@ -2827,6 +3334,208 @@ function App() {
                     </section>
                   </div>
                 </aside>
+              </div>
+            ) : null}
+            {resumeEditorType ? (
+              <div className="profile-editor-overlay" onClick={closeResumeManualEditor} role="presentation">
+                <div
+                  className="profile-editor-modal resume-manual-modal"
+                  onClick={(event) => event.stopPropagation()}
+                  role="dialog"
+                  aria-modal="true"
+                >
+                  <div className="profile-editor-header">
+                    <button className="profile-editor-back" onClick={closeResumeManualEditor} type="button" aria-label="关闭编辑页">
+                      ›
+                    </button>
+                    <strong>
+                      {resumeEditorType === "info"
+                        ? "编辑简历信息"
+                        : resumeEditorType === "work"
+                          ? (resumeEditorIndex >= 0 ? "编辑工作经历" : "新增工作经历")
+                          : resumeEditorType === "project"
+                            ? (resumeEditorIndex >= 0 ? "编辑项目经历" : "新增项目经历")
+                            : (resumeEditorIndex >= 0 ? "编辑证书信息" : "新增证书信息")}
+                    </strong>
+                    <button
+                      className="profile-editor-update"
+                      onClick={
+                        resumeEditorType === "info"
+                          ? handleSaveResumeInfoEditor
+                          : resumeEditorType === "work"
+                            ? handleSaveResumeWorkEditor
+                            : resumeEditorType === "project"
+                              ? handleSaveResumeProjectEditor
+                              : handleSaveResumeCertificationEditor
+                      }
+                      disabled={resumeManualSaving}
+                      type="button"
+                    >
+                      {resumeManualSaving ? "保存中" : "保存"}
+                    </button>
+                  </div>
+
+                  <div className="profile-editor-body">
+                    {resumeEditorType === "info" ? (
+                      <div className="profile-editor-form-grid">
+                        <label>
+                          <span>姓名</span>
+                          <input
+                            value={resumeInfoEditorDraft.name}
+                            onChange={(event) => handleResumeInfoEditorChange("name", event.target.value)}
+                            placeholder="请输入姓名"
+                          />
+                        </label>
+                        <label>
+                          <span>岗位标题</span>
+                          <input
+                            value={resumeInfoEditorDraft.title}
+                            onChange={(event) => handleResumeInfoEditorChange("title", event.target.value)}
+                            placeholder="请输入岗位标题"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>地点</span>
+                          <input
+                            value={resumeInfoEditorDraft.location}
+                            onChange={(event) => handleResumeInfoEditorChange("location", event.target.value)}
+                            placeholder="请输入地点"
+                          />
+                        </label>
+                        <label>
+                          <span>邮箱</span>
+                          <input
+                            value={resumeInfoEditorDraft.email}
+                            onChange={(event) => handleResumeInfoEditorChange("email", event.target.value)}
+                            placeholder="请输入邮箱"
+                          />
+                        </label>
+                        <label>
+                          <span>电话</span>
+                          <input
+                            value={resumeInfoEditorDraft.phone}
+                            onChange={(event) => handleResumeInfoEditorChange("phone", event.target.value)}
+                            placeholder="请输入电话"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>LinkedIn</span>
+                          <input
+                            value={resumeInfoEditorDraft.linkedin}
+                            onChange={(event) => handleResumeInfoEditorChange("linkedin", event.target.value)}
+                            placeholder="请输入职业主页链接"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>GitHub</span>
+                          <input
+                            value={resumeInfoEditorDraft.github}
+                            onChange={(event) => handleResumeInfoEditorChange("github", event.target.value)}
+                            placeholder="请输入项目仓库链接"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>个人站点 / 博客</span>
+                          <input
+                            value={resumeInfoEditorDraft.website}
+                            onChange={(event) => handleResumeInfoEditorChange("website", event.target.value)}
+                            placeholder="请输入个人站点或博客链接"
+                          />
+                        </label>
+                      </div>
+                    ) : null}
+
+                    {resumeEditorType === "work" ? (
+                      <div className="profile-editor-form-grid">
+                        <label className="full-width">
+                          <span>公司名称</span>
+                          <input
+                            value={resumeWorkEditorDraft.company}
+                            onChange={(event) => handleResumeWorkEditorChange("company", event.target.value)}
+                            placeholder="请输入公司名称"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>职位名称</span>
+                          <input
+                            value={resumeWorkEditorDraft.role}
+                            onChange={(event) => handleResumeWorkEditorChange("role", event.target.value)}
+                            placeholder="请输入职位名称"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>时间范围</span>
+                          <input
+                            value={resumeWorkEditorDraft.period}
+                            onChange={(event) => handleResumeWorkEditorChange("period", event.target.value)}
+                            placeholder="例如 2024.06 - 2024.09"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>要点描述</span>
+                          <textarea
+                            rows={6}
+                            value={resumeWorkEditorDraft.bulletsText}
+                            onChange={(event) => handleResumeWorkEditorChange("bulletsText", event.target.value)}
+                            placeholder="每行填写一条工作要点"
+                          />
+                        </label>
+                      </div>
+                    ) : null}
+
+                    {resumeEditorType === "project" ? (
+                      <div className="profile-editor-form-grid">
+                        <label className="full-width">
+                          <span>项目名称</span>
+                          <input
+                            value={resumeProjectEditorDraft.name}
+                            onChange={(event) => handleResumeProjectEditorChange("name", event.target.value)}
+                            placeholder="请输入项目名称"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>技术栈</span>
+                          <input
+                            value={resumeProjectEditorDraft.technologiesText}
+                            onChange={(event) => handleResumeProjectEditorChange("technologiesText", event.target.value)}
+                            placeholder="用逗号分隔，例如 Java, Spring Boot, Redis"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>项目要点</span>
+                          <textarea
+                            rows={6}
+                            value={resumeProjectEditorDraft.bulletsText}
+                            onChange={(event) => handleResumeProjectEditorChange("bulletsText", event.target.value)}
+                            placeholder="每行填写一条项目要点"
+                          />
+                        </label>
+                      </div>
+                    ) : null}
+
+                    {resumeEditorType === "certification" ? (
+                      <div className="profile-editor-form-grid">
+                        <label className="full-width">
+                          <span>名称</span>
+                          <input
+                            value={resumeCertificationEditorDraft.name}
+                            onChange={(event) => handleResumeCertificationEditorChange("name", event.target.value)}
+                            placeholder="请输入证书名称或能力主题"
+                          />
+                        </label>
+                        <label className="full-width">
+                          <span>说明</span>
+                          <textarea
+                            rows={5}
+                            value={resumeCertificationEditorDraft.description}
+                            onChange={(event) => handleResumeCertificationEditorChange("description", event.target.value)}
+                            placeholder="请输入补充说明"
+                          />
+                        </label>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             ) : null}
           </article>

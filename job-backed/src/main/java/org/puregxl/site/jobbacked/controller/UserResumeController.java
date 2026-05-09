@@ -3,6 +3,7 @@ package org.puregxl.site.jobbacked.controller;
 import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.result.Result;
 import org.puregxl.site.framework.web.Results;
+import org.puregxl.site.jobbacked.dto.req.UserResumeManualUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.puregxl.site.jobbacked.service.UserResumeService;
@@ -57,5 +58,20 @@ public class UserResumeController {
     @GetMapping("/{resumeId}/file")
     public ResponseEntity<Resource> getResumeFile(@PathVariable("resumeId") String resumeId) {
         return userResumeService.getResumeFile(resumeId);
+    }
+
+
+    /**
+     * 更新简历
+     * @param resumeId
+     * @param request
+     * @return
+     */
+    @PutMapping("/{resumeId}/manual-content")
+    public Result<Void> updateResumeManualContent(
+            @PathVariable("resumeId") String resumeId,
+            @RequestBody UserResumeManualUpdateRequest request) {
+        userResumeService.updateResumeManualContent(resumeId, request);
+        return Results.success();
     }
 }

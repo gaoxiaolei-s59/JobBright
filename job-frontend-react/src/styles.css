@@ -3929,7 +3929,7 @@ textarea:focus {
 .resume-contact-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px 14px;
+  gap: 10px 18px;
   padding: 0 4px 4px;
 }
 
@@ -3937,40 +3937,86 @@ textarea:focus {
   display: grid;
   gap: 8px;
   min-height: 0;
-  padding: 10px 0 12px;
-  border-radius: 0;
-  background: transparent;
-  border: 0;
+  padding: 0 0 12px;
   border-bottom: 1px solid rgba(16, 35, 49, 0.08);
 }
 
-.resume-contact-head {
+.resume-contact-primary {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: rgba(15, 34, 49, 0.045);
+}
+
+.resume-contact-primary-warm {
+  background: linear-gradient(135deg, rgba(255, 217, 222, 0.38), rgba(255, 245, 246, 0.72));
+}
+
+.resume-contact-primary-neutral {
+  background: linear-gradient(135deg, rgba(242, 245, 248, 0.96), rgba(248, 250, 252, 0.98));
+}
+
+.resume-contact-primary-plain {
+  padding-left: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.resume-contact-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.resume-contact-title {
+  color: #7c8792;
+  font-size: 0.74rem;
+  line-height: 1.2;
+  font-weight: 700;
 }
 
 .resume-contact-icon {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
-  background: rgba(15, 34, 49, 0.04);
+  background: rgba(255, 255, 255, 0.82);
   color: #233746;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 900;
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.06);
 }
 
-.resume-contact-head strong {
-  font-size: 0.86rem;
+.resume-contact-primary-plain .resume-contact-icon {
+  background: rgba(15, 34, 49, 0.04);
+  box-shadow: none;
+}
+
+.resume-contact-copy strong {
+  font-size: 0.94rem;
   line-height: 1.25;
   font-weight: 800;
+  color: #233746;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.resume-contact-card span:last-child {
-  padding-left: 34px;
+.resume-contact-secondary {
+  min-height: 50px;
+  padding: 0 16px 0 56px;
+  display: flex;
+  align-items: center;
+  border-radius: 0 0 18px 18px;
+  border-top: 1px solid rgba(16, 35, 49, 0.06);
+}
+
+.resume-contact-secondary span {
   color: #8b949d;
   line-height: 1.45;
   font-size: 0.78rem;
@@ -4030,9 +4076,11 @@ textarea:focus {
   align-items: center;
   min-height: 34px;
   padding: 0 12px;
+  border: 0;
   border-radius: 12px;
   background: #f5f7f8;
   color: #132a39;
+  cursor: pointer;
   font-size: 0.84rem;
   font-weight: 800;
   box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.04);
@@ -4047,6 +4095,33 @@ textarea:focus {
 .resume-editor-chip.ghost {
   color: #a0a8b0;
   background: rgba(244, 246, 247, 0.8);
+}
+
+.resume-skill-inline-adder {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(245, 247, 248, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.08);
+}
+
+.resume-skill-inline-adder input {
+  width: 172px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  color: #132a39;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.08);
+}
+
+.resume-skill-inline-adder input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(36, 115, 255, 0.22);
 }
 
 .resume-chip-help,
@@ -4075,6 +4150,12 @@ textarea:focus {
   border-top: 1px solid rgba(16, 35, 49, 0.06);
 }
 
+.resume-project-editor-card.editable,
+.resume-experience-card.editable,
+.resume-certification-card.editable {
+  cursor: pointer;
+}
+
 .resume-experience-card strong,
 .resume-certification-card strong {
   font-size: 0.98rem;
@@ -4085,6 +4166,11 @@ textarea:focus {
   color: #5e7282;
   font-weight: 700;
   font-size: 0.86rem;
+}
+
+.resume-experience-card > small {
+  color: #8193a0;
+  font-size: 0.8rem;
 }
 
 .resume-experience-card ul {
@@ -4132,6 +4218,24 @@ textarea:focus {
   justify-self: start;
   min-height: 34px;
   padding: 0 12px;
+}
+
+.resume-outline-add.subtle {
+  color: #677886;
+}
+
+.resume-outline-add.danger {
+  color: #a93b4e;
+}
+
+.resume-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resume-manual-modal {
+  max-width: 760px;
 }
 
 .resume-fab {

@@ -51,7 +51,6 @@ public class JobServiceImpl implements JobService {
 
     private final CompanyMapper companyMapper;
 
-
     /**
      * 获取当前用户的收藏职位列表。
      * 返回结构与推荐列表保持一致，方便前端直接复用卡片展示逻辑。
