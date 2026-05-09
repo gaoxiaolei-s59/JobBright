@@ -38,7 +38,7 @@ ai:
         embedding: /v1/embeddings
     bailian:
       url: https://dashscope.aliyuncs.com
-      api-key: ${BAILIAN_API_KEY:}
+      api-key: sk-fa84b1f526424030b79985d311710146
       endpoints:
         chat: /compatible-mode/v1/chat/completions
         rerank: /api/v1/services/rerank/text-rerank/text-rerank
@@ -55,6 +55,12 @@ ai:
 
   stream:
     message-chunk-size: 1
+
+  http:
+    connect-timeout-seconds: 10
+    read-timeout-seconds: 60
+    write-timeout-seconds: 30
+    call-timeout-seconds: 90
 
   chat:
     default-model: qwen3-max
@@ -74,10 +80,6 @@ ai:
         model: Pro/zai-org/GLM-4.7
         supports-thinking: true
         priority: 0
-      - id: qwen3-local
-        provider: ollama
-        model: qwen3:8b-fp16
-        priority: 2
     rerank:
       default-model: qwen3-rerank
       candidates:

@@ -21,6 +21,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
+import java.time.Duration;
 import java.util.List;
 
 @AutoConfiguration
@@ -29,8 +30,16 @@ public class InfraAIAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public OkHttpClient infraAiOkHttpClient() {
-        return new OkHttpClient();
+    public OkHttpClient infraAiOkHttpClient(AIModelProperties aiModelProperties) {
+        AIModelProperties.Http http = aiModelProperties.getHttp();
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                .connectTimeout(Duration.ofSeconds(http.getConnectTimeoutSeconds()))
+                .readTimeout(Duration.ofSeconds(http.getReadTimeoutSeconds()))
+                .writeTimeout(Duration.ofSeconds(http.getWriteTimeoutSeconds()));
+        if (http.getCallTimeoutSeconds() != null && http.getCallTimeoutSeconds() > 0) {
+            builder.callTimeout(Duration.ofSeconds(http.getCallTimeoutSeconds()));
+        }
+        return builder.build();
     }
 
     @Bean

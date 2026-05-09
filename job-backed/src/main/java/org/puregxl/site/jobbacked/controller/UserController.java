@@ -3,11 +3,15 @@ package org.puregxl.site.jobbacked.controller;
 import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.result.Result;
 import org.puregxl.site.framework.web.Results;
+import org.puregxl.site.jobbacked.dto.req.UserProfilePreferencesUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserDashboardResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserOnboardingStatusResponse;
+import org.puregxl.site.jobbacked.dto.resp.UserProfilePreferencesResponse;
 import org.puregxl.site.jobbacked.service.UserService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,5 +33,15 @@ public class UserController {
         return Results.success(userService.getOnboardingStatus());
     }
 
+    @GetMapping("/profile/preferences")
+    public Result<UserProfilePreferencesResponse> getProfilePreferences() {
+        return Results.success(userService.getProfilePreferences());
+    }
+
+    @PutMapping("/profile/preferences")
+    public Result<Void> updateProfilePreferences(@RequestBody UserProfilePreferencesUpdateRequest request) {
+        userService.updateProfilePreferences(request);
+        return Results.success();
+    }
 
 }

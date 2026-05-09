@@ -1,15 +1,20 @@
 package org.puregxl.site.jobbacked.service.impl;
 
+import cn.hutool.core.util.IdUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
+import org.puregxl.site.framework.exception.ClientException;
 import org.puregxl.site.jobbacked.common.context.UserContext;
 import org.puregxl.site.jobbacked.common.context.UserInfoDTO;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeProfile;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeProfileMapper;
+import org.puregxl.site.jobbacked.dto.req.UserProfilePreferencesUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserDashboardResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserOnboardingStatusResponse;
+import org.puregxl.site.jobbacked.dto.resp.UserProfilePreferencesResponse;
 import org.puregxl.site.jobbacked.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -55,6 +60,84 @@ public class UserServiceImpl implements UserService {
                 .resumeUploaded(resumeUploaded)
                 .onboardingCompleted(profileCompleted && resumeUploaded)
                 .build();
+    }
+
+    @Override
+    public UserProfilePreferencesResponse getProfilePreferences() {
+        UserResumeProfile latestProfile = getLatestProfile();
+        if (latestProfile == null) {
+            return UserProfilePreferencesResponse.builder()
+                    .targetRole("")
+                    .expectedCity("")
+                    .jobTypes(Collections.emptyList())
+                    .openToRemote(true)
+                    .requireVisaSupport(false)
+                    .build();
+        }
+        List<String> targetRoles = parseTagList(latestProfile.getTargetRoles());
+        List<String> preferredCities = parseTagList(latestProfile.getPreferredCities());
+        List<String> jobTypes = parseTagList(latestProfile.getPreferredJobType());
+        PreferenceRemark remark = parsePreferenceRemark(latestProfile.getRemark());
+        String expectedCity = preferredCities.stream()
+                .filter(city -> !"远程".equals(city))
+                .findFirst()
+                .orElse("");
+        boolean openToRemote = remark.isOpenToRemote() || preferredCities.contains("远程");
+        return UserProfilePreferencesResponse.builder()
+                .targetRole(targetRoles.isEmpty() ? "" : targetRoles.get(0))
+                .expectedCity(expectedCity)
+                .jobTypes(jobTypes)
+                .openToRemote(openToRemote)
+                .requireVisaSupport(remark.isRequireVisaSupport())
+                .build();
+    }
+
+    @Override
+    public void updateProfilePreferences(UserProfilePreferencesUpdateRequest request) {
+        if (request == null) {
+            throw new ClientException("求职偏好不能为空");
+        }
+        String targetRole = trimToEmpty(request.getTargetRole());
+        String expectedCity = trimToEmpty(request.getExpectedCity());
+        List<String> jobTypes = normalizeList(request.getJobTypes());
+        boolean openToRemote = request.getOpenToRemote() == null || request.getOpenToRemote();
+
+        if (!StringUtils.hasText(targetRole)) {
+            throw new ClientException("目标岗位不能为空");
+        }
+        if (jobTypes.isEmpty()) {
+            throw new ClientException("求职类型不能为空");
+        }
+        if (!StringUtils.hasText(expectedCity) && !openToRemote) {
+            throw new ClientException("期望城市不能为空");
+        }
+
+        long currentUserId = UserContext.getUserId();
+        UserResumeProfile latestProfile = getLatestProfile();
+        List<String> preferredCities = new ArrayList<>();
+        if (StringUtils.hasText(expectedCity)) {
+            preferredCities.add(expectedCity);
+        }
+        if (openToRemote) {
+            preferredCities.add("远程");
+        }
+
+        UserResumeProfile profile = UserResumeProfile.builder()
+                .userId(currentUserId)
+                .targetRoles(JSONUtil.toJsonStr(List.of(targetRole)))
+                .preferredCities(JSONUtil.toJsonStr(preferredCities))
+                .preferredJobType(JSONUtil.toJsonStr(jobTypes))
+                .status("SUCCESS")
+                .remark(JSONUtil.toJsonStr(new PreferenceRemark(openToRemote, Boolean.TRUE.equals(request.getRequireVisaSupport()))))
+                .delFlag(0)
+                .build();
+        if (latestProfile == null) {
+            profile.setProfileId(IdUtil.fastSimpleUUID());
+            userResumeProfileMapper.insert(profile);
+            return;
+        }
+        profile.setId(latestProfile.getId());
+        userResumeProfileMapper.updateById(profile);
     }
 
     private UserResumeFile getCurrentResume() {
@@ -162,5 +245,68 @@ public class UserServiceImpl implements UserService {
                 .filter(StringUtils::hasText)
                 .distinct()
                 .toList();
+    }
+
+    private List<String> normalizeList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return values.stream()
+                .map(this::trimToEmpty)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+    }
+
+    private String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private PreferenceRemark parsePreferenceRemark(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return new PreferenceRemark(false, false);
+        }
+        try {
+            return JSONUtil.toBean(raw, PreferenceRemark.class);
+        } catch (Exception ignored) {
+            return new PreferenceRemark(false, false);
+        }
+    }
+
+    private static class PreferenceRemark {
+        private Boolean openToRemote;
+        private Boolean requireVisaSupport;
+
+        public PreferenceRemark() {
+        }
+
+        private PreferenceRemark(Boolean openToRemote, Boolean requireVisaSupport) {
+            this.openToRemote = openToRemote;
+            this.requireVisaSupport = requireVisaSupport;
+        }
+
+        public Boolean getOpenToRemote() {
+            return openToRemote;
+        }
+
+        public void setOpenToRemote(Boolean openToRemote) {
+            this.openToRemote = openToRemote;
+        }
+
+        public Boolean getRequireVisaSupport() {
+            return requireVisaSupport;
+        }
+
+        public void setRequireVisaSupport(Boolean requireVisaSupport) {
+            this.requireVisaSupport = requireVisaSupport;
+        }
+
+        private boolean isOpenToRemote() {
+            return Boolean.TRUE.equals(openToRemote);
+        }
+
+        private boolean isRequireVisaSupport() {
+            return Boolean.TRUE.equals(requireVisaSupport);
+        }
     }
 }

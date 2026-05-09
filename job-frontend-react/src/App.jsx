@@ -621,6 +621,62 @@ function formatResumeAbsoluteTime(value) {
   return date.toLocaleDateString("zh-CN");
 }
 
+function hasNonEmptyList(value) {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function hasRemoteResumeAnalysis(preview) {
+  if (!preview) {
+    return false;
+  }
+  return Boolean(
+    preview.analysisSummary
+    || preview.score?.summary
+    || hasNonEmptyList(preview.analysisHighlights)
+    || hasNonEmptyList(preview.urgentIssues)
+    || hasNonEmptyList(preview.skillGroups)
+    || hasNonEmptyList(preview.projects)
+  );
+}
+
+function mergeResumePreviewContent(fallbackPreview, remotePreview) {
+  if (!remotePreview) {
+    return {
+      ...fallbackPreview,
+      analysisReady: false
+    };
+  }
+
+  const analysisReady = hasRemoteResumeAnalysis(remotePreview);
+  const basePreview = {
+    ...fallbackPreview,
+    ...remotePreview,
+    score: {
+      ...(fallbackPreview.score || {}),
+      ...(remotePreview.score || {})
+    },
+    profile: {
+      ...(fallbackPreview.profile || {}),
+      ...(remotePreview.profile || {})
+    },
+    analysisReady
+  };
+
+  if (!analysisReady) {
+    return basePreview;
+  }
+
+  return {
+    ...basePreview,
+    analysisHighlights: Array.isArray(remotePreview.analysisHighlights) ? remotePreview.analysisHighlights : [],
+    urgentIssues: Array.isArray(remotePreview.urgentIssues) ? remotePreview.urgentIssues : [],
+    skillGroups: Array.isArray(remotePreview.skillGroups) ? remotePreview.skillGroups : [],
+    projects: Array.isArray(remotePreview.projects) ? remotePreview.projects : [],
+    workExperiences: Array.isArray(remotePreview.workExperiences) ? remotePreview.workExperiences : [],
+    certifications: Array.isArray(remotePreview.certifications) ? remotePreview.certifications : []
+  };
+}
+
 function buildResumePreviewContent(resumeInfo, profileDraft, authUser) {
   const displayName = getAuthDisplayName(authUser);
   const targetRole = profileDraft?.targetRole?.trim() || "后端开发";
@@ -653,6 +709,7 @@ function buildResumePreviewContent(resumeInfo, profileDraft, authUser) {
     previewUrl: resumeInfo?.resumeId ? `/api/user/resume/${resumeInfo.resumeId}/file` : "",
     downloadUrl: resumeInfo?.resumeId ? `/api/user/resume/${resumeInfo.resumeId}/file` : "",
     contentType: resumeInfo?.fileName?.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream",
+    analysisReady: false,
     score: {
       grade: "A",
       label: "EXCELLENT",
@@ -2083,12 +2140,12 @@ function App() {
 
     try {
       const remotePreview = await request(`/api/user/resume/${resumeInfo.resumeId}/preview`, { method: "GET" });
+      setResumePreviewData(mergeResumePreviewContent(fallbackPreview, remotePreview));
+    } catch {
       setResumePreviewData({
         ...fallbackPreview,
-        ...remotePreview
+        analysisReady: false
       });
-    } catch {
-      setResumePreviewData(fallbackPreview);
     } finally {
       setResumePreviewLoading(false);
     }
@@ -2449,7 +2506,7 @@ function App() {
                     <path d="M10 4.5v11" />
                     <path d="M4.5 10h11" />
                   </svg>
-                  <span>{resumeInfo ? "替换简历" : "Add Resume"}</span>
+                  <span>上传简历</span>
                 </button>
               </div>
             </div>
@@ -2510,7 +2567,7 @@ function App() {
                           event.stopPropagation();
                           resumeUploadInputRef.current?.click();
                         }}
-                        aria-label="替换简历"
+                        aria-label="上传简历"
                       >
                         <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                           <path d="M4.17 13.75 13.1 4.82a1.67 1.67 0 1 1 2.36 2.36l-8.93 8.93-2.78.42.42-2.78Z" />
@@ -2575,6 +2632,11 @@ function App() {
                   <div className="resume-preview-body">
                     {resumePreviewLoading ? (
                       <div className="resume-preview-loading">正在加载简历内容...</div>
+                    ) : null}
+                    {!resumePreviewLoading && !resumePreviewData?.analysisReady ? (
+                      <div className="resume-analysis-pending">
+                        简历分析正在生成中，当前先展示文件信息和本地资料预览。
+                      </div>
                     ) : null}
 
                     <section className="resume-workbench-hero">
@@ -2655,6 +2717,9 @@ function App() {
                             </div>
                           </article>
                         ))}
+                        {(resumePreviewData?.skillGroups || []).length === 0 ? (
+                          <p className="resume-empty-note">暂未识别到技能分组。</p>
+                        ) : null}
                       </div>
                     </section>
 
@@ -2676,6 +2741,9 @@ function App() {
                             <button className="resume-outline-add small" type="button">+ 要点描述</button>
                           </article>
                         ))}
+                        {(resumePreviewData?.workExperiences || []).length === 0 ? (
+                          <p className="resume-empty-note">暂未从分析结果中生成工作经历。</p>
+                        ) : null}
                       </div>
                     </section>
 
@@ -2701,6 +2769,9 @@ function App() {
                             <button className="resume-outline-add small" type="button">+ 要点描述</button>
                           </article>
                         ))}
+                        {(resumePreviewData?.projects || []).length === 0 ? (
+                          <p className="resume-empty-note">暂未识别到项目经历。</p>
+                        ) : null}
                       </div>
                     </section>
 
@@ -2716,6 +2787,9 @@ function App() {
                             <p>{item.description}</p>
                           </article>
                         ))}
+                        {(resumePreviewData?.certifications || []).length === 0 ? (
+                          <p className="resume-empty-note">暂未识别到证书或能力说明。</p>
+                        ) : null}
                       </div>
                     </section>
 
@@ -2724,8 +2798,11 @@ function App() {
                         <h3>分析摘要</h3>
                       </div>
                       <div className="resume-preview-lines">
-                        <p>{resumePreviewData?.score?.summary}</p>
-                        <p>{resumePreviewData?.analysisSummary}</p>
+                        {resumePreviewData?.score?.summary ? <p>{resumePreviewData.score.summary}</p> : null}
+                        {resumePreviewData?.analysisSummary ? <p>{resumePreviewData.analysisSummary}</p> : null}
+                        {!resumePreviewData?.score?.summary && !resumePreviewData?.analysisSummary ? (
+                          <p className="resume-empty-note">分析摘要生成中。</p>
+                        ) : null}
                       </div>
                     </section>
 
@@ -2743,6 +2820,9 @@ function App() {
                             <p>{issue.description}</p>
                           </article>
                         ))}
+                        {(resumePreviewData?.urgentIssues || []).length === 0 ? (
+                          <p className="resume-empty-note">暂未发现需要立即处理的优化建议。</p>
+                        ) : null}
                       </div>
                     </section>
                   </div>

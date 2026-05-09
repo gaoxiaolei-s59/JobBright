@@ -14,7 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InfraAiJsonLlmClient {
 
-    private static final int DEFAULT_MAX_TOKENS = 8000;
+    private static final int DEFAULT_MAX_TOKENS = 3000;
 
     private static final double DEFAULT_TEMPERATURE = 0.1D;
 

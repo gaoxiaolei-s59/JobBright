@@ -3643,6 +3643,24 @@ textarea:focus {
   font-weight: 700;
 }
 
+.resume-analysis-pending,
+.resume-empty-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(245, 247, 248, 0.86);
+  color: #627586;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.55;
+  box-shadow: inset 0 0 0 1px rgba(16, 35, 49, 0.06);
+}
+
+.resume-analysis-pending {
+  background: rgba(245, 190, 92, 0.12);
+  color: #80602b;
+}
+
 .resume-workbench-hero {
   display: grid;
   grid-template-columns: minmax(320px, 1fr) minmax(360px, 0.92fr);

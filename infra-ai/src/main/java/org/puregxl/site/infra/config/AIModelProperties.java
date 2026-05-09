@@ -52,6 +52,11 @@ public class AIModelProperties {
     private Stream stream = new Stream();
 
     /**
+     * HTTP 客户端配置
+     */
+    private Http http = new Http();
+
+    /**
      * 模型组配置类
      * 包含默认模型、深度思考模型以及候选模型列表
      */
@@ -174,5 +179,29 @@ public class AIModelProperties {
          * 消息分块大小
          */
         private Integer messageChunkSize = 5;
+    }
+
+    @Data
+    public static class Http {
+
+        /**
+         * 连接超时时间（秒）
+         */
+        private Long connectTimeoutSeconds = 10L;
+
+        /**
+         * 读取响应超时时间（秒）
+         */
+        private Long readTimeoutSeconds = 60L;
+
+        /**
+         * 写入请求超时时间（秒）
+         */
+        private Long writeTimeoutSeconds = 30L;
+
+        /**
+         * 整个调用超时时间（秒），0 表示不限制。
+         */
+        private Long callTimeoutSeconds = 90L;
     }
 }
