@@ -22,5 +22,5 @@ public interface UserResumeService extends IService<UserResumeFile> {
 
     void updateResumeManualContent(String resumeId, UserResumeManualUpdateRequest request);
 
-    void updateResumeProfile(String resumeId, UserResumeProfileUpdateRequest request);
+    UserResumePreviewResponse getResumePreviewV2(String resumeId);
 }

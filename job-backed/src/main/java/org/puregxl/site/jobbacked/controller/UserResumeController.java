@@ -84,7 +84,7 @@ public class UserResumeController {
      */
     @GetMapping("/{resumeId}/preview/v2")
     public Result<UserResumePreviewResponse> getResumePreviewV2(@PathVariable("resumeId") String resumeId) {
-        return Results.success(userResumeService.getResumePreview(resumeId));
+        return Results.success(userResumeService.getResumePreviewV2(resumeId));
     }
 
 

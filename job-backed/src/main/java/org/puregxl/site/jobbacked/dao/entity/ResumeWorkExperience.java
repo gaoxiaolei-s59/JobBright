@@ -20,7 +20,6 @@ public class ResumeWorkExperience {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

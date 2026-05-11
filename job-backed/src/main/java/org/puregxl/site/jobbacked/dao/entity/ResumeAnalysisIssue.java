@@ -14,8 +14,8 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("resume_certification")
-public class ResumeCertification {
+@TableName("resume_analysis_issue")
+public class ResumeAnalysisIssue {
 
     /**
      * 主键ID
@@ -28,34 +28,54 @@ public class ResumeCertification {
     private String resumeId;
 
     /**
-     * 类型：CERTIFICATE证书，AWARD奖项
+     * 分析报告ID
      */
-    private String itemType;
+    private Long reportId;
 
     /**
-     * 证书/奖项名称
+     * 分析分组ID
      */
-    private String name;
+    private Long sectionId;
 
     /**
-     * 颁发机构/主办方
+     * 问题等级：URGENT紧急，CRITICAL重要，OPTIONAL可选
      */
-    private String issuer;
+    private String issueLevel;
 
     /**
-     * 获得时间/颁发时间
+     * 问题类型：LACK_OF_ACCOMPLISHMENT、MISSING_SUMMARY等
      */
-    private String issueDate;
+    private String issueType;
 
     /**
-     * 证书/奖项说明
+     * 问题标题
+     */
+    private String title;
+
+    /**
+     * 关联问题数量
+     */
+    private Integer relatedCount;
+
+    /**
+     * 问题说明
      */
     private String description;
 
     /**
-     * 证书/奖项链接
+     * 优化建议
      */
-    private String credentialUrl;
+    private String suggestion;
+
+    /**
+     * 修改示例
+     */
+    private String example;
+
+    /**
+     * 严重程度分数：1-100
+     */
+    private Integer severityScore;
 
     /**
      * 排序
@@ -63,7 +83,7 @@ public class ResumeCertification {
     private Integer sortOrder;
 
     /**
-     * 状态：ACTIVE启用，INACTIVE停用
+     * 处理状态：PENDING待处理，APPLIED已采纳，IGNORED已忽略
      */
     private String status;
 

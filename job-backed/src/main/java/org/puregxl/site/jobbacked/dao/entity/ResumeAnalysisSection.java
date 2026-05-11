@@ -14,8 +14,8 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("resume_certification")
-public class ResumeCertification {
+@TableName("resume_analysis_section")
+public class ResumeAnalysisSection {
 
     /**
      * 主键ID
@@ -28,34 +28,34 @@ public class ResumeCertification {
     private String resumeId;
 
     /**
-     * 类型：CERTIFICATE证书，AWARD奖项
+     * 分析报告ID
      */
-    private String itemType;
+    private Long reportId;
 
     /**
-     * 证书/奖项名称
+     * 分组编码：IMPACT_ACHIEVEMENTS、STYLE_SECTIONS等
      */
-    private String name;
+    private String sectionCode;
 
     /**
-     * 颁发机构/主办方
+     * 分组标题，例如：Impact & Achievements
      */
-    private String issuer;
+    private String sectionTitle;
 
     /**
-     * 获得时间/颁发时间
+     * 重要性标题
      */
-    private String issueDate;
+    private String whyImportantTitle;
 
     /**
-     * 证书/奖项说明
+     * 为什么重要的说明
      */
-    private String description;
+    private String whyImportantContent;
 
     /**
-     * 证书/奖项链接
+     * 按钮文案
      */
-    private String credentialUrl;
+    private String actionText;
 
     /**
      * 排序

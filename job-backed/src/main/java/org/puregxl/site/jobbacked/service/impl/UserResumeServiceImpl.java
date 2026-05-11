@@ -258,15 +258,8 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
         userResumeManualContentMapper.updateById(existing);
     }
 
-    /**
-     * 修改简历基础信息
-     * @param resumeId
-     * @param request
-     */
-    @Override
-    public void updateResumeProfile(String resumeId, UserResumeProfileUpdateRequest request) {
 
-    }
+
 
 
     private String getFileExt(String originalFilename) {
@@ -763,6 +756,17 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
             return null;
         }
         return text.trim();
+    }
+
+
+    /**
+     * 获取简历阅览V2版本
+     * @param resumeId
+     * @return
+     */
+    @Override
+    public UserResumePreviewResponse getResumePreviewV2(String resumeId) {
+        return null;
     }
 
 }

@@ -14,8 +14,8 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("resume_certification")
-public class ResumeCertification {
+@TableName("resume_analysis_report")
+public class ResumeAnalysisReport {
 
     /**
      * 主键ID
@@ -23,44 +23,54 @@ public class ResumeCertification {
     private Long id;
 
     /**
+     * 用户ID
+     */
+    private Long userId;
+
+    /**
      * 简历业务ID
      */
     private String resumeId;
 
     /**
-     * 类型：CERTIFICATE证书，AWARD奖项
+     * 简历分数：0-100
      */
-    private String itemType;
+    private Integer scoreValue;
 
     /**
-     * 证书/奖项名称
+     * 评分等级，例如：A、B、C、D
      */
-    private String name;
+    private String scoreGrade;
 
     /**
-     * 颁发机构/主办方
+     * 评分描述：EXCELLENT、GOOD、NORMAL、WEAK
      */
-    private String issuer;
+    private String scoreLevel;
 
     /**
-     * 获得时间/颁发时间
+     * 整体分析总结
      */
-    private String issueDate;
+    private String analysisSummary;
 
     /**
-     * 证书/奖项说明
+     * 紧急问题数量
      */
-    private String description;
+    private Integer urgentIssueCount;
 
     /**
-     * 证书/奖项链接
+     * 重要问题数量
      */
-    private String credentialUrl;
+    private Integer criticalIssueCount;
 
     /**
-     * 排序
+     * 可选问题数量
      */
-    private Integer sortOrder;
+    private Integer optionalIssueCount;
+
+    /**
+     * 分析状态：PROCESSING处理中，ANALYZED已分析，FAILED失败
+     */
+    private String analyzeStatus;
 
     /**
      * 状态：ACTIVE启用，INACTIVE停用

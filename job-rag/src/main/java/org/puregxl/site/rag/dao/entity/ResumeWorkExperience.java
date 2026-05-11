@@ -1,7 +1,5 @@
-package org.puregxl.site.jobbacked.dao.entity;
+package org.puregxl.site.rag.dao.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,8 +12,8 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("resume_certification")
-public class ResumeCertification {
+@TableName("resume_work_experience")
+public class ResumeWorkExperience {
 
     /**
      * 主键ID
@@ -28,34 +26,29 @@ public class ResumeCertification {
     private String resumeId;
 
     /**
-     * 类型：CERTIFICATE证书，AWARD奖项
+     * 公司/平台名称
      */
-    private String itemType;
+    private String companyName;
 
     /**
-     * 证书/奖项名称
+     * 职位名称
      */
-    private String name;
+    private String positionTitle;
 
     /**
-     * 颁发机构/主办方
+     * 开始时间
      */
-    private String issuer;
+    private String startDate;
 
     /**
-     * 获得时间/颁发时间
+     * 结束时间
      */
-    private String issueDate;
+    private String endDate;
 
     /**
-     * 证书/奖项说明
+     * 工作内容，JSON数组或换行文本
      */
     private String description;
-
-    /**
-     * 证书/奖项链接
-     */
-    private String credentialUrl;
 
     /**
      * 排序
