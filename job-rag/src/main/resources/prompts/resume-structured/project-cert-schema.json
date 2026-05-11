@@ -1,0 +1,24 @@
+{
+  "projectExperiences": [
+    {
+      "projectName": null,
+      "roleTitle": null,
+      "startDate": null,
+      "endDate": null,
+      "techStack": [],
+      "description": [],
+      "sortOrder": 1
+    }
+  ],
+  "certifications": [
+    {
+      "itemType": "CERTIFICATE",
+      "name": null,
+      "issuer": null,
+      "issueDate": null,
+      "description": null,
+      "credentialUrl": null,
+      "sortOrder": 1
+    }
+  ]
+}

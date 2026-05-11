@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS user_resume_file (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+    user_id BIGINT DEFAULT NULL COMMENT '用户ID',
+    resume_id VARCHAR(64) NOT NULL COMMENT '简历业务唯一标识',
+    file_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
+    file_ext VARCHAR(32) DEFAULT NULL COMMENT '文件后缀',
+    content_type VARCHAR(128) DEFAULT NULL COMMENT '文件类型',
+    file_size BIGINT NOT NULL DEFAULT 0 COMMENT '文件大小(byte)',
+    object_key VARCHAR(512) NOT NULL COMMENT '对象存储路径',
+    object_url VARCHAR(1024) DEFAULT NULL COMMENT '文件访问地址',
+    is_current TINYINT NOT NULL DEFAULT 1 COMMENT '是否当前生效版本 0-否 1-是',
+    score DECIMAL(10,2) DEFAULT NULL COMMENT '用户简历分数',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    del_flag TINYINT NOT NULL DEFAULT 0 COMMENT '删除标识 0-未删除 1-已删除',
+    UNIQUE KEY uk_resume_id (resume_id),
+    KEY idx_user_id (user_id),
+    KEY idx_file_name (file_name),
+    KEY idx_is_current (is_current),
+    KEY idx_create_time (create_time),
+    KEY idx_del_flag (del_flag)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户简历文件表';

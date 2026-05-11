@@ -1,0 +1,35 @@
+{
+  "report": {
+    "scoreValue": 0,
+    "scoreGrade": null,
+    "scoreLevel": null,
+    "analysisSummary": null,
+    "urgentIssueCount": 0,
+    "criticalIssueCount": 0,
+    "optionalIssueCount": 0
+  },
+  "sections": [
+    {
+      "sectionCode": null,
+      "sectionTitle": null,
+      "whyImportantTitle": "Why This Is Important",
+      "whyImportantContent": null,
+      "actionText": "Learn why this matters",
+      "sortOrder": 1
+    }
+  ],
+  "issues": [
+    {
+      "sectionCode": null,
+      "issueLevel": "URGENT",
+      "issueType": null,
+      "title": null,
+      "relatedCount": 1,
+      "description": null,
+      "suggestion": null,
+      "example": null,
+      "severityScore": 0,
+      "sortOrder": 1
+    }
+  ]
+}
