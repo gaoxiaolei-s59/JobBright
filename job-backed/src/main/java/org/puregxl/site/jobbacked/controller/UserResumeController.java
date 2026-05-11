@@ -6,6 +6,7 @@ import org.puregxl.site.framework.web.Results;
 import org.puregxl.site.jobbacked.dto.req.UserResumeManualUpdateRequest;
 import org.puregxl.site.jobbacked.dto.req.UserResumeProfileUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
+import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewV2Response;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.puregxl.site.jobbacked.service.UserResumeService;
 import org.springframework.core.io.Resource;
@@ -83,7 +84,7 @@ public class UserResumeController {
      * @return
      */
     @GetMapping("/{resumeId}/preview/v2")
-    public Result<UserResumePreviewResponse> getResumePreviewV2(@PathVariable("resumeId") String resumeId) {
+    public Result<UserResumePreviewV2Response> getResumePreviewV2(@PathVariable("resumeId") String resumeId) {
         return Results.success(userResumeService.getResumePreviewV2(resumeId));
     }
 

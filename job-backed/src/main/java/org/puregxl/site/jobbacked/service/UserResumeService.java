@@ -5,6 +5,7 @@ import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
 import org.puregxl.site.jobbacked.dto.req.UserResumeManualUpdateRequest;
 import org.puregxl.site.jobbacked.dto.req.UserResumeProfileUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
+import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewV2Response;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
@@ -22,5 +23,5 @@ public interface UserResumeService extends IService<UserResumeFile> {
 
     void updateResumeManualContent(String resumeId, UserResumeManualUpdateRequest request);
 
-    UserResumePreviewResponse getResumePreviewV2(String resumeId);
+    UserResumePreviewV2Response getResumePreviewV2(String resumeId);
 }
