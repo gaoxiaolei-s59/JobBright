@@ -50,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
         String account = requestParam.getAccount();
         String password = requestParam.getPassword();
 
-        captchaService.validateLoginCaptcha(requestParam.getCaptchaKey(), requestParam.getCaptchaCode());
+//        captchaService.validateLoginCaptcha(requestParam.getCaptchaKey(), requestParam.getCaptchaCode());
 
         LambdaQueryWrapper<UserAccount> queryWrapper = Wrappers.lambdaQuery(UserAccount.class)
                 .and(wrapper -> wrapper

@@ -67,24 +67,24 @@ public class AuthController {
         return Results.success(authService.currentUser(currentUserId));
     }
 
-    /**
-     * 获取登录图形验证码
-     */
-    @GetMapping("/captcha")
-    public Result<LoginCaptchaResponse> getLoginCaptcha() {
-        return Results.success(captchaService.generateLoginCaptcha());
-    }
-
-
-    /**
-     * 发送验证码
-     * @return
-     */
-    @PostMapping("/send")
-    public Result<Void> sendVerificationCode(@Valid @RequestBody SendVerificationCodeRequest request) {
-        mailService.sendVerificationCode(request.getEmail().trim());
-        return Results.success();
-    }
+//    /**
+//     * 获取登录图形验证码
+//     */
+//    @GetMapping("/captcha")
+//    public Result<LoginCaptchaResponse> getLoginCaptcha() {
+//        return Results.success(captchaService.generateLoginCaptcha());
+//    }
+//
+//
+//    /**
+//     * 发送验证码
+//     * @return
+//     */
+//    @PostMapping("/send")
+//    public Result<Void> sendVerificationCode(@Valid @RequestBody SendVerificationCodeRequest request) {
+//        mailService.sendVerificationCode(request.getEmail().trim());
+//        return Results.success();
+//    }
 
 
 }

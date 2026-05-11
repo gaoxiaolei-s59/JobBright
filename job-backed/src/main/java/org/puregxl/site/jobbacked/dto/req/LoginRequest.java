@@ -21,9 +21,7 @@ public class LoginRequest {
     @NotBlank(message = "请输入密码")
     private String password;
 
-    @NotBlank(message = "请先获取图形验证码")
     private String captchaKey;
 
-    @NotBlank(message = "请输入图形验证码")
     private String captchaCode;
 }

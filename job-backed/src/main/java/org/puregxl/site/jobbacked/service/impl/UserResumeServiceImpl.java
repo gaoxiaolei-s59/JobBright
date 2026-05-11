@@ -19,6 +19,7 @@ import org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeManualContentMapper;
 import org.puregxl.site.jobbacked.dto.file.UploadFileInfo;
 import org.puregxl.site.jobbacked.dto.req.UserResumeManualUpdateRequest;
+import org.puregxl.site.jobbacked.dto.req.UserResumeProfileUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.puregxl.site.jobbacked.mq.producer.JobBackedUserResumeAnalysisProduceTemplate;
@@ -255,6 +256,16 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
         existing.setStatus("ACTIVE");
         existing.setDelFlag(0);
         userResumeManualContentMapper.updateById(existing);
+    }
+
+    /**
+     * 修改简历基础信息
+     * @param resumeId
+     * @param request
+     */
+    @Override
+    public void updateResumeProfile(String resumeId, UserResumeProfileUpdateRequest request) {
+
     }
 
 

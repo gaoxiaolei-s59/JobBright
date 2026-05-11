@@ -818,45 +818,57 @@ function getResumeContactCards(previewData, profileDraft, authUser) {
   return [
     {
       key: "email",
+      field: "email",
       icon: "mail",
       title: "邮箱",
       tone: "warm",
-      value: contact.email || authUser?.email || "待补充邮箱"
+      value: contact.email || authUser?.email || "",
+      placeholder: "Email..."
     },
     {
       key: "phone",
+      field: "phone",
       icon: "phone",
       title: "电话",
       tone: "neutral",
-      value: contact.phone || "待补充电话"
+      value: contact.phone || "",
+      placeholder: "Phone..."
     },
     {
       key: "location",
+      field: "location",
       icon: "location",
       title: "地点",
       tone: "plain",
-      value: location
+      value: location,
+      placeholder: "地点..."
     },
     {
       key: "linkedin",
+      field: "linkedin",
       icon: "link",
       title: "LinkedIn",
       tone: "neutral",
-      value: contact.linkedin || `${name} 的职业主页`
+      value: contact.linkedin || "",
+      placeholder: "LinkedIn Link Text..."
     },
     {
       key: "github",
+      field: "github",
       icon: "github",
       title: "GitHub",
       tone: "neutral",
-      value: contact.github || `${name} 的项目仓库`
+      value: contact.github || "",
+      placeholder: "GitHub URL..."
     },
     {
       key: "other",
+      field: "website",
       icon: "globe",
       title: "其他链接",
       tone: "neutral",
-      value: contact.website || "个人站点 / 作品集 / 博客"
+      value: contact.website || "",
+      placeholder: "Other Link Text..."
     }
   ];
 }
@@ -1280,6 +1292,7 @@ function App() {
   const resumeUploadInputRef = useRef(null);
   const onboardingResumeInputRef = useRef(null);
   const loadMoreLockRef = useRef(false);
+  const resumeInlineCancelRef = useRef(false);
   const profileBasicRef = useRef(null);
   const profileEducationRef = useRef(null);
   const profileWorkRef = useRef(null);
@@ -1300,15 +1313,6 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [sendCodeCooldown]);
 
-  useEffect(() => {
-    if (auth.token || authView !== "login") {
-      return;
-    }
-    if (loginCaptcha?.captchaKey) {
-      return;
-    }
-    refreshLoginCaptcha();
-  }, [auth.token, authView, loginCaptcha?.captchaKey]);
   const currentJobsData =
     activeTab === "收藏职位"
       ? favoriteJobsData
@@ -1936,9 +1940,10 @@ function App() {
     setLoading(true);
     setMessage({ type: "", text: "" });
     try {
+      const { captchaKey: _captchaKey, captchaCode: _captchaCode, ...loginPayload } = loginForm;
       const data = await request("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify(loginForm)
+        body: JSON.stringify(loginPayload)
       });
       localStorage.setItem(TOKEN_KEY, data.accessToken);
       setAuth({ token: data.accessToken, user: null });
@@ -1946,7 +1951,6 @@ function App() {
       setMessage({ type: "success", text: "登录成功，正在进入首页。" });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
-      await refreshLoginCaptcha(true);
     } finally {
       setLoading(false);
     }
@@ -2250,6 +2254,7 @@ function App() {
     setResumePreviewOpen(true);
     setResumePreviewLoading(true);
     setResumePreviewData(fallbackPreview);
+    setResumeInfoEditorDraft(buildResumeInfoEditorDraft(fallbackPreview, userProfileDraft, auth.user));
 
     if (!resumeInfo?.resumeId) {
       setResumePreviewLoading(false);
@@ -2258,12 +2263,16 @@ function App() {
 
     try {
       const remotePreview = await request(`/api/user/resume/${resumeInfo.resumeId}/preview`, { method: "GET" });
-      setResumePreviewData(mergeResumePreviewContent(fallbackPreview, remotePreview));
+      const mergedPreview = mergeResumePreviewContent(fallbackPreview, remotePreview);
+      setResumePreviewData(mergedPreview);
+      setResumeInfoEditorDraft(buildResumeInfoEditorDraft(mergedPreview, userProfileDraft, auth.user));
     } catch {
-      setResumePreviewData({
+      const fallbackOnlyPreview = {
         ...fallbackPreview,
         analysisReady: false
-      });
+      };
+      setResumePreviewData(fallbackOnlyPreview);
+      setResumeInfoEditorDraft(buildResumeInfoEditorDraft(fallbackOnlyPreview, userProfileDraft, auth.user));
     } finally {
       setResumePreviewLoading(false);
     }
@@ -2312,6 +2321,81 @@ function App() {
 
   function handleResumeInfoEditorChange(field, value) {
     setResumeInfoEditorDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleResumeInlineInfoChange(field, value) {
+    setResumeInfoEditorDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleSaveResumeInlineInfo(nextDraft = resumeInfoEditorDraft, successText = "") {
+    if (!resumePreviewData) {
+      return;
+    }
+    const normalizedDraft = {
+      name: nextDraft.name.trim(),
+      title: nextDraft.title.trim(),
+      location: nextDraft.location.trim(),
+      email: nextDraft.email.trim(),
+      phone: nextDraft.phone.trim(),
+      linkedin: nextDraft.linkedin.trim(),
+      github: nextDraft.github.trim(),
+      website: nextDraft.website.trim()
+    };
+    const currentDraft = buildResumeInfoEditorDraft(resumePreviewData, userProfileDraft, auth.user);
+    const normalizedCurrent = {
+      name: currentDraft.name.trim(),
+      title: currentDraft.title.trim(),
+      location: currentDraft.location.trim(),
+      email: currentDraft.email.trim(),
+      phone: currentDraft.phone.trim(),
+      linkedin: currentDraft.linkedin.trim(),
+      github: currentDraft.github.trim(),
+      website: currentDraft.website.trim()
+    };
+    if (JSON.stringify(normalizedDraft) === JSON.stringify(normalizedCurrent)) {
+      return;
+    }
+    const nextPreviewData = {
+      ...resumePreviewData,
+      profile: {
+        ...(resumePreviewData.profile || {}),
+        name: normalizedDraft.name,
+        title: normalizedDraft.title,
+        location: normalizedDraft.location
+      },
+      contact: {
+        email: normalizedDraft.email,
+        phone: normalizedDraft.phone,
+        linkedin: normalizedDraft.linkedin,
+        github: normalizedDraft.github,
+        website: normalizedDraft.website
+      }
+    };
+    await persistResumeManualContent(nextPreviewData, successText);
+  }
+
+  function handleResumeInlineInfoBlur(field, value) {
+    if (resumeInlineCancelRef.current) {
+      resumeInlineCancelRef.current = false;
+      return;
+    }
+    const nextDraft = { ...resumeInfoEditorDraft, [field]: value };
+    setResumeInfoEditorDraft(nextDraft);
+    void handleSaveResumeInlineInfo(nextDraft);
+  }
+
+  function handleResumeInlineInfoKeyDown(event, field) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      resumeInlineCancelRef.current = true;
+      const currentDraft = buildResumeInfoEditorDraft(resumePreviewData, userProfileDraft, auth.user);
+      setResumeInfoEditorDraft(currentDraft);
+      event.currentTarget.blur();
+    }
   }
 
   function handleResumeWorkEditorChange(field, value) {
@@ -3041,8 +3125,24 @@ function App() {
                     <section className="resume-editor-surface">
                       <div className="resume-editor-name-row">
                         <div>
-                          <h2>{resumePreviewData?.profile?.name || getAuthDisplayName(auth.user)}</h2>
-                          <p>{resumePreviewData?.profile?.title || "后端开发"}</p>
+                          <input
+                            className="resume-inline-name-input"
+                            value={resumeInfoEditorDraft.name}
+                            onChange={(event) => handleResumeInlineInfoChange("name", event.target.value)}
+                            onBlur={(event) => handleResumeInlineInfoBlur("name", event.target.value)}
+                            onKeyDown={(event) => handleResumeInlineInfoKeyDown(event, "name")}
+                            placeholder="YOUR NAME"
+                            aria-label="姓名"
+                          />
+                          <input
+                            className="resume-inline-title-input"
+                            value={resumeInfoEditorDraft.title}
+                            onChange={(event) => handleResumeInlineInfoChange("title", event.target.value)}
+                            onBlur={(event) => handleResumeInlineInfoBlur("title", event.target.value)}
+                            onKeyDown={(event) => handleResumeInlineInfoKeyDown(event, "title")}
+                            placeholder="目标岗位..."
+                            aria-label="岗位标题"
+                          />
                         </div>
                         <div className="resume-urgent-pill">
                           <span>{resumePreviewData?.score?.urgentFixCount ?? 0} 项紧急问题</span>
@@ -3063,7 +3163,15 @@ function App() {
                               </span>
                               <div className="resume-contact-copy">
                                 <span className="resume-contact-title">{item.title}</span>
-                                <strong>{item.value}</strong>
+                                <input
+                                  className="resume-contact-input"
+                                  value={resumeInfoEditorDraft[item.field] ?? item.value}
+                                  onChange={(event) => handleResumeInlineInfoChange(item.field, event.target.value)}
+                                  onBlur={(event) => handleResumeInlineInfoBlur(item.field, event.target.value)}
+                                  onKeyDown={(event) => handleResumeInlineInfoKeyDown(event, item.field)}
+                                  placeholder={item.placeholder}
+                                  aria-label={item.title}
+                                />
                               </div>
                             </div>
                           </article>
@@ -4369,40 +4477,6 @@ function App() {
                       placeholder="请输入密码"
                     />
                   </label>
-
-                  <label>
-                    图形验证码
-                    <div className="auth-inline-row">
-                      <input
-                        value={loginForm.captchaCode}
-                        onChange={(event) => updateForm(setLoginForm, "captchaCode", event.target.value)}
-                        placeholder="请输入图形验证码"
-                      />
-                      <button
-                        className="auth-captcha-button"
-                        onClick={() => refreshLoginCaptcha()}
-                        type="button"
-                        disabled={loginCaptchaLoading || loading}
-                      >
-                        {loginCaptchaLoading ? (
-                          <span>加载中...</span>
-                        ) : loginCaptcha?.imageData ? (
-                          <img src={loginCaptcha.imageData} alt="图形验证码" />
-                        ) : (
-                          <span>获取验证码</span>
-                        )}
-                      </button>
-                    </div>
-                  </label>
-
-                  <button
-                    className="auth-refresh-link"
-                    onClick={() => refreshLoginCaptcha()}
-                    type="button"
-                    disabled={loginCaptchaLoading || loading}
-                  >
-                    看不清？换一张
-                  </button>
 
                   <button className="primary-button" disabled={loading} type="submit">
                     {loading ? "登录中..." : "立即登录"}

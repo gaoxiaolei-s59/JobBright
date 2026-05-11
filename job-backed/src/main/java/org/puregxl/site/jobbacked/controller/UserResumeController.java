@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.puregxl.site.framework.result.Result;
 import org.puregxl.site.framework.web.Results;
 import org.puregxl.site.jobbacked.dto.req.UserResumeManualUpdateRequest;
+import org.puregxl.site.jobbacked.dto.req.UserResumeProfileUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.puregxl.site.jobbacked.service.UserResumeService;
@@ -74,4 +75,20 @@ public class UserResumeController {
         userResumeService.updateResumeManualContent(resumeId, request);
         return Results.success();
     }
+
+
+    /**
+     * 获取简历预览元信息
+     * @param resumeId
+     * @return
+     */
+    @GetMapping("/{resumeId}/preview/v2")
+    public Result<UserResumePreviewResponse> getResumePreviewV2(@PathVariable("resumeId") String resumeId) {
+        return Results.success(userResumeService.getResumePreview(resumeId));
+    }
+
+
+
+
+
 }
