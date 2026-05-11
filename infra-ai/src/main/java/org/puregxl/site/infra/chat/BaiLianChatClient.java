@@ -1,6 +1,7 @@
 package org.puregxl.site.infra.chat;
 
 import okhttp3.OkHttpClient;
+import org.puregxl.site.infra.convention.ChatClientResult;
 import org.puregxl.site.infra.convention.ChatRequest;
 import org.puregxl.site.infra.enums.ModelProvider;
 import org.puregxl.site.infra.model.ModelTarget;
@@ -19,7 +20,7 @@ public class BaiLianChatClient extends AbstractChatClient{
     }
 
     @Override
-    public String chat(ChatRequest chatRequest, ModelTarget modelTarget) {
-        return doChat(chatRequest, modelTarget);
+    public ChatClientResult chatWithResult(ChatRequest chatRequest, ModelTarget modelTarget) {
+        return doChatWithResult(chatRequest, modelTarget);
     }
 }

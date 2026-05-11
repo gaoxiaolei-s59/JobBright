@@ -18,4 +18,10 @@ public class ChatResult {
     private String provider;
 
     private String model;
+
+    private Integer inputTokens;
+
+    private Integer outputTokens;
+
+    private Integer totalTokens;
 }

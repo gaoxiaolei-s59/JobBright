@@ -12,6 +12,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.puregxl.site.infra.config.AIModelProperties;
+import org.puregxl.site.infra.convention.ChatClientResult;
 import org.puregxl.site.infra.convention.ChatMessage;
 import org.puregxl.site.infra.convention.ChatRequest;
 import org.puregxl.site.infra.enums.ModelCapability;
@@ -57,6 +58,10 @@ public abstract class AbstractChatClient implements ChatClient{
      * @return
      */
     protected String doChat(ChatRequest request, ModelTarget target ) {
+        return doChatWithResult(request, target).getContent();
+    }
+
+    protected ChatClientResult doChatWithResult(ChatRequest request, ModelTarget target) {
         AIModelProperties.ProviderConfig provider = HttpResponseHelper.requireProvider(target, provider());
         if (requiresApiKey()) {
             HttpResponseHelper.requireApiKey(provider, provider());
@@ -85,7 +90,12 @@ public abstract class AbstractChatClient implements ChatClient{
                     ModelClientErrorType.NETWORK_ERROR, null, e);
         }
 
-        return extractChatContent(respJson);
+        return ChatClientResult.builder()
+                .content(extractChatContent(respJson))
+                .inputTokens(readUsageToken(respJson, "prompt_tokens", "input_tokens"))
+                .outputTokens(readUsageToken(respJson, "completion_tokens", "output_tokens"))
+                .totalTokens(readUsageToken(respJson, "total_tokens"))
+                .build();
     }
 
 
@@ -175,6 +185,23 @@ public abstract class AbstractChatClient implements ChatClient{
             throw new ModelClientException(provider() + " 响应 content 为空", ModelClientErrorType.INVALID_RESPONSE, null);
         }
         return content;
+    }
+
+    private Integer readUsageToken(JsonObject respJson, String... names) {
+        if (respJson == null || !respJson.has("usage") || !respJson.get("usage").isJsonObject()) {
+            return null;
+        }
+        JsonObject usage = respJson.getAsJsonObject("usage");
+        for (String name : names) {
+            if (usage.has(name) && !usage.get(name).isJsonNull()) {
+                try {
+                    return usage.get(name).getAsInt();
+                } catch (Exception ignored) {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
 

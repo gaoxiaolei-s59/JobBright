@@ -115,4 +115,24 @@ public class ChatRequest {
      * </p>
      */
     private Boolean enableTools;
+
+    /**
+     * 可选：一次业务调用链路 ID。
+     */
+    private String traceId;
+
+    /**
+     * 可选：业务场景，例如 RESUME_ANALYSIS、RESUME_PROFILE、CHAT_STREAM。
+     */
+    private String scene;
+
+    /**
+     * 可选：业务 ID，例如 resumeId。
+     */
+    private String bizId;
+
+    /**
+     * 可选：用户 ID。
+     */
+    private Long userId;
 }

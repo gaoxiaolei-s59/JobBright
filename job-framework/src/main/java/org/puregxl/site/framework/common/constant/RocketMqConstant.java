@@ -12,4 +12,8 @@ public class RocketMqConstant {
     public static final String UPLOAD_RESUME_TOPIC = UPLOAD_RESUME_PROFILE_TOPIC;
 
     public static final String UPLOAD_RESUME_GROUP = UPLOAD_RESUME_PROFILE_GROUP;
+
+    public static final String LLM_CALL_LOG_TOPIC = "job-bright_llm_call_log_topic";
+
+    public static final String LLM_CALL_LOG_GROUP = "job-bright_llm_call_log_group";
 }

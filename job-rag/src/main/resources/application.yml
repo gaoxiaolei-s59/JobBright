@@ -50,17 +50,17 @@ ai:
         embedding: /v1/embeddings
 
   selection:
-    failure-threshold: 2
-    open-duration-ms: 30000
+    failure-threshold: 1
+    open-duration-ms: 300000
 
   stream:
     message-chunk-size: 1
 
   http:
-    connect-timeout-seconds: 10
-    read-timeout-seconds: 180
-    write-timeout-seconds: 60
-    call-timeout-seconds: 240
+    connect-timeout-seconds: 5
+    read-timeout-seconds: 60
+    write-timeout-seconds: 30
+    call-timeout-seconds: 90
 
   chat:
     default-model: qwen-plus
@@ -68,7 +68,7 @@ ai:
     candidates:
       - id: qwen-plus
         provider: bailian
-        model: qwen3.6-plus
+        model: qwen-plus-latest
         priority: 1
       - id: qwen3-max
         provider: bailian

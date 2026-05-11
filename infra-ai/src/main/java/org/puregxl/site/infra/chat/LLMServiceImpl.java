@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.puregxl.site.framework.errorcode.BaseErrorCode;
 import org.puregxl.site.framework.exception.RemoteException;
+import org.puregxl.site.infra.convention.ChatClientResult;
 import org.puregxl.site.infra.convention.ChatRequest;
 import org.puregxl.site.infra.convention.ChatResult;
 import org.puregxl.site.infra.model.ModelHealthStore;
@@ -65,13 +66,16 @@ public class LLMServiceImpl implements LLMService {
             }
 
             try {
-                String result = chatClient.chat(request, modelTarget);
+                ChatClientResult result = chatClient.chatWithResult(request, modelTarget);
                 modelHealthStore.markSuccess(modelTargetId);
                 return ChatResult.builder()
-                        .content(result)
+                        .content(result.getContent())
                         .modelId(modelTargetId)
                         .provider(provider)
                         .model(modelTarget.getCandidate().getModel())
+                        .inputTokens(result.getInputTokens())
+                        .outputTokens(result.getOutputTokens())
+                        .totalTokens(result.getTotalTokens())
                         .build();
             } catch (Exception e) {
                 log.warn("大模型调用失败, modelTargetId={}, modelTarget={}", modelTargetId, modelTarget, e);
