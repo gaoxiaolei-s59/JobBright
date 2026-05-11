@@ -6,6 +6,8 @@ import org.puregxl.site.infra.chat.LLMService;
 import org.puregxl.site.infra.convention.ChatMessage;
 import org.puregxl.site.infra.convention.ChatRequest;
 import org.puregxl.site.infra.convention.ChatResult;
+import org.puregxl.site.framework.errorcode.BaseErrorCode;
+import org.puregxl.site.framework.exception.RemoteException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -34,7 +36,12 @@ public class InfraAiJsonLlmClient {
                 .build();
 
         ChatResult chatResult = llmService.doChatWithResult(request);
-        String content = chatResult.getContent().trim();
+        String rawContent = chatResult.getContent();
+        if (rawContent == null || rawContent.isBlank()) {
+            throw new RemoteException("大模型返回内容为空, modelId=" + chatResult.getModelId(), BaseErrorCode.REMOTE_ERROR);
+        }
+
+        String content = rawContent.trim();
         objectMapper.readTree(content);
         return new JsonLlmResult(content, chatResult.getModelId());
     }

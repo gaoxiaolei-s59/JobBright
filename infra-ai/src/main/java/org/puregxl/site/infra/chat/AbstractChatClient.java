@@ -170,7 +170,11 @@ public abstract class AbstractChatClient implements ChatClient{
         if (message == null || !message.has("content") || message.get("content").isJsonNull()) {
             throw new ModelClientException(provider() + " 响应缺少 content", ModelClientErrorType.INVALID_RESPONSE, null);
         }
-        return message.get("content").getAsString();
+        String content = message.get("content").getAsString();
+        if (content == null || content.isBlank()) {
+            throw new ModelClientException(provider() + " 响应 content 为空", ModelClientErrorType.INVALID_RESPONSE, null);
+        }
+        return content;
     }
 
 
