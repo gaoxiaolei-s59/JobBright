@@ -1,8 +1,8 @@
 package org.puregxl.site.infra.chat;
 
 import okhttp3.OkHttpClient;
-import org.puregxl.site.infra.convention.ChatClientResult;
 import org.puregxl.site.infra.convention.ChatRequest;
+import org.puregxl.site.infra.convention.ChatResult;
 import org.puregxl.site.infra.enums.ModelProvider;
 import org.puregxl.site.infra.model.ModelTarget;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ public class BaiLianChatClient extends AbstractChatClient{
     }
 
     @Override
-    public ChatClientResult chatWithResult(ChatRequest chatRequest, ModelTarget modelTarget) {
-        return doChatWithResult(chatRequest, modelTarget);
+    public ChatResult doChat(ChatRequest chatRequest, ModelTarget modelTarget) {
+        return executeChat(chatRequest, modelTarget);
     }
 }

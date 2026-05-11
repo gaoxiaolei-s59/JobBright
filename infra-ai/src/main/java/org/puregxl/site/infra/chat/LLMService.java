@@ -51,5 +51,4 @@ public interface LLMService {
      * @return
      */
     ChatResult doChatWithResult(ChatRequest chatRequest, String modelId);
-
 }

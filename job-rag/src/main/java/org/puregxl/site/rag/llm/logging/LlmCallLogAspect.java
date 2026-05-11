@@ -5,9 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.puregxl.site.infra.convention.ChatClientResult;
 import org.puregxl.site.infra.convention.ChatMessage;
 import org.puregxl.site.infra.convention.ChatRequest;
+import org.puregxl.site.infra.convention.ChatResult;
 import org.puregxl.site.infra.enums.ModelCapability;
 import org.puregxl.site.infra.http.ModelClientException;
 import org.puregxl.site.infra.http.ModelUrlResolver;
@@ -73,8 +73,8 @@ public class LlmCallLogAspect {
                                        Instant start,
                                        String traceId,
                                        String callId) {
-        ChatClientResult chatClientResult = result instanceof ChatClientResult value ? value : null;
-        String response = chatClientResult != null ? chatClientResult.getContent() : result instanceof String text ? text : null;
+        ChatResult chatResult = result instanceof ChatResult value ? value : null;
+        String response = chatResult != null ? chatResult.getContent() : result instanceof String text ? text : null;
         Long durationMs = Duration.between(start, Instant.now()).toMillis();
         ModelClientException modelException = findModelClientException(throwable);
 
@@ -103,9 +103,9 @@ public class LlmCallLogAspect {
                 .responseChars(response == null ? null : response.length())
                 .promptHash(hashMessages(request.getMessages()))
                 .responseHash(hashText(response))
-                .inputTokens(chatClientResult == null ? null : chatClientResult.getInputTokens())
-                .outputTokens(chatClientResult == null ? null : chatClientResult.getOutputTokens())
-                .totalTokens(chatClientResult == null ? null : chatClientResult.getTotalTokens())
+                .inputTokens(chatResult == null ? null : chatResult.getInputTokens())
+                .outputTokens(chatResult == null ? null : chatResult.getOutputTokens())
+                .totalTokens(chatResult == null ? null : chatResult.getTotalTokens())
                 .build();
     }
 

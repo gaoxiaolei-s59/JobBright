@@ -12,9 +12,9 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.puregxl.site.infra.config.AIModelProperties;
-import org.puregxl.site.infra.convention.ChatClientResult;
 import org.puregxl.site.infra.convention.ChatMessage;
 import org.puregxl.site.infra.convention.ChatRequest;
+import org.puregxl.site.infra.convention.ChatResult;
 import org.puregxl.site.infra.enums.ModelCapability;
 import org.puregxl.site.infra.http.*;
 import org.puregxl.site.infra.model.ModelTarget;
@@ -57,11 +57,7 @@ public abstract class AbstractChatClient implements ChatClient{
      * 同步调用方法
      * @return
      */
-    protected String doChat(ChatRequest request, ModelTarget target ) {
-        return doChatWithResult(request, target).getContent();
-    }
-
-    protected ChatClientResult doChatWithResult(ChatRequest request, ModelTarget target) {
+    protected ChatResult executeChat(ChatRequest request, ModelTarget target) {
         AIModelProperties.ProviderConfig provider = HttpResponseHelper.requireProvider(target, provider());
         if (requiresApiKey()) {
             HttpResponseHelper.requireApiKey(provider, provider());
@@ -90,8 +86,11 @@ public abstract class AbstractChatClient implements ChatClient{
                     ModelClientErrorType.NETWORK_ERROR, null, e);
         }
 
-        return ChatClientResult.builder()
+        return ChatResult.builder()
                 .content(extractChatContent(respJson))
+                .modelId(target.getId())
+                .provider(target.getCandidate().getProvider())
+                .model(target.getCandidate().getModel())
                 .inputTokens(readUsageToken(respJson, "prompt_tokens", "input_tokens"))
                 .outputTokens(readUsageToken(respJson, "completion_tokens", "output_tokens"))
                 .totalTokens(readUsageToken(respJson, "total_tokens"))
