@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper">
+
+    <select id="selectResumePreviewV2" resultType="org.puregxl.site.jobbacked.dto.resp.UserResumePreviewV2QueryResult">
+        SELECT
+            urf.resume_id AS resumeId,
+            COALESCE(NULLIF(rp.resume_name, ''), urf.file_name) AS resumeName,
+            urf.file_name AS fileName,
+            urf.file_ext AS fileExt,
+            COALESCE(
+                NULLIF(urf.content_type, ''),
+                CASE
+                    WHEN LOWER(urf.file_ext) = 'pdf' THEN 'application/pdf'
+                    WHEN LOWER(urf.file_ext) = 'doc' THEN 'application/msword'
+                    WHEN LOWER(urf.file_ext) = 'docx' THEN 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    ELSE 'application/octet-stream'
+                END
+            ) AS contentType,
+            CASE
+                WHEN LOWER(urf.file_ext) = 'pdf'
+                    OR COALESCE(NULLIF(urf.content_type, ''), '') = 'application/pdf'
+                    THEN 'INLINE'
+                ELSE 'DOWNLOAD'
+            END AS previewType,
+            COALESCE(rar.update_time, rp.update_time, urf.update_time) AS updatedAt,
+            CASE
+                WHEN rp.id IS NULL THEN NULL
+                ELSE CAST(JSON_OBJECT(
+                    'name', rp.name,
+                    'title', rp.title,
+                    'email', rp.email,
+                    'phone', rp.phone,
+                    'location', rp.location,
+                    'linkedinText', rp.linkedin_text,
+                    'linkedinUrl', rp.linkedin_url,
+                    'githubText', rp.github_text,
+                    'githubUrl', rp.github_url,
+                    'otherLinkText', rp.other_link_text,
+                    'otherLinkUrl', rp.other_link_url,
+                    'status', rp.status
+                ) AS CHAR)
+            END AS profileJson,
+            CAST(JSON_OBJECT(
+                'scoreValue', COALESCE(rar.score_value, CAST(urf.score AS SIGNED)),
+                'scoreGrade', COALESCE(
+                    NULLIF(rar.score_grade, ''),
+                    CASE
+                        WHEN COALESCE(rar.score_value, CAST(urf.score AS SIGNED)) IS NULL
+                            OR COALESCE(rar.score_value, CAST(urf.score AS SIGNED)) &gt;= 85 THEN 'A'
+                        WHEN COALESCE(rar.score_value, CAST(urf.score AS SIGNED)) &gt;= 70 THEN 'B'
+                        ELSE 'C'
+                    END
+                ),
+                'scoreLevel', COALESCE(
+                    NULLIF(rar.score_level, ''),
+                    CASE
+                        WHEN COALESCE(rar.score_value, CAST(urf.score AS SIGNED)) IS NULL
+                            OR COALESCE(rar.score_value, CAST(urf.score AS SIGNED)) &gt;= 85 THEN 'EXCELLENT'
+                        WHEN COALESCE(rar.score_value, CAST(urf.score AS SIGNED)) &gt;= 70 THEN 'GOOD'
+                        ELSE 'FAIR'
+                    END
+                ),
+                'urgentFixCount', COALESCE(rar.urgent_issue_count, 0),
+                'criticalFixCount', COALESCE(rar.critical_issue_count, 0),
+                'optionalFixCount', COALESCE(rar.optional_issue_count, 0),
+                'analyzeStatus', rar.analyze_status
+            ) AS CHAR) AS scoreJson,
+            (
+                SELECT COALESCE(CONCAT('[', GROUP_CONCAT(CONCAT(
+                    '{"category":', JSON_QUOTE(sg.category),
+                    ',"skills":', sg.skills_json,
+                    '}'
+                ) ORDER BY sg.min_sort_order, sg.min_id SEPARATOR ','), ']'), '[]')
+                FROM (
+                    SELECT
+                        COALESCE(NULLIF(rs.category, ''), 'Other') AS category,
+                        MIN(COALESCE(rs.sort_order, 0)) AS min_sort_order,
+                        MIN(rs.id) AS min_id,
+                        CONCAT('[', GROUP_CONCAT(JSON_QUOTE(rs.skill_name) ORDER BY COALESCE(rs.sort_order, 0), rs.id SEPARATOR ','), ']') AS skills_json
+                    FROM resume_skill rs
+                    WHERE rs.resume_id = urf.resume_id
+                      AND rs.del_flag = 0
+                      AND rs.skill_name IS NOT NULL
+                      AND rs.skill_name != ''
+                    GROUP BY COALESCE(NULLIF(rs.category, ''), 'Other')
+                ) sg
+            ) AS skillGroupsJson,
+            (
+                SELECT COALESCE(CONCAT('[', GROUP_CONCAT(CAST(JSON_OBJECT(
+                    'companyName', rwe.company_name,
+                    'positionTitle', rwe.position_title,
+                    'startDate', rwe.start_date,
+                    'endDate', rwe.end_date,
+                    'description', IF(JSON_VALID(rwe.description), JSON_EXTRACT(rwe.description, '$'), JSON_ARRAY()),
+                    'sortOrder', rwe.sort_order
+                ) AS CHAR) ORDER BY COALESCE(rwe.sort_order, 0), rwe.id SEPARATOR ','), ']'), '[]')
+                FROM resume_work_experience rwe
+                WHERE rwe.resume_id = urf.resume_id
+                  AND rwe.del_flag = 0
+            ) AS workExperiencesJson,
+            (
+                SELECT COALESCE(CONCAT('[', GROUP_CONCAT(CAST(JSON_OBJECT(
+                    'projectName', rpe.project_name,
+                    'roleTitle', rpe.role_title,
+                    'startDate', rpe.start_date,
+                    'endDate', rpe.end_date,
+                    'techStack', IF(JSON_VALID(rpe.tech_stack), JSON_EXTRACT(rpe.tech_stack, '$'), JSON_ARRAY()),
+                    'description', IF(JSON_VALID(rpe.description), JSON_EXTRACT(rpe.description, '$'), JSON_ARRAY()),
+                    'sortOrder', rpe.sort_order
+                ) AS CHAR) ORDER BY COALESCE(rpe.sort_order, 0), rpe.id SEPARATOR ','), ']'), '[]')
+                FROM resume_project_experience rpe
+                WHERE rpe.resume_id = urf.resume_id
+                  AND rpe.del_flag = 0
+            ) AS projectExperiencesJson,
+            (
+                SELECT COALESCE(CONCAT('[', GROUP_CONCAT(CAST(JSON_OBJECT(
+                    'itemType', rc.item_type,
+                    'name', rc.name,
+                    'issuer', rc.issuer,
+                    'issueDate', rc.issue_date,
+                    'description', rc.description,
+                    'credentialUrl', rc.credential_url,
+                    'sortOrder', rc.sort_order
+                ) AS CHAR) ORDER BY COALESCE(rc.sort_order, 0), rc.id SEPARATOR ','), ']'), '[]')
+                FROM resume_certification rc
+                WHERE rc.resume_id = urf.resume_id
+                  AND rc.del_flag = 0
+            ) AS certificationsJson
+        FROM user_resume_file urf
+        LEFT JOIN resume_profile rp
+            ON rp.resume_id = urf.resume_id
+           AND rp.user_id = urf.user_id
+           AND rp.del_flag = 0
+        LEFT JOIN resume_analysis_report rar
+            ON rar.resume_id = urf.resume_id
+           AND rar.user_id = urf.user_id
+           AND rar.del_flag = 0
+        WHERE urf.user_id = #{userId}
+          AND urf.resume_id = #{resumeId}
+          AND urf.del_flag = 0
+        LIMIT 1
+    </select>
+</mapper>

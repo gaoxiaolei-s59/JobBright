@@ -56,7 +56,7 @@ public class JobPostCleanTask {
         List<JobPostingDO> jobPostingDOS = jobPostingMapper.selectList(Wrappers.lambdaQuery(JobPostingDO.class)
                 .orderByDesc(JobPostingDO::getPublishTime)
                 .last("limit " + BATCH_SIZE));
-
+        JobPostingDO jobPostingDO = new JobPostingDO();
         List<Future<CleanJobResult>> futures = jobPostingDOS.stream()
                 .map(rawJob -> executorService.submit(buildCleanTask(rawJob)))
                 .toList();
@@ -93,6 +93,9 @@ public class JobPostCleanTask {
             return new CleanJobResult(jobPostingDO.getId(), jobPost);
         };
     }
+
+
+
 
     /**
      * 先执行清洗操作

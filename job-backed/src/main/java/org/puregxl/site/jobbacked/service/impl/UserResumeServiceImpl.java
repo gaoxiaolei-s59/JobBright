@@ -11,21 +11,9 @@ import org.puregxl.site.framework.exception.ClientException;
 import org.puregxl.site.framework.mq.UploadResumeExecuteTaskEvent;
 import org.puregxl.site.jobbacked.common.context.UserContext;
 import org.puregxl.site.jobbacked.config.RustfsProperties;
-import org.puregxl.site.jobbacked.dao.entity.ResumeAnalysisReport;
-import org.puregxl.site.jobbacked.dao.entity.ResumeCertification;
-import org.puregxl.site.jobbacked.dao.entity.ResumeProfile;
-import org.puregxl.site.jobbacked.dao.entity.ResumeProjectExperience;
-import org.puregxl.site.jobbacked.dao.entity.ResumeSkill;
-import org.puregxl.site.jobbacked.dao.entity.ResumeWorkExperience;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeAnalysis;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeFile;
 import org.puregxl.site.jobbacked.dao.entity.UserResumeManualContent;
-import org.puregxl.site.jobbacked.dao.mapper.ResumeAnalysisReportMapper;
-import org.puregxl.site.jobbacked.dao.mapper.ResumeCertificationMapper;
-import org.puregxl.site.jobbacked.dao.mapper.ResumeProfileMapper;
-import org.puregxl.site.jobbacked.dao.mapper.ResumeProjectExperienceMapper;
-import org.puregxl.site.jobbacked.dao.mapper.ResumeSkillMapper;
-import org.puregxl.site.jobbacked.dao.mapper.ResumeWorkExperienceMapper;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeAnalysisMapper;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeFileMapper;
 import org.puregxl.site.jobbacked.dao.mapper.UserResumeManualContentMapper;
@@ -34,6 +22,7 @@ import org.puregxl.site.jobbacked.dto.req.UserResumeManualUpdateRequest;
 import org.puregxl.site.jobbacked.dto.req.UserResumeProfileUpdateRequest;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewResponse;
 import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewV2Response;
+import org.puregxl.site.jobbacked.dto.resp.UserResumePreviewV2QueryResult;
 import org.puregxl.site.jobbacked.dto.resp.UserResumeResponse;
 import org.puregxl.site.jobbacked.mq.producer.JobBackedUserResumeAnalysisProduceTemplate;
 import org.puregxl.site.jobbacked.mq.producer.JobBackedUserResumeProduceTemplate;
@@ -55,11 +44,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static org.puregxl.site.framework.errorcode.BaseErrorCode.USER_RESUME_NOT_FOUND;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -77,18 +63,6 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
     private final UserResumeFileMapper userResumeFileMapper;
 
     private final UserResumeAnalysisMapper userResumeAnalysisMapper;
-
-    private final ResumeProfileMapper resumeProfileMapper;
-
-    private final ResumeSkillMapper resumeSkillMapper;
-
-    private final ResumeWorkExperienceMapper resumeWorkExperienceMapper;
-
-    private final ResumeProjectExperienceMapper resumeProjectExperienceMapper;
-
-    private final ResumeCertificationMapper resumeCertificationMapper;
-
-    private final ResumeAnalysisReportMapper resumeAnalysisReportMapper;
 
     private final UserResumeManualContentMapper userResumeManualContentMapper;
 
@@ -787,6 +761,9 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
     }
 
 
+
+
+    //=============================================================
     /**
      * 获取简历阅览V2版本
      * @param resumeId
@@ -794,160 +771,31 @@ public class UserResumeServiceImpl extends ServiceImpl<UserResumeFileMapper, Use
      */
     @Override
     public UserResumePreviewV2Response getResumePreviewV2(String resumeId) {
-        UserResumeFile userResumeFile = getOwnedResumeByResumeId(resumeId);
-        ResumeProfile profile = resumeProfileMapper.selectOne(Wrappers.lambdaQuery(ResumeProfile.class)
-                .eq(ResumeProfile::getResumeId, userResumeFile.getResumeId())
-                .eq(ResumeProfile::getUserId, userResumeFile.getUserId())
-                .eq(ResumeProfile::getDelFlag, 0)
-                .last("limit 1"));
-        ResumeAnalysisReport report = resumeAnalysisReportMapper.selectOne(Wrappers.lambdaQuery(ResumeAnalysisReport.class)
-                .eq(ResumeAnalysisReport::getResumeId, userResumeFile.getResumeId())
-                .eq(ResumeAnalysisReport::getUserId, userResumeFile.getUserId())
-                .eq(ResumeAnalysisReport::getDelFlag, 0)
-                .last("limit 1"));
+        if (!StringUtils.hasText(resumeId)) {
+            throw new ClientException("resumeId不能为空");
+        }
+        UserResumePreviewV2QueryResult row = userResumeFileMapper.selectResumePreviewV2(resumeId, UserContext.getUserId());
+        if (row == null) {
+            throw new ClientException(USER_RESUME_NOT_FOUND);
+        }
 
         return UserResumePreviewV2Response.builder()
-                .resumeId(userResumeFile.getResumeId())
-                .resumeName(profile == null ? userResumeFile.getFileName() : firstText(profile.getResumeName(), userResumeFile.getFileName()))
-                .fileName(userResumeFile.getFileName())
-                .fileExt(userResumeFile.getFileExt())
-                .contentType(resolveContentType(userResumeFile))
-                .previewType(isInlinePreviewable(userResumeFile) ? "INLINE" : "DOWNLOAD")
-                .previewUrl("/api/user/resume/" + userResumeFile.getResumeId() + "/file")
-                .downloadUrl("/api/user/resume/" + userResumeFile.getResumeId() + "/file")
-                .updatedAt(resolvePreviewV2UpdatedAt(userResumeFile, profile, report))
-                .profile(toPreviewV2Profile(profile))
-                .score(toPreviewV2Score(userResumeFile, report))
-                .skillGroups(buildPreviewV2SkillGroups(userResumeFile.getResumeId()))
-                .workExperiences(buildPreviewV2WorkExperiences(userResumeFile.getResumeId()))
-                .projectExperiences(buildPreviewV2ProjectExperiences(userResumeFile.getResumeId()))
-                .certifications(buildPreviewV2Certifications(userResumeFile.getResumeId()))
+                .resumeId(row.getResumeId())
+                .resumeName(row.getResumeName())
+                .fileName(row.getFileName())
+                .fileExt(row.getFileExt())
+                .contentType(row.getContentType())
+                .previewType(row.getPreviewType())
+                .previewUrl("/api/user/resume/" + row.getResumeId() + "/file")
+                .downloadUrl("/api/user/resume/" + row.getResumeId() + "/file")
+                .updatedAt(Optional.ofNullable(row.getUpdatedAt()).map(Object::toString).orElse(null))
+                .profile(parseObject(row.getProfileJson(), UserResumePreviewV2Response.Profile.class))
+                .score(parseObject(row.getScoreJson(), UserResumePreviewV2Response.Score.class))
+                .skillGroups(parseList(row.getSkillGroupsJson(), UserResumePreviewV2Response.SkillGroup.class))
+                .workExperiences(parseList(row.getWorkExperiencesJson(), UserResumePreviewV2Response.WorkExperience.class))
+                .projectExperiences(parseList(row.getProjectExperiencesJson(), UserResumePreviewV2Response.ProjectExperience.class))
+                .certifications(parseList(row.getCertificationsJson(), UserResumePreviewV2Response.Certification.class))
                 .build();
-    }
-
-    private String resolvePreviewV2UpdatedAt(
-            UserResumeFile userResumeFile,
-            ResumeProfile profile,
-            ResumeAnalysisReport report) {
-        if (report != null && report.getUpdateTime() != null) {
-            return report.getUpdateTime().toString();
-        }
-        if (profile != null && profile.getUpdateTime() != null) {
-            return profile.getUpdateTime().toString();
-        }
-        return Optional.ofNullable(userResumeFile.getUpdateTime()).map(Object::toString).orElse(null);
-    }
-
-    private UserResumePreviewV2Response.Profile toPreviewV2Profile(ResumeProfile profile) {
-        if (profile == null) {
-            return null;
-        }
-        return UserResumePreviewV2Response.Profile.builder()
-                .name(profile.getName())
-                .title(profile.getTitle())
-                .email(profile.getEmail())
-                .phone(profile.getPhone())
-                .location(profile.getLocation())
-                .linkedinText(profile.getLinkedinText())
-                .linkedinUrl(profile.getLinkedinUrl())
-                .githubText(profile.getGithubText())
-                .githubUrl(profile.getGithubUrl())
-                .otherLinkText(profile.getOtherLinkText())
-                .otherLinkUrl(profile.getOtherLinkUrl())
-                .status(profile.getStatus())
-                .build();
-    }
-
-    private UserResumePreviewV2Response.Score toPreviewV2Score(UserResumeFile userResumeFile, ResumeAnalysisReport report) {
-        Integer scoreValue = report == null || report.getScoreValue() == null
-                ? Optional.ofNullable(userResumeFile.getScore()).map(Double::intValue).orElse(null)
-                : report.getScoreValue();
-        return UserResumePreviewV2Response.Score.builder()
-                .scoreValue(scoreValue)
-                .scoreGrade(report == null ? resolveGrade(scoreValue) : firstText(report.getScoreGrade(), resolveGrade(scoreValue)))
-                .scoreLevel(report == null ? resolveLabel(scoreValue) : firstText(report.getScoreLevel(), resolveLabel(scoreValue)))
-                .urgentFixCount(report == null ? 0 : Optional.ofNullable(report.getUrgentIssueCount()).orElse(0))
-                .criticalFixCount(report == null ? 0 : Optional.ofNullable(report.getCriticalIssueCount()).orElse(0))
-                .optionalFixCount(report == null ? 0 : Optional.ofNullable(report.getOptionalIssueCount()).orElse(0))
-                .analyzeStatus(report == null ? null : report.getAnalyzeStatus())
-                .build();
-    }
-
-    private List<UserResumePreviewV2Response.SkillGroup> buildPreviewV2SkillGroups(String resumeId) {
-        List<ResumeSkill> skills = resumeSkillMapper.selectList(Wrappers.lambdaQuery(ResumeSkill.class)
-                .eq(ResumeSkill::getResumeId, resumeId)
-                .eq(ResumeSkill::getDelFlag, 0)
-                .orderByAsc(ResumeSkill::getSortOrder)
-                .orderByAsc(ResumeSkill::getId));
-        Map<String, List<String>> grouped = skills.stream()
-                .filter(skill -> StringUtils.hasText(skill.getSkillName()))
-                .collect(Collectors.groupingBy(
-                        skill -> firstText(skill.getCategory(), "Other"),
-                        LinkedHashMap::new,
-                        Collectors.mapping(ResumeSkill::getSkillName, Collectors.toList())
-                ));
-        List<UserResumePreviewV2Response.SkillGroup> result = new ArrayList<>();
-        grouped.forEach((category, items) -> result.add(UserResumePreviewV2Response.SkillGroup.builder()
-                .category(category)
-                .skills(items)
-                .build()));
-        return result;
-    }
-
-    private List<UserResumePreviewV2Response.WorkExperience> buildPreviewV2WorkExperiences(String resumeId) {
-        List<ResumeWorkExperience> items = resumeWorkExperienceMapper.selectList(Wrappers.lambdaQuery(ResumeWorkExperience.class)
-                .eq(ResumeWorkExperience::getResumeId, resumeId)
-                .eq(ResumeWorkExperience::getDelFlag, 0)
-                .orderByAsc(ResumeWorkExperience::getSortOrder)
-                .orderByAsc(ResumeWorkExperience::getId));
-        return items.stream()
-                .map(item -> UserResumePreviewV2Response.WorkExperience.builder()
-                        .companyName(item.getCompanyName())
-                        .positionTitle(item.getPositionTitle())
-                        .startDate(item.getStartDate())
-                        .endDate(item.getEndDate())
-                        .description(parseList(item.getDescription(), String.class))
-                        .sortOrder(item.getSortOrder())
-                        .build())
-                .toList();
-    }
-
-    private List<UserResumePreviewV2Response.ProjectExperience> buildPreviewV2ProjectExperiences(String resumeId) {
-        List<ResumeProjectExperience> items = resumeProjectExperienceMapper.selectList(Wrappers.lambdaQuery(ResumeProjectExperience.class)
-                .eq(ResumeProjectExperience::getResumeId, resumeId)
-                .eq(ResumeProjectExperience::getDelFlag, 0)
-                .orderByAsc(ResumeProjectExperience::getSortOrder)
-                .orderByAsc(ResumeProjectExperience::getId));
-        return items.stream()
-                .map(item -> UserResumePreviewV2Response.ProjectExperience.builder()
-                        .projectName(item.getProjectName())
-                        .roleTitle(item.getRoleTitle())
-                        .startDate(item.getStartDate())
-                        .endDate(item.getEndDate())
-                        .techStack(parseList(item.getTechStack(), String.class))
-                        .description(parseList(item.getDescription(), String.class))
-                        .sortOrder(item.getSortOrder())
-                        .build())
-                .toList();
-    }
-
-    private List<UserResumePreviewV2Response.Certification> buildPreviewV2Certifications(String resumeId) {
-        List<ResumeCertification> items = resumeCertificationMapper.selectList(Wrappers.lambdaQuery(ResumeCertification.class)
-                .eq(ResumeCertification::getResumeId, resumeId)
-                .eq(ResumeCertification::getDelFlag, 0)
-                .orderByAsc(ResumeCertification::getSortOrder)
-                .orderByAsc(ResumeCertification::getId));
-        return items.stream()
-                .map(item -> UserResumePreviewV2Response.Certification.builder()
-                        .itemType(item.getItemType())
-                        .name(item.getName())
-                        .issuer(item.getIssuer())
-                        .issueDate(item.getIssueDate())
-                        .description(item.getDescription())
-                        .credentialUrl(item.getCredentialUrl())
-                        .sortOrder(item.getSortOrder())
-                        .build())
-                .toList();
     }
 
 }

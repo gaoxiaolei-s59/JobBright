@@ -38,13 +38,13 @@ ai:
         embedding: /v1/embeddings
     bailian:
       url: https://dashscope.aliyuncs.com
-      api-key: sk-fa84b1f526424030b79985d311710146
+      api-key: xxxxxx
       endpoints:
         chat: /compatible-mode/v1/chat/completions
         rerank: /api/v1/services/rerank/text-rerank/text-rerank
     siliconflow:
       url: https://api.siliconflow.cn
-      api-key: sk-rjtfqcpnhpzonswkebygmaqnqvibqcndgqxqfxghizuguthf
+      api-key: xxxxxx
       endpoints:
         chat: /v1/chat/completions
         embedding: /v1/embeddings

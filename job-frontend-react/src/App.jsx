@@ -661,11 +661,62 @@ function hasRemoteResumeAnalysis(preview) {
   return Boolean(
     preview.analysisSummary
     || preview.score?.summary
+    || preview.score?.scoreValue !== undefined
     || hasNonEmptyList(preview.analysisHighlights)
     || hasNonEmptyList(preview.urgentIssues)
     || hasNonEmptyList(preview.skillGroups)
     || hasNonEmptyList(preview.projects)
+    || hasNonEmptyList(preview.projectExperiences)
+    || hasNonEmptyList(preview.workExperiences)
   );
+}
+
+function normalizeResumePreviewV2(remotePreview) {
+  if (!remotePreview) {
+    return null;
+  }
+  const profile = remotePreview.profile || {};
+  const score = remotePreview.score || {};
+  return {
+    ...remotePreview,
+    score: {
+      ...score,
+      grade: score.grade || score.scoreGrade,
+      label: score.label || score.scoreLevel,
+      urgentFixCount: score.urgentFixCount ?? score.urgentIssueCount ?? 0,
+      criticalFixCount: score.criticalFixCount ?? score.criticalIssueCount ?? 0,
+      optionalFixCount: score.optionalFixCount ?? score.optionalIssueCount ?? 0
+    },
+    contact: {
+      email: profile.email || remotePreview.contact?.email || "",
+      phone: profile.phone || remotePreview.contact?.phone || "",
+      linkedin: profile.linkedinText || profile.linkedinUrl || remotePreview.contact?.linkedin || "",
+      github: profile.githubText || profile.githubUrl || remotePreview.contact?.github || "",
+      website: profile.otherLinkText || profile.otherLinkUrl || remotePreview.contact?.website || ""
+    },
+    skillGroups: (Array.isArray(remotePreview.skillGroups) ? remotePreview.skillGroups : []).map((group) => ({
+      ...group,
+      title: group.title || group.category || "技能",
+      items: Array.isArray(group.items) ? group.items : Array.isArray(group.skills) ? group.skills : []
+    })),
+    workExperiences: (Array.isArray(remotePreview.workExperiences) ? remotePreview.workExperiences : []).map((item) => ({
+      ...item,
+      company: item.company || item.companyName || "",
+      role: item.role || item.positionTitle || "",
+      period: item.period || [item.startDate, item.endDate].filter(Boolean).join(" - "),
+      bullets: Array.isArray(item.bullets) ? item.bullets : Array.isArray(item.description) ? item.description : []
+    })),
+    projects: (Array.isArray(remotePreview.projects) ? remotePreview.projects : Array.isArray(remotePreview.projectExperiences) ? remotePreview.projectExperiences : []).map((project) => ({
+      ...project,
+      name: project.name || project.projectName || "",
+      technologies: Array.isArray(project.technologies) ? project.technologies : Array.isArray(project.techStack) ? project.techStack : [],
+      bullets: Array.isArray(project.bullets) ? project.bullets : Array.isArray(project.description) ? project.description : []
+    })),
+    certifications: (Array.isArray(remotePreview.certifications) ? remotePreview.certifications : []).map((item) => ({
+      ...item,
+      description: item.description || [item.issuer, item.issueDate].filter(Boolean).join(" · ")
+    }))
+  };
 }
 
 function mergeResumePreviewContent(fallbackPreview, remotePreview) {
@@ -710,26 +761,6 @@ function buildResumePreviewContent(resumeInfo, profileDraft, authUser) {
   const displayName = getAuthDisplayName(authUser);
   const targetRole = profileDraft?.targetRole?.trim() || "后端开发";
   const city = profileDraft?.expectedCity?.trim() || "上海";
-  const keywordTags = (profileDraft?.keywordTags || "")
-    .split(/[，,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-  const summary = profileDraft?.personalSummary?.trim()
-    || "具备扎实的后端开发基础，关注 Java、Spring Boot、MySQL 等技术方向，希望参与平台型和业务核心场景建设。";
-  const skillGroups = [
-    {
-      title: "语言与基础",
-      items: keywordTags.length ? keywordTags.slice(0, 4) : ["Java", "SQL", "Linux", "数据结构"]
-    },
-    {
-      title: "后端框架",
-      items: ["Spring Boot", "MyBatis", "Redis", "RESTful API"]
-    },
-    {
-      title: "工具与工程化",
-      items: ["IntelliJ IDEA", "Postman", "Git", "Maven"]
-    }
-  ];
 
   return {
     resumeId: resumeInfo?.resumeId || "",
@@ -740,13 +771,13 @@ function buildResumePreviewContent(resumeInfo, profileDraft, authUser) {
     contentType: resumeInfo?.fileName?.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream",
     analysisReady: false,
     score: {
-      grade: "A",
-      label: "EXCELLENT",
-      scoreValue: resumeInfo?.score || 88,
-      urgentFixCount: 2,
-      criticalFixCount: 1,
-      optionalFixCount: 3,
-      summary: "技术方向明确，关键词集中在后端开发，但还可以继续强化项目成果和量化表达。"
+      grade: "",
+      label: "",
+      scoreValue: resumeInfo?.score ?? null,
+      urgentFixCount: 0,
+      criticalFixCount: 0,
+      optionalFixCount: 0,
+      summary: ""
     },
     profile: {
       name: displayName,
@@ -754,60 +785,13 @@ function buildResumePreviewContent(resumeInfo, profileDraft, authUser) {
       location: city,
       status: resumeInfo?.status || "ACTIVE"
     },
-    analysisSummary: summary,
-    analysisHighlights: [
-      {
-        title: "Impact & Achievements",
-        description: "已经有较清晰的后端技术栈表达，下一步重点是让项目经历更量化。"
-      },
-      {
-        title: "Role Alignment",
-        description: "关键词和目标岗位一致，适合继续往 Java 后端 / 平台研发方向优化。"
-      }
-    ],
-    urgentIssues: [
-      {
-        title: "项目成果还不够量化",
-        description: "建议把项目中的吞吐量、性能优化比例、接口规模或业务结果写出来。"
-      },
-      {
-        title: "个人摘要可再聚焦",
-        description: "可以明确写出你最想投递的岗位方向和最有代表性的技术能力。"
-      }
-    ],
-    skillGroups,
-    projects: [
-      {
-        name: "高并发电商系统",
-        technologies: ["Java", "Spring Boot", "MySQL", "Redis"],
-        bullets: [
-          "设计并实现核心订单与库存接口，支持高并发请求处理。",
-          "使用 Redis 做热点数据缓存，优化接口响应时间。",
-          "补充更明确的性能和业务指标后，会更适合 LLM 做打分和建议。"
-        ]
-      }
-    ],
-    workExperiences: [
-      {
-        company: "某互联网平台",
-        role: "后端开发实习生",
-        bullets: [
-          "参与订单、库存、商品等核心服务的接口开发与联调。",
-          "协助老系统向微服务架构迁移，提升模块可维护性。",
-          "编写单元测试并参与代码评审，保障接口稳定性。"
-        ]
-      }
-    ],
-    certifications: [
-      {
-        name: "数据库与中间件能力",
-        description: "熟悉 MySQL、Redis、RabbitMQ 等常见后端基础组件。"
-      },
-      {
-        name: "工程化与工具链",
-        description: "掌握 Git、Maven、Postman、Linux 基础脚本与排障。"
-      }
-    ]
+    analysisSummary: "",
+    analysisHighlights: [],
+    urgentIssues: [],
+    skillGroups: [],
+    projects: [],
+    workExperiences: [],
+    certifications: []
   };
 }
 
@@ -2262,8 +2246,8 @@ function App() {
     }
 
     try {
-      const remotePreview = await request(`/api/user/resume/${resumeInfo.resumeId}/preview`, { method: "GET" });
-      const mergedPreview = mergeResumePreviewContent(fallbackPreview, remotePreview);
+      const remotePreview = await request(`/api/user/resume/${resumeInfo.resumeId}/preview/v2`, { method: "GET" });
+      const mergedPreview = mergeResumePreviewContent(fallbackPreview, normalizeResumePreviewV2(remotePreview));
       setResumePreviewData(mergedPreview);
       setResumeInfoEditorDraft(buildResumeInfoEditorDraft(mergedPreview, userProfileDraft, auth.user));
     } catch {
@@ -3091,13 +3075,13 @@ function App() {
 
                     <section className="resume-workbench-hero">
                       <div className="resume-workbench-grade">
-                        <div className="resume-grade-badge hex">{resumePreviewData?.score?.grade || "A"}</div>
+                        <div className="resume-grade-badge hex">{resumePreviewData?.score?.grade || "-"}</div>
                         <div className="resume-workbench-grade-copy">
                           <div className="resume-workbench-grade-row">
-                            <strong>{resumePreviewData?.score?.label || "EXCELLENT"}</strong>
+                            <strong>{resumePreviewData?.score?.label || "待分析"}</strong>
                             <button className="resume-report-button" type="button">查看完整报告</button>
                           </div>
-                          <span>评分 {resumePreviewData?.score?.scoreValue || 88}</span>
+                          <span>评分 {resumePreviewData?.score?.scoreValue ?? "-"}</span>
                         </div>
                       </div>
 

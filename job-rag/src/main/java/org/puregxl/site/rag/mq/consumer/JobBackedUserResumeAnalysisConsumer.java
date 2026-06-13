@@ -153,40 +153,75 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
     }
 
     private ParsedResumeResult buildStructuredResumeResult(String resumeText, UserResumeFile userResumeFile) throws Exception {
+        Long userId = userResumeFile.getUserId();
+        String resumeId = userResumeFile.getResumeId();
         ProfileResult profile = askJson(
-                buildSystemPrompt(),
-                buildUserPrompt("基础信息", resumeText, "profile-rules.md", "profile-schema.json"),
+                "基础信息",
+                resumeId,
+                resumeText,
+                "profile-rules.md",
+                "profile-schema.json",
                 ProfileResult.class
         );
 
         SkillResult skills = askJson(
-                buildSystemPrompt(),
-                buildUserPrompt("技能", resumeText, "skills-rules.md", "skills-schema.json"),
+                "技能",
+                resumeId,
+                resumeText,
+                "skills-rules.md",
+                "skills-schema.json",
                 SkillResult.class
         );
 
         WorkResult workExperiences = askJson(
-                buildSystemPrompt(),
-                buildUserPrompt("工作经历", resumeText, "work-rules.md", "work-schema.json"),
+                "工作经历",
+                resumeId,
+                resumeText,
+                "work-rules.md",
+                "work-schema.json",
                 WorkResult.class
         );
 
         ProjectAndCertificationResult projectsAndCertifications = askJson(
-                buildSystemPrompt(),
-                buildUserPrompt("项目经历、证书和奖项", resumeText, "project-cert-rules.md", "project-cert-schema.json"),
+                "项目经历、证书和奖项",
+                resumeId,
+                resumeText,
+                "project-cert-rules.md",
+                "project-cert-schema.json",
                 ProjectAndCertificationResult.class
         );
 
         AnalysisResult analysis = askJson(
-                buildSystemPrompt(),
-                buildUserPrompt("简历分析报告、分析分组和优化问题", resumeText, "analysis-rules.md", "analysis-schema.json"),
+                "简历分析报告、分析分组和优化问题",
+                resumeId,
+                resumeText,
+                "analysis-rules.md",
+                "analysis-schema.json",
                 AnalysisResult.class
         );
-        fillAnalysisDefaults(userResumeFile.getUserId(), userResumeFile.getResumeId(), analysis);
+
+        if (analysis != null && analysis.getReport() != null) {
+            analysis.getReport().setUserId(userId);
+            analysis.getReport().setResumeId(resumeId);
+            analysis.getReport().setAnalyzeStatus(defaultText(analysis.getReport().getAnalyzeStatus(), "ANALYZED"));
+            analysis.getReport().setStatus(defaultText(analysis.getReport().getStatus(), "ACTIVE"));
+        }
+        for (AnalysisSection section : analysis == null ? List.<AnalysisSection>of() : safeList(analysis.getSections())) {
+            if (section != null) {
+                section.setResumeId(resumeId);
+                section.setStatus(defaultText(section.getStatus(), "ACTIVE"));
+            }
+        }
+        for (AnalysisIssue issue : analysis == null ? List.<AnalysisIssue>of() : safeList(analysis.getIssues())) {
+            if (issue != null) {
+                issue.setResumeId(resumeId);
+                issue.setStatus(defaultText(issue.getStatus(), "PENDING"));
+            }
+        }
 
         return ParsedResumeResult.builder()
-                .userId(userResumeFile.getUserId())
-                .resumeId(userResumeFile.getResumeId())
+                .userId(userId)
+                .resumeId(resumeId)
                 .resumeName(userResumeFile.getFileName())
                 .profile(profile == null ? null : profile.getProfile())
                 .skills(skills == null ? List.of() : safeList(skills.getSkills()))
@@ -201,67 +236,34 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
 
     private void saveParsedResult(ParsedResumeResult result) {
         deleteExistingResumeData(result.getResumeId());
-        saveProfile(result);
-        saveSkills(result);
-        saveWorkExperiences(result);
-        saveProjectExperiences(result);
-        saveCertifications(result);
 
-        Long reportId = saveAnalysisReport(result);
-        Map<String, Long> sectionIdMap = saveAnalysisSections(result, reportId);
-        saveAnalysisIssues(result, reportId, sectionIdMap);
-    }
-
-    private void deleteExistingResumeData(String resumeId) {
-        resumeAnalysisIssueMapper.delete(Wrappers.lambdaQuery(ResumeAnalysisIssue.class)
-                .eq(ResumeAnalysisIssue::getResumeId, resumeId));
-        resumeAnalysisSectionMapper.delete(Wrappers.lambdaQuery(ResumeAnalysisSection.class)
-                .eq(ResumeAnalysisSection::getResumeId, resumeId));
-        resumeAnalysisReportMapper.delete(Wrappers.lambdaQuery(ResumeAnalysisReport.class)
-                .eq(ResumeAnalysisReport::getResumeId, resumeId));
-        resumeCertificationMapper.delete(Wrappers.lambdaQuery(ResumeCertification.class)
-                .eq(ResumeCertification::getResumeId, resumeId));
-        resumeProjectExperienceMapper.delete(Wrappers.lambdaQuery(ResumeProjectExperience.class)
-                .eq(ResumeProjectExperience::getResumeId, resumeId));
-        resumeWorkExperienceMapper.delete(Wrappers.lambdaQuery(ResumeWorkExperience.class)
-                .eq(ResumeWorkExperience::getResumeId, resumeId));
-        resumeSkillMapper.delete(Wrappers.lambdaQuery(ResumeSkill.class)
-                .eq(ResumeSkill::getResumeId, resumeId));
-        resumeProfileMapper.delete(Wrappers.lambdaQuery(ResumeProfile.class)
-                .eq(ResumeProfile::getResumeId, resumeId));
-    }
-
-    private void saveProfile(ParsedResumeResult result) {
         Profile profile = result.getProfile();
         Date now = new Date();
-        ResumeProfile entity = new ResumeProfile();
-        entity.setUserId(result.getUserId());
-        entity.setResumeId(result.getResumeId());
-        entity.setResumeName(result.getResumeName());
+        ResumeProfile profileEntity = new ResumeProfile();
+        profileEntity.setUserId(result.getUserId());
+        profileEntity.setResumeId(result.getResumeId());
+        profileEntity.setResumeName(result.getResumeName());
         if (profile != null) {
-            entity.setName(profile.getName());
-            entity.setTitle(profile.getTitle());
-            entity.setEmail(profile.getEmail());
-            entity.setPhone(profile.getPhone());
-            entity.setLocation(profile.getLocation());
-            entity.setLinkedinText(profile.getLinkedinText());
-            entity.setLinkedinUrl(profile.getLinkedinUrl());
-            entity.setGithubText(profile.getGithubText());
-            entity.setGithubUrl(profile.getGithubUrl());
-            entity.setOtherLinkText(profile.getOtherLinkText());
-            entity.setOtherLinkUrl(profile.getOtherLinkUrl());
+            profileEntity.setName(profile.getName());
+            profileEntity.setTitle(profile.getTitle());
+            profileEntity.setEmail(profile.getEmail());
+            profileEntity.setPhone(profile.getPhone());
+            profileEntity.setLocation(profile.getLocation());
+            profileEntity.setLinkedinText(profile.getLinkedinText());
+            profileEntity.setLinkedinUrl(profile.getLinkedinUrl());
+            profileEntity.setGithubText(profile.getGithubText());
+            profileEntity.setGithubUrl(profile.getGithubUrl());
+            profileEntity.setOtherLinkText(profile.getOtherLinkText());
+            profileEntity.setOtherLinkUrl(profile.getOtherLinkUrl());
         }
-        entity.setLastAnalyzeTime(now);
-        entity.setAnalyzeStatus("ANALYZED");
-        entity.setStatus("ACTIVE");
-        entity.setCreateTime(now);
-        entity.setUpdateTime(now);
-        entity.setDelFlag(0);
-        resumeProfileMapper.insert(entity);
-    }
+        profileEntity.setLastAnalyzeTime(now);
+        profileEntity.setAnalyzeStatus("ANALYZED");
+        profileEntity.setStatus("ACTIVE");
+        profileEntity.setCreateTime(now);
+        profileEntity.setUpdateTime(now);
+        profileEntity.setDelFlag(0);
+        resumeProfileMapper.insert(profileEntity);
 
-    private void saveSkills(ParsedResumeResult result) {
-        Date now = new Date();
         for (Skill skill : safeList(result.getSkills())) {
             if (skill == null || !StringUtils.hasText(skill.getSkillName())) {
                 continue;
@@ -276,10 +278,7 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
             entity.setDelFlag(0);
             resumeSkillMapper.insert(entity);
         }
-    }
 
-    private void saveWorkExperiences(ParsedResumeResult result) {
-        Date now = new Date();
         for (WorkExperience workExperience : safeList(result.getWorkExperiences())) {
             if (workExperience == null || !StringUtils.hasText(workExperience.getCompanyName())) {
                 continue;
@@ -298,10 +297,7 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
             entity.setDelFlag(0);
             resumeWorkExperienceMapper.insert(entity);
         }
-    }
 
-    private void saveProjectExperiences(ParsedResumeResult result) {
-        Date now = new Date();
         for (ProjectExperience projectExperience : safeList(result.getProjectExperiences())) {
             if (projectExperience == null || !StringUtils.hasText(projectExperience.getProjectName())) {
                 continue;
@@ -321,10 +317,7 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
             entity.setDelFlag(0);
             resumeProjectExperienceMapper.insert(entity);
         }
-    }
 
-    private void saveCertifications(ParsedResumeResult result) {
-        Date now = new Date();
         for (Certification certification : safeList(result.getCertifications())) {
             if (certification == null || !StringUtils.hasText(certification.getName())) {
                 continue;
@@ -344,42 +337,37 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
             entity.setDelFlag(0);
             resumeCertificationMapper.insert(entity);
         }
-    }
 
-    private Long saveAnalysisReport(ParsedResumeResult result) {
         AnalysisReport report = result.getAnalysisReport();
+        Long reportId = null;
         if (report == null) {
             saveFailedAnalysisReport(result.getResumeId(), result.getUserId(), "大模型未返回分析报告");
-            return null;
+        } else {
+            ResumeAnalysisReport reportEntity = new ResumeAnalysisReport();
+            reportEntity.setUserId(result.getUserId());
+            reportEntity.setResumeId(result.getResumeId());
+            reportEntity.setScoreValue(report.getScoreValue());
+            reportEntity.setScoreGrade(report.getScoreGrade());
+            reportEntity.setScoreLevel(report.getScoreLevel());
+            reportEntity.setAnalysisSummary(report.getAnalysisSummary());
+            reportEntity.setUrgentIssueCount(defaultNumber(report.getUrgentIssueCount(), 0));
+            reportEntity.setCriticalIssueCount(defaultNumber(report.getCriticalIssueCount(), 0));
+            reportEntity.setOptionalIssueCount(defaultNumber(report.getOptionalIssueCount(), 0));
+            reportEntity.setAnalyzeStatus(defaultText(report.getAnalyzeStatus(), "ANALYZED"));
+            reportEntity.setStatus(defaultText(report.getStatus(), "ACTIVE"));
+            reportEntity.setCreateTime(now);
+            reportEntity.setUpdateTime(now);
+            reportEntity.setDelFlag(0);
+            resumeAnalysisReportMapper.insert(reportEntity);
+            reportId = reportEntity.getId();
+            if (reportId == null) {
+                ResumeAnalysisReport saved = resumeAnalysisReportMapper.selectOne(Wrappers.lambdaQuery(ResumeAnalysisReport.class)
+                        .eq(ResumeAnalysisReport::getResumeId, result.getResumeId())
+                        .last("limit 1"));
+                reportId = saved == null ? null : saved.getId();
+            }
         }
-        Date now = new Date();
-        ResumeAnalysisReport entity = new ResumeAnalysisReport();
-        entity.setUserId(result.getUserId());
-        entity.setResumeId(result.getResumeId());
-        entity.setScoreValue(report.getScoreValue());
-        entity.setScoreGrade(report.getScoreGrade());
-        entity.setScoreLevel(report.getScoreLevel());
-        entity.setAnalysisSummary(report.getAnalysisSummary());
-        entity.setUrgentIssueCount(defaultNumber(report.getUrgentIssueCount(), 0));
-        entity.setCriticalIssueCount(defaultNumber(report.getCriticalIssueCount(), 0));
-        entity.setOptionalIssueCount(defaultNumber(report.getOptionalIssueCount(), 0));
-        entity.setAnalyzeStatus(defaultText(report.getAnalyzeStatus(), "ANALYZED"));
-        entity.setStatus(defaultText(report.getStatus(), "ACTIVE"));
-        entity.setCreateTime(now);
-        entity.setUpdateTime(now);
-        entity.setDelFlag(0);
-        resumeAnalysisReportMapper.insert(entity);
-        if (entity.getId() != null) {
-            return entity.getId();
-        }
-        ResumeAnalysisReport saved = resumeAnalysisReportMapper.selectOne(Wrappers.lambdaQuery(ResumeAnalysisReport.class)
-                .eq(ResumeAnalysisReport::getResumeId, result.getResumeId())
-                .last("limit 1"));
-        return saved == null ? null : saved.getId();
-    }
 
-    private Map<String, Long> saveAnalysisSections(ParsedResumeResult result, Long reportId) {
-        Date now = new Date();
         Map<String, Long> sectionIdMap = new HashMap<>();
         for (AnalysisSection section : safeList(result.getAnalysisSections())) {
             if (section == null || !StringUtils.hasText(section.getSectionCode())) {
@@ -409,11 +397,7 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
             }
             sectionIdMap.put(entity.getSectionCode(), sectionId);
         }
-        return sectionIdMap;
-    }
 
-    private void saveAnalysisIssues(ParsedResumeResult result, Long reportId, Map<String, Long> sectionIdMap) {
-        Date now = new Date();
         for (AnalysisIssue issue : safeList(result.getAnalysisIssues())) {
             if (issue == null || !StringUtils.hasText(issue.getTitle())) {
                 continue;
@@ -437,6 +421,25 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
             entity.setDelFlag(0);
             resumeAnalysisIssueMapper.insert(entity);
         }
+    }
+
+    private void deleteExistingResumeData(String resumeId) {
+        resumeAnalysisIssueMapper.delete(Wrappers.lambdaQuery(ResumeAnalysisIssue.class)
+                .eq(ResumeAnalysisIssue::getResumeId, resumeId));
+        resumeAnalysisSectionMapper.delete(Wrappers.lambdaQuery(ResumeAnalysisSection.class)
+                .eq(ResumeAnalysisSection::getResumeId, resumeId));
+        resumeAnalysisReportMapper.delete(Wrappers.lambdaQuery(ResumeAnalysisReport.class)
+                .eq(ResumeAnalysisReport::getResumeId, resumeId));
+        resumeCertificationMapper.delete(Wrappers.lambdaQuery(ResumeCertification.class)
+                .eq(ResumeCertification::getResumeId, resumeId));
+        resumeProjectExperienceMapper.delete(Wrappers.lambdaQuery(ResumeProjectExperience.class)
+                .eq(ResumeProjectExperience::getResumeId, resumeId));
+        resumeWorkExperienceMapper.delete(Wrappers.lambdaQuery(ResumeWorkExperience.class)
+                .eq(ResumeWorkExperience::getResumeId, resumeId));
+        resumeSkillMapper.delete(Wrappers.lambdaQuery(ResumeSkill.class)
+                .eq(ResumeSkill::getResumeId, resumeId));
+        resumeProfileMapper.delete(Wrappers.lambdaQuery(ResumeProfile.class)
+                .eq(ResumeProfile::getResumeId, resumeId));
     }
 
     private void saveFailedAnalysisReport(String resumeId, Long userId, String reason) {
@@ -468,52 +471,28 @@ public class JobBackedUserResumeAnalysisConsumer implements RocketMQListener<Mes
         userResumeFileMapper.updateById(update);
     }
 
-    private String buildSystemPrompt() {
-        return PromptTemplateLoader.load(STRUCTURED_PROMPT_DIR + "system.md");
-    }
-
-    private String buildUserPrompt(String task, String resumeText, String rulesFile, String schemaFile) {
-        return PromptTemplateLoader.format(
+    private <T> T askJson(String task, String resumeId, String resumeText, String rulesFile, String schemaFile, Class<T> type) throws Exception {
+        long startTime = System.currentTimeMillis();
+        String systemPrompt = PromptTemplateLoader.load(STRUCTURED_PROMPT_DIR + "system.md");
+        String userPrompt = PromptTemplateLoader.format(
                 STRUCTURED_PROMPT_DIR + "user-template.md",
                 task,
                 PromptTemplateLoader.load(STRUCTURED_PROMPT_DIR + rulesFile),
                 PromptTemplateLoader.load(STRUCTURED_PROMPT_DIR + schemaFile),
                 resumeText
         );
-    }
-
-    private <T> T askJson(String systemPrompt, String userPrompt, Class<T> type) throws Exception {
-        InfraAiJsonLlmClient.JsonLlmResult result = llmClient.chatJson(systemPrompt, userPrompt);
-        return objectMapper.readValue(result.content(), type);
-    }
-
-    private void fillAnalysisDefaults(Long userId, String resumeId, AnalysisResult analysis) {
-        if (analysis == null) {
-            return;
-        }
-        if (analysis.getReport() != null) {
-            analysis.getReport().setUserId(userId);
-            analysis.getReport().setResumeId(resumeId);
-            analysis.getReport().setAnalyzeStatus(defaultText(analysis.getReport().getAnalyzeStatus(), "ANALYZED"));
-            analysis.getReport().setStatus(defaultText(analysis.getReport().getStatus(), "ACTIVE"));
-        }
-        if (analysis.getSections() != null) {
-            for (AnalysisSection section : analysis.getSections()) {
-                if (section == null) {
-                    continue;
-                }
-                section.setResumeId(resumeId);
-                section.setStatus(defaultText(section.getStatus(), "ACTIVE"));
-            }
-        }
-        if (analysis.getIssues() != null) {
-            for (AnalysisIssue issue : analysis.getIssues()) {
-                if (issue == null) {
-                    continue;
-                }
-                issue.setResumeId(resumeId);
-                issue.setStatus(defaultText(issue.getStatus(), "PENDING"));
-            }
+        log.info("[消费者] - 用户简历分析处理 - 开始调用大模型, resumeId:{}, task:{}, responseType:{}",
+                resumeId, task, type.getSimpleName());
+        try {
+            InfraAiJsonLlmClient.JsonLlmResult result = llmClient.chatJson(systemPrompt, userPrompt);
+            String content = result == null ? null : result.content();
+            log.info("[消费者] - 用户简历分析处理 - 大模型调用成功, resumeId:{}, task:{}, costMs:{}, contentLength:{}",
+                    resumeId, task, System.currentTimeMillis() - startTime, content == null ? 0 : content.length());
+            return objectMapper.readValue(content, type);
+        } catch (Exception exception) {
+            log.error("[消费者] - 用户简历分析处理 - 大模型调用失败, resumeId:{}, task:{}, costMs:{}",
+                    resumeId, task, System.currentTimeMillis() - startTime, exception);
+            throw exception;
         }
     }
 

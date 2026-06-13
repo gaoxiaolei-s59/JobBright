@@ -88,8 +88,4 @@ public class UserResumeController {
         return Results.success(userResumeService.getResumePreviewV2(resumeId));
     }
 
-
-
-
-
 }
